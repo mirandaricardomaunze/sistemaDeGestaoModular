@@ -18,6 +18,7 @@ import { Card, Badge, Button, SmartTable, Skeleton } from '../../components/ui';
 import { MetricCard, FilterCard } from '../../components/common/ModuleMetricCard';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { useStockAging, useSupplierPerformance, useSalesReport, useWarehouseDistribution } from '../../hooks/useCommercial';
+import { AISuggestionsPanel } from '../../components/commercial/analytics/AISuggestionsPanel';
 import type { StockAgingProduct, SupplierPerformance } from '../../services/api/commercial.api';
 import { useCategories } from '../../hooks/useData';
 import { CHART_TOOLTIP_STYLE } from '../../utils/constants';
@@ -292,6 +293,10 @@ export default function CommercialReports({ initialTab = 'sales' }: CommercialRe
                     );
                 })}
             </div>
+
+            <AISuggestionsPanel
+                description="Sugestões automáticas cruzando vendas, margens, envelhecimento de stock, fornecedores e distribuição por armazém."
+            />
 
             {activeTab === 'margins' && <MarginAnalysis />}
 

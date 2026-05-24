@@ -255,7 +255,7 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose }: CreatePurc
                     })}
                     {fields.length === 0 && (
                         <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 dark:border-dark-700 rounded-lg">
-                            Nenhum item adicionado Ã  encomenda.
+                            Nenhum item adicionado Ã  encomenda.
                         </div>
                     )}
                     {errors.items && (

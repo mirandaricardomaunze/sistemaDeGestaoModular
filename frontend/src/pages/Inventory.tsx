@@ -1,4 +1,4 @@
-﻿import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import InventoryTable from '../components/inventory/InventoryTable';
 import ProductForm from '../components/inventory/ProductForm';
@@ -57,7 +57,7 @@ export default function Inventory() {
     return (
         <div className="space-y-6">
             <PageHeader 
-                title="GestÃ£o de InventÃ¡rio"
+                title="Gestão de Inventário"
                 subtitle="Controlo de Produtos, Stock e Lotes de Validade"
                 icon={<HiOutlineCube className="text-primary-600 dark:text-primary-400" />}
                 actions={

@@ -23,6 +23,9 @@ import { PAGE_SIZE } from '../utils/constants';
 interface OrderItem {
     product: Product;
     quantity: number;
+    unitMode?: 'box' | 'unit';
+    packSize?: number;
+    unitPrice?: number;
 }
 
 // Types for API response
@@ -128,6 +131,7 @@ export default function Orders({ originModule }: OrdersProps) {
         requestOrderCancellation,
         approveOrderCancellation,
         rejectOrderCancellation,
+        refetch,
     } = useOrders({
         page,
         limit: pageSize,
@@ -200,11 +204,17 @@ export default function Orders({ originModule }: OrdersProps) {
         }));
     }, [orders]);
 
-    // Handle new order creation
+    // Handle new order creation.
+    // Convert cart items (which may be in box or unit mode) to canonical
+    // per-unit storage: quantity in units, unitPrice per unit. Backend mirrors
+    // the salesService validation and accepts both box and unit prices, but we
+    // send the unit form to match how OrderItem is persisted.
     const handleOrderComplete = async (orderData: {
         customer: { name: string; phone: string; email?: string; address?: string };
         items: OrderItem[];
         details: { deliveryDate: string; priority: 'low' | 'normal' | 'high' | 'urgent'; notes?: string; paymentMethod: string };
+        subtotal: number;
+        taxAmount: number;
         total: number;
     }) => {
         try {
@@ -213,12 +223,22 @@ export default function Orders({ originModule }: OrdersProps) {
                 customerPhone: orderData.customer.phone,
                 customerEmail: orderData.customer.email,
                 customerAddress: orderData.customer.address,
-                items: orderData.items.map(item => ({
-                    productId: item.product.id,
-                    productName: item.product.name,
-                    quantity: item.quantity,
-                    price: item.product.price,
-                })),
+                items: orderData.items.map(item => {
+                    const packSize = item.packSize ?? (Number(item.product.packSize) || 1);
+                    const mode = item.unitMode ?? 'unit';
+                    const factor = mode === 'box' ? packSize : 1;
+                    const unitsQty = item.quantity * factor;
+                    const perUnitPrice = item.unitPrice !== undefined
+                        ? (mode === 'box' ? item.unitPrice / packSize : item.unitPrice)
+                        : Number(item.product.price) / packSize;
+                    return {
+                        productId: item.product.id,
+                        productName: item.product.name,
+                        quantity: unitsQty,
+                        price: perUnitPrice,
+                        unitPrice: perUnitPrice,
+                    };
+                }),
                 total: orderData.total,
                 priority: orderData.details.priority,
                 paymentMethod: orderData.details.paymentMethod,
@@ -417,6 +437,7 @@ export default function Orders({ originModule }: OrdersProps) {
                 onCancelOrder={handleCancelOrderClick}
                 onApproveCancellation={handleApproveCancellationClick}
                 onRejectCancellation={handleRejectCancellationClick}
+                onRefresh={refetch}
                 isLoading={isLoading}
                 isAdmin={isAdmin}
             />
@@ -426,6 +447,7 @@ export default function Orders({ originModule }: OrdersProps) {
                 isOpen={showWizard}
                 onClose={() => setShowWizard(false)}
                 onComplete={handleOrderComplete}
+                originModule={originModule}
             />
 
             {/* Print Preview */}

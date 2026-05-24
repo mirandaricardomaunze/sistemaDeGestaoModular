@@ -1,6 +1,6 @@
-﻿/**
+/**
  * CRM Dashboard Component
- * Painel de mÃ©tricas e indicadores do CRM com grficos de performance
+ * Painel de métricas e indicadores do CRM com grficos de performance
  */
 
 import { useMemo } from 'react';
@@ -49,7 +49,7 @@ export default function CRMDashboard() {
     const handleExport = (format: 'pdf' | 'excel') => {
         const options: ExportOptions = {
             filename: `Oportunidades_CRM_${new Date().toISOString().split('T')[0]}`,
-            title: 'RelatÃ³rio de Oportunidades CRM',
+            title: 'Relatório de Oportunidades CRM',
             subtitle: 'Pipeline de Vendas',
             columns: [
                 { key: 'title', header: 'Oportunidade', width: 30 },
@@ -100,10 +100,10 @@ export default function CRMDashboard() {
                     { label: 'Valor Ponderado', value: formatCurrency(dashboardData.weightedPipeline), sub: 'Ajustado por probabilidade', icon: HiOutlineArrowTrendingUp,
                       cardBg: 'bg-emerald-50/60 dark:bg-emerald-950/30', cardBorder: 'border border-emerald-200/70 dark:border-emerald-800/40',
                       iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', accent: 'bg-emerald-500' },
-                    { label: 'Taxa de ConversÃ£o', value: `${dashboardData.winRate.toFixed(1)}%`, sub: 'MÃ©dia histÃ³rica', icon: HiOutlineChartBar,
+                    { label: 'Taxa de Conversão', value: `${dashboardData.winRate.toFixed(1)}%`, sub: 'Média histórica', icon: HiOutlineChartBar,
                       cardBg: 'bg-blue-50/60 dark:bg-blue-950/30', cardBorder: 'border border-blue-200/70 dark:border-blue-800/40',
                       iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', accent: 'bg-blue-500' },
-                    { label: 'Tempo MÃ©dio', value: `${dashboardData.avgTimeToClose} dias`, sub: 'Para fechar negÃ³cios', icon: HiOutlineClock,
+                    { label: 'Tempo Médio', value: `${dashboardData.avgTimeToClose} dias`, sub: 'Para fechar negócios', icon: HiOutlineClock,
                       cardBg: 'bg-purple-50/60 dark:bg-purple-950/30', cardBorder: 'border border-purple-200/70 dark:border-purple-800/40',
                       iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400', accent: 'bg-purple-500' },
                 ].map((s, i) => (
@@ -152,7 +152,7 @@ export default function CRMDashboard() {
                                     Excel
                                 </Button>
                                 <Badge variant="gray">
-                                    Ãšltimos 30 dias
+                                    Últimos 30 dias
                                 </Badge>
                             </div>
                         </div>
@@ -173,7 +173,7 @@ export default function CRMDashboard() {
                                         </div>
                                         <div className="flex items-center gap-3 text-sm">
                                             <span className="text-gray-500">
-                                                {stage.count} negÃ³cios
+                                                {stage.count} negócios
                                             </span>
                                             <span className="font-medium text-gray-900 dark:text-white">
                                                 {formatCurrency(stage.value)}

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AlertsPage - Full page view for managing all alerts
  * 
  * Uses the new modular notification system with filtering,
@@ -26,6 +26,7 @@ import { cn } from '../utils/helpers';
 import { useAlerts, useUnreadCount } from '../hooks/useAlerts';
 import { useTenant } from '../contexts/TenantContext';
 import { Button, Badge, Card, Pagination, usePagination, Select, ConfirmationModal } from '../components/ui';
+import { MetricCard } from '../components/common/ModuleMetricCard';
 import type { Alert, AlertModule, AlertPriority } from '../services/api';
 
 // ============================================================================
@@ -33,17 +34,17 @@ import type { Alert, AlertModule, AlertPriority } from '../services/api';
 // ============================================================================
 
 const MODULE_CONFIG: Record<string, { label: string }> = {
-    inventory: { label: 'InventÃ¡rio' },
+    inventory: { label: 'Inventário' },
     invoices: { label: 'Facturas' },
     hospitality: { label: 'Hotelaria' },
-    pharmacy: { label: 'FarmÃ¡cia' },
+    pharmacy: { label: 'Farmácia' },
     crm: { label: 'CRM' },
     pos: { label: 'POS' },
 };
 
 // Each alert module is shown only if the tenant has at least one of these
 // underlying modules enabled. Examples:
-//   - "InventÃ¡rio" requires any product-carrying module (commercial/pharmacy/â€¦)
+//   - "Inventário" requires any product-carrying module (commercial/pharmacy/…)
 //   - "Hotelaria" requires the hospitality module
 //   - Core modules (invoices, crm, pos) match themselves
 const MODULE_REQUIRES: Record<string, string[]> = {
@@ -56,9 +57,9 @@ const MODULE_REQUIRES: Record<string, string[]> = {
 };
 
 const PRIORITY_CONFIG: Record<AlertPriority, { label: string; color: string; icon: React.ReactNode }> = {
-    critical: { label: 'CrÃ­tico', color: 'red', icon: <HiOutlineExclamationCircle className="w-5 h-5" /> },
+    critical: { label: 'Crítico', color: 'red', icon: <HiOutlineExclamationCircle className="w-5 h-5" /> },
     high: { label: 'Alto', color: 'orange', icon: <HiOutlineExclamationTriangle className="w-5 h-5" /> },
-    medium: { label: 'MÃ©dio', color: 'yellow', icon: <HiOutlineInformationCircle className="w-5 h-5" /> },
+    medium: { label: 'Médio', color: 'yellow', icon: <HiOutlineInformationCircle className="w-5 h-5" /> },
     low: { label: 'Baixo', color: 'blue', icon: <HiOutlineInformationCircle className="w-5 h-5" /> }
 };
 
@@ -128,11 +129,11 @@ export default function AlertsPage() {
         const diffMs = Date.now() - date.getTime();
         const diffMin = Math.floor(diffMs / 60000);
         if (diffMin < 1) return 'agora mesmo';
-        if (diffMin < 60) return `hÃ¡ ${diffMin} min`;
+        if (diffMin < 60) return `há ${diffMin} min`;
         const diffH = Math.floor(diffMin / 60);
-        if (diffH < 24) return `hÃ¡ ${diffH} h`;
+        if (diffH < 24) return `há ${diffH} h`;
         const diffD = Math.floor(diffH / 24);
-        if (diffD < 7) return `hÃ¡ ${diffD} d`;
+        if (diffD < 7) return `há ${diffD} d`;
         return date.toLocaleDateString('pt-MZ', {
             day: '2-digit',
             month: 'short',
@@ -200,53 +201,33 @@ export default function AlertsPage() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Total</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalItems}</p>
-                        </div>
-                        <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-500/15 border border-transparent dark:border-blue-500/20 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110">
-                            <HiOutlineBell className="w-6 h-6 text-blue-600 dark:text-blue-300" />
-                        </div>
-                    </div>
-                </Card>
-                <Card className="p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">NÃ£o Lidos</p>
-                            <p className="text-2xl font-bold text-primary-600">{unreadCount}</p>
-                        </div>
-                        <div className="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-500/15 border border-transparent dark:border-primary-500/20 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110 relative">
-                            <HiOutlineBell className="w-6 h-6 text-primary-600 dark:text-primary-300" />
-                            {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-primary-500 animate-pulse ring-2 ring-white dark:ring-dark-800" />
-                            )}
-                        </div>
-                    </div>
-                </Card>
-                <Card className="p-4 border-l-4 border-l-red-500">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">CrÃ­ticos</p>
-                            <p className="text-2xl font-bold text-red-600">{criticalCount}</p>
-                        </div>
-                        <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-500/15 border border-transparent dark:border-red-500/20 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110">
-                            <HiOutlineExclamationCircle className="w-6 h-6 text-red-600 dark:text-red-300" />
-                        </div>
-                    </div>
-                </Card>
-                <Card className="p-4 border-l-4 border-l-orange-500">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Alta Prioridade</p>
-                            <p className="text-2xl font-bold text-orange-600">{highCount}</p>
-                        </div>
-                        <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-500/15 border border-transparent dark:border-orange-500/20 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110">
-                            <HiOutlineExclamationTriangle className="w-6 h-6 text-orange-600 dark:text-orange-300" />
-                        </div>
-                    </div>
-                </Card>
+                <MetricCard
+                    icon={<HiOutlineBell className="w-5 h-5" />}
+                    color="blue"
+                    value={totalItems}
+                    label="Total"
+                />
+                <MetricCard
+                    icon={<HiOutlineBell className="w-5 h-5" />}
+                    color="primary"
+                    value={unreadCount}
+                    label="Não Lidos"
+                    badge={unreadCount > 0 ? (
+                        <span className="w-2 h-2 rounded-full bg-primary-500 animate-pulse" />
+                    ) : undefined}
+                />
+                <MetricCard
+                    icon={<HiOutlineExclamationCircle className="w-5 h-5" />}
+                    color="danger"
+                    value={criticalCount}
+                    label="Críticos"
+                />
+                <MetricCard
+                    icon={<HiOutlineExclamationTriangle className="w-5 h-5" />}
+                    color="orange"
+                    value={highCount}
+                    label="Alta Prioridade"
+                />
             </div>
 
             {/* Filters */}
@@ -258,7 +239,7 @@ export default function AlertsPage() {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Procurar por tÃ­tulo ou mensagem..."
+                        placeholder="Procurar por título ou mensagem..."
                         className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                     />
                     {searchQuery && (
@@ -277,7 +258,7 @@ export default function AlertsPage() {
                     <div className="min-w-0">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             <HiOutlineFilter className="w-4 h-4 inline mr-1" />
-                            MÃ³dulo
+                            Módulo
                         </label>
                         <div className="flex flex-wrap gap-2">
                             <Button
@@ -331,9 +312,9 @@ export default function AlertsPage() {
                             onChange={(e) => setSelectedPriority(e.target.value as AlertPriority | 'all')}
                             options={[
                                 { value: 'all', label: 'Todas' },
-                                { value: 'critical', label: 'CrÃ­tico' },
+                                { value: 'critical', label: 'Crítico' },
                                 { value: 'high', label: 'Alto' },
-                                { value: 'medium', label: 'MÃ©dio' },
+                                { value: 'medium', label: 'Médio' },
                                 { value: 'low', label: 'Baixo' }
                             ]}
                         />
@@ -371,7 +352,7 @@ export default function AlertsPage() {
                     </div>
                 </div>
 
-                {/* Bulk Actions â€” always visible so the affordance isn't hidden behind a toggle */}
+                {/* Bulk Actions — always visible so the affordance isn't hidden behind a toggle */}
                 <div className="pt-4 border-t border-gray-200 dark:border-dark-600 flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                         {totalItems > 0
@@ -403,7 +384,7 @@ export default function AlertsPage() {
                     }
                 }}
                 title="Limpar alertas resolvidos?"
-                message="Todos os alertas marcados como resolvidos serÃ£o removidos permanentemente. Esta acÃ§Ã£o nÃ£o pode ser desfeita."
+                message="Todos os alertas marcados como resolvidos serão removidos permanentemente. Esta acção não pode ser desfeita."
                 confirmText="Sim, remover"
                 cancelText="Cancelar"
                 variant="danger"
@@ -424,7 +405,7 @@ export default function AlertsPage() {
                             Sem Alertas
                         </h3>
                         <p className="text-gray-500 dark:text-gray-400">
-                            NÃ£o existem alertas para os filtros seleccionados.
+                            Não existem alertas para os filtros seleccionados.
                         </p>
                     </div>
                 ) : (

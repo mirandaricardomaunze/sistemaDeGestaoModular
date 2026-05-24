@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Button, Card, Input, Modal, Select, Pagination, usePagination, ConfirmationModal } from '../ui';
 import { HiOutlineDocumentArrowDown, HiOutlineMagnifyingGlass, HiOutlineTrash, HiOutlineCheck } from 'react-icons/hi2';
 import { formatDate } from '../../utils/helpers';
@@ -140,7 +140,7 @@ export default function StockTransferManager() {
         const currentQtyInTransfer = existingItem ? existingItem.quantity : 0;
 
         if (currentStock < (currentQtyInTransfer + quantity)) {
-            toast.error(`Estoque insuficiente! DisponÃ­vel: ${currentStock}`);
+            toast.error(`Estoque insuficiente! Disponível: ${currentStock}`);
             return;
         }
 
@@ -169,7 +169,7 @@ export default function StockTransferManager() {
 
     const handleSubmit = async () => {
         if (!sourceId || !targetId || !responsible || transferItems.length === 0) {
-            toast.error('Preencha todos os campos obrigatÃ³rios');
+            toast.error('Preencha todos os campos obrigatórios');
             return;
         }
 
@@ -191,7 +191,7 @@ export default function StockTransferManager() {
             resetForm();
         } catch (err) {
             const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: unknown; errors?: unknown[] } } };
-            const msg = apiErr?.response?.data?.message || 'Erro ao criar transferÃªncia. Verifique os dados e tente novamente.';
+            const msg = apiErr?.response?.data?.message || 'Erro ao criar transferência. Verifique os dados e tente novamente.';
             toast.error(msg);
         }
     };
@@ -239,20 +239,20 @@ export default function StockTransferManager() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <Input
                         label="Pesquisar"
-                        placeholder="NÃºmero ou responsÃ¡vel..."
+                        placeholder="Número ou responsável..."
                         value={historySearch}
                         onChange={(e) => setHistorySearch(e.target.value)}
                         leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                     />
                     <Select
-                        label="Filtrar por ArmazÃ©m"
-                        options={[{ value: 'all', label: 'Todos os armazÃ©ns' }, ...warehouseOptions]}
+                        label="Filtrar por Armazém"
+                        options={[{ value: 'all', label: 'Todos os armazéns' }, ...warehouseOptions]}
                         value={historyWarehouse}
                         onChange={(e) => setHistoryWarehouse(e.target.value)}
                     />
                     <Input
                         type="date"
-                        label="Data InÃ­cio"
+                        label="Data Início"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
                     />
@@ -271,20 +271,20 @@ export default function StockTransferManager() {
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
                         <thead className="bg-gray-50 dark:bg-dark-800">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NÃºmero</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Número</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origem</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destino</th>
                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Itens</th>
                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">AÃ§Ãµes</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-dark-900 divide-y divide-gray-200 dark:divide-dark-700">
                             {filteredHistory.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                                        Nenhuma transferÃªncia encontrada com os filtros atuais
+                                        Nenhuma transferência encontrada com os filtros atuais
                                     </td>
                                 </tr>
                             ) : (
@@ -324,12 +324,12 @@ export default function StockTransferManager() {
                                                 )}
                                                 {transfer.status === 'in_transit' && (
                                                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                                                        Em TrÃ¢nsito
+                                                        Em Trânsito
                                                     </span>
                                                 )}
                                                 {(transfer.status === 'received' || transfer.status === 'completed') && (
                                                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                                        ConcluÃ­da
+                                                        Concluída
                                                     </span>
                                                 )}
                                                 {transfer.status === 'rejected' && (
@@ -353,7 +353,7 @@ export default function StockTransferManager() {
                                                             onClick={() => handleWorkflowAction('approve', transfer)}
                                                             leftIcon={<HiOutlineCheck className="w-4 h-4" />}
                                                         >
-                                                            AprovaÃ§Ã£o
+                                                            Aprovação
                                                         </Button>
                                                     )}
 
@@ -454,7 +454,7 @@ export default function StockTransferManager() {
                     setIsModalOpen(false);
                     resetForm();
                 }}
-                title="Nova TransferÃªncia"
+                title="Nova Transferência"
                 size="lg"
             >
                 <div className="space-y-6">
@@ -482,7 +482,7 @@ export default function StockTransferManager() {
                         <h4 className="font-medium text-sm text-gray-900 dark:text-white mb-2">Adicionar Produtos</h4>
                         <div className="space-y-3">
                             <Input
-                                placeholder="Buscar produto por nome ou cÃ³digo..."
+                                placeholder="Buscar produto por nome ou código..."
                                 value={productSearch}
                                 onChange={(e) => setProductSearch(e.target.value)}
                                 leftIcon={<HiOutlineMagnifyingGlass className="w-4 h-4" />}
@@ -524,7 +524,7 @@ export default function StockTransferManager() {
                         {/* Items List */}
                         {transferItems.length > 0 && (
                             <div className="mt-4 space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Itens para TransferÃªncia</p>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Itens para Transferência</p>
                                 {transferItems.map((item, idx) => (
                                     <div
                                         key={idx}
@@ -562,16 +562,16 @@ export default function StockTransferManager() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <Input
-                            label="ResponsÃ¡vel *"
+                            label="Responsável *"
                             value={responsible}
                             onChange={(e) => setResponsible(e.target.value)}
-                            placeholder="Nome do responsÃ¡vel"
+                            placeholder="Nome do responsável"
                         />
                         <Input
                             label="Motivo"
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
-                            placeholder="Ex: ReposiÃ§Ã£o de estoque"
+                            placeholder="Ex: Reposição de estoque"
                         />
                     </div>
 
@@ -581,7 +581,7 @@ export default function StockTransferManager() {
                             onClick={handleSubmit}
                             disabled={!sourceId || !targetId || !responsible || transferItems.length === 0 || sourceId === targetId}
                         >
-                            Confirmar TransferÃªncia
+                            Confirmar Transferência
                         </Button>
                     </div>
                 </div>
@@ -593,20 +593,20 @@ export default function StockTransferManager() {
                 onClose={() => setTransferToConfirm(null)}
                 onConfirm={confirmWorkflowAction}
                 title={
-                    transferToConfirm?.type === 'submit' ? 'Submeter TransferÃªncia' :
-                    transferToConfirm?.type === 'approve' ? 'Aprovar TransferÃªncia' :
-                    transferToConfirm?.type === 'reject' ? 'Rejeitar TransferÃªncia' :
+                    transferToConfirm?.type === 'submit' ? 'Submeter Transferência' :
+                    transferToConfirm?.type === 'approve' ? 'Aprovar Transferência' :
+                    transferToConfirm?.type === 'reject' ? 'Rejeitar Transferência' :
                     transferToConfirm?.type === 'dispatch' ? 'Despachar Mercadoria' :
-                    transferToConfirm?.type === 'complete' ? 'Confirmar RecepÃ§Ã£o' :
-                    'Cancelar TransferÃªncia'
+                    transferToConfirm?.type === 'complete' ? 'Confirmar Recepção' :
+                    'Cancelar Transferência'
                 }
                 message={
-                    transferToConfirm?.type === 'submit' ? `Deseja submeter a transferÃªncia ${transferToConfirm?.transfer.number} para aprovaÃ§Ã£o?` :
-                    transferToConfirm?.type === 'approve' ? `Deseja aprovar a transferÃªncia ${transferToConfirm?.transfer.number}? O estoque serÃ¡ reservado no armazÃ©m de origem.` :
-                    transferToConfirm?.type === 'reject' ? `Deseja rejeitar a transferÃªncia ${transferToConfirm?.transfer.number}?` :
-                    transferToConfirm?.type === 'dispatch' ? `Deseja confirmar o despacho da mercadoria da transferÃªncia ${transferToConfirm?.transfer.number}? O estoque serÃ¡ deduzido da origem.` :
-                    transferToConfirm?.type === 'complete' ? `Deseja confirmar a recepÃ§Ã£o da transferÃªncia ${transferToConfirm?.transfer.number}? Os produtos serÃ£o adicionados ao armazÃ©m de destino.` :
-                    `Deseja cancelar a transferÃªncia ${transferToConfirm?.transfer.number}?`
+                    transferToConfirm?.type === 'submit' ? `Deseja submeter a transferência ${transferToConfirm?.transfer.number} para aprovação?` :
+                    transferToConfirm?.type === 'approve' ? `Deseja aprovar a transferência ${transferToConfirm?.transfer.number}? O estoque será reservado no armazém de origem.` :
+                    transferToConfirm?.type === 'reject' ? `Deseja rejeitar a transferência ${transferToConfirm?.transfer.number}?` :
+                    transferToConfirm?.type === 'dispatch' ? `Deseja confirmar o despacho da mercadoria da transferência ${transferToConfirm?.transfer.number}? O estoque será deduzido da origem.` :
+                    transferToConfirm?.type === 'complete' ? `Deseja confirmar a recepção da transferência ${transferToConfirm?.transfer.number}? Os produtos serão adicionados ao armazém de destino.` :
+                    `Deseja cancelar a transferência ${transferToConfirm?.transfer.number}?`
                 }
                 confirmText="Confirmar"
                 cancelText="Voltar"

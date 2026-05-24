@@ -193,7 +193,7 @@ export default function CommercialInventory() {
                         size="sm"
                         onClick={() => setActiveTab('products')}
                         className={cn(
-                            "group flex items-center gap-2 py-4 text-xs font-black uppercase tracking-[0.2em] border-b-2 rounded-none",
+                            "group flex items-center gap-2 py-4 text-xs font-black uppercase tracking-[0.2em] border-b-2 rounded-none focus:ring-0",
                             activeTab === 'products'
                                 ? "border-primary-500 text-primary-600"
                                 : "border-transparent text-gray-400 hover:text-gray-600"
@@ -212,7 +212,7 @@ export default function CommercialInventory() {
                         size="sm"
                         onClick={() => setActiveTab('batches')}
                         className={cn(
-                            "group flex items-center gap-2 py-4 text-xs font-black uppercase tracking-[0.2em] border-b-2 rounded-none",
+                            "group flex items-center gap-2 py-4 text-xs font-black uppercase tracking-[0.2em] border-b-2 rounded-none focus:ring-0",
                             activeTab === 'batches'
                                 ? "border-amber-500 text-amber-600"
                                 : "border-transparent text-gray-400 hover:text-gray-600"

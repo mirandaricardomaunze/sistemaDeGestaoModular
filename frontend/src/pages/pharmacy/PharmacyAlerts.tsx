@@ -1,13 +1,13 @@
-﻿/**
+/**
  * PharmacyAlerts
  *
- * Painel centralizado de alertas inteligentes da farmÃ¡cia:
+ * Painel centralizado de alertas inteligentes da farmácia:
  * - Medicamentos sem stock / stock baixo
- * - Validades crÃ­ticas e prÃ³ximas
+ * - Validades críticas e próximas
  * - Recalls activos
- * - DiscrepÃ¢ncias de narcÃ³ticos
+ * - Discrepâncias de narcóticos
  * - Receitas pendentes
- * - SugestÃ¡Ãµes de reposiÃ§Ã£o (reorder)
+ * - Sugestáões de reposição (reorder)
  */
 
 import { useState, useEffect } from 'react';
@@ -119,7 +119,7 @@ export default function PharmacyAlerts() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-black text-gray-900 dark:text-white">Alertas Inteligentes</h1>
-                    <p className="text-gray-500 dark:text-gray-400">MonitorizaÃ§Ã£o em tempo real da farmÃ¡cia</p>
+                    <p className="text-gray-500 dark:text-gray-400">Monitorização em tempo real da farmácia</p>
                 </div>
                 <Button
                     variant="ghost"
@@ -151,7 +151,7 @@ export default function PharmacyAlerts() {
                             <HiOutlineExclamationCircle className="w-5 h-5" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-red-600/70 dark:text-red-400/60">CrÃ­ticos</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-red-600/70 dark:text-red-400/60">Críticos</p>
                             <p className="text-xl font-black text-red-900 dark:text-white leading-none mt-1">{summary.critical}</p>
                         </div>
                     </div>
@@ -200,7 +200,7 @@ export default function PharmacyAlerts() {
                             : 'bg-white dark:bg-dark-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-dark-700 hover:border-emerald-400')}
                 >
                     <HiOutlineShoppingCart className="w-4 h-4" />
-                    ReposiÃ§Ã£o ({reorderSuggestions.length})
+                    Reposição ({reorderSuggestions.length})
                 </Button>
             </div>
 
@@ -219,7 +219,7 @@ export default function PharmacyAlerts() {
                                         ? 'bg-teal-500 text-white shadow-teal-500/20'
                                         : 'bg-white dark:bg-dark-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-dark-700 hover:border-teal-400')}
                             >
-                                {f === 'all' ? 'Todos' : f === 'critical' ? 'CrÃ­ticos' : f === 'warning' ? 'Avisos' : 'Info'}
+                                {f === 'all' ? 'Todos' : f === 'critical' ? 'Críticos' : f === 'warning' ? 'Avisos' : 'Info'}
                                 {f !== 'all' && (
                                     <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-white/20">
                                         {f === 'critical' ? summary.critical : f === 'warning' ? summary.warning : summary.info}
@@ -280,10 +280,10 @@ export default function PharmacyAlerts() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-indigo-700 dark:text-indigo-400">
-                                    {reorderSuggestions.length} medicamento(s) abaixo do ponto de reposiÃ§Ã£o
+                                    {reorderSuggestions.length} medicamento(s) abaixo do ponto de reposição
                                 </p>
                                 <p className="text-xs text-indigo-600 mt-0.5">
-                                    Custo estimado total de reposiÃ§Ã£o: <strong>{formatCurrency(reorderTotal)}</strong>
+                                    Custo estimado total de reposição: <strong>{formatCurrency(reorderTotal)}</strong>
                                 </p>
                             </div>
                             <HiOutlineShoppingCart className="w-8 h-8 text-indigo-400" />
@@ -299,8 +299,8 @@ export default function PharmacyAlerts() {
                     {!isLoading && reorderSuggestions.length === 0 && (
                         <Card className="p-12 text-center">
                             <HiOutlineShoppingCart className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                            <p className="text-gray-500 font-medium">Nenhuma sugestÃ£o de reposiÃ§Ã£o</p>
-                            <p className="text-gray-400 text-sm mt-1">Todos os medicamentos estÃ¡Ã£o acima do ponto de reposiÃ§Ã£o</p>
+                            <p className="text-gray-500 font-medium">Nenhuma sugestão de reposição</p>
+                            <p className="text-gray-400 text-sm mt-1">Todos os medicamentos estáão acima do ponto de reposição</p>
                         </Card>
                     )}
 
@@ -313,19 +313,19 @@ export default function PharmacyAlerts() {
                                             <span className="font-semibold text-gray-900 dark:text-white">{s.productName}</span>
                                             <span className="text-xs text-gray-400 font-mono">{s.productCode}</span>
                                             <span className={cn('text-xs px-2 py-0.5 rounded-full font-bold capitalize', URGENCY_COLOR[s.urgency] || 'bg-gray-100 text-gray-600')}>
-                                                {s.urgency === 'critical' ? 'Urgente' : s.urgency === 'high' ? 'Alta' : 'MÃ©dia'}
+                                                {s.urgency === 'critical' ? 'Urgente' : s.urgency === 'high' ? 'Alta' : 'Média'}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                                             <span>Stock actual: <strong className="text-gray-900 dark:text-white">{s.currentStock}</strong></span>
-                                            <span>Ponto reposiÃ§Ã£o: <strong>{s.reorderPoint}</strong></span>
+                                            <span>Ponto reposição: <strong>{s.reorderPoint}</strong></span>
                                             <span>Qty sugerida: <strong className="text-teal-600">{s.reorderQuantity}</strong></span>
                                         </div>
                                         {s.supplier && (
                                             <div className="mt-2 text-xs text-gray-500">
                                                 Fornecedor: <span className="font-medium text-gray-700 dark:text-gray-300">{s.supplier.name}</span>
-                                                {s.supplier.phone && <> Â· {s.supplier.phone}</>}
-                                                {s.supplier.email && <> Â· {s.supplier.email}</>}
+                                                {s.supplier.phone && <> · {s.supplier.phone}</>}
+                                                {s.supplier.email && <> · {s.supplier.email}</>}
                                             </div>
                                         )}
                                     </div>

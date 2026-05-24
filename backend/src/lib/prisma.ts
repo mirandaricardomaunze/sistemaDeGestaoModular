@@ -73,7 +73,7 @@ export const prisma = basePrisma.$extends({
                     'CompanyModule', 'CompanySettings', 'CalendarEvent',
                     // Stock & logistics
                     'StockTransfer', 'StockReservation', 'PriceTier', 'ProductBatch', 'WarehouseStock',
-                    'PurchaseOrder', 'SupplierInvoice', 'CreditNote', 'DebitNote', 'CustomerOrder', 'OrderCancellationRequest', 'DocumentSeries',
+                    'PurchaseOrder', 'SupplierInvoice', 'CreditNote', 'DebitNote', 'CustomerOrder', 'OrderCancellationRequest', 'DocumentSeries', 'DocumentSeriesReservation',
                     // Restaurant
                     'RestaurantTable', 'RestaurantMenuItem', 'RestaurantOrder', 'RestaurantReservation',
                     // CRM

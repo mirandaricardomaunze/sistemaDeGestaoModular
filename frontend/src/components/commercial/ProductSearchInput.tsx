@@ -344,7 +344,7 @@ export function ProductSearchInput({
                             </ul>
                             <div className="px-3 py-2 border-t border-gray-100 dark:border-dark-700 bg-gray-50 dark:bg-dark-900/50">
                                 <p className="text-xs text-gray-400 font-medium">
-                                    →â†” navegar · Enter seleccionar · Esc fechar
+                                    →↔ navegar · Enter seleccionar · Esc fechar
                                 </p>
                             </div>
                         </>

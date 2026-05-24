@@ -264,7 +264,7 @@ export function POSCartPanel({
                     {/* Prescription (controlled items) */}
                     {cartHasControlledItems && (
                         <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-700">
-                            <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-2">� ️ï¸ Receita obrigatória</p>
+                            <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-2">Atenção: Receita obrigatória</p>
                             <div className="flex gap-2">
                                 <div className="flex-1">
                                     <Input
@@ -302,7 +302,7 @@ export function POSCartPanel({
                                                 <p className="text-green-600">Prescritor: {validatedRx.prescriberName}</p>
                                             )}
                                             {validatedRx.status === 'dispensed' && (
-                                                <p className="text-amber-600 font-medium mt-0.5">� ️ï¸ Esta receita já foi dispensada anteriormente.</p>
+                                                <p className="text-amber-600 font-medium mt-0.5">Atenção: Esta receita já foi dispensada anteriormente.</p>
                                             )}
                                         </div>
                                     </div>

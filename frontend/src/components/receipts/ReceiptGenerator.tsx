@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,8 +17,8 @@ import toast from 'react-hot-toast';
 
 // Validation Schema
 const customerSchema = z.object({
-    name: z.string().min(2, 'Nome Ã© obrigatÃ³rio'),
-    email: z.string().email('Email invÃ¡lido').optional().or(z.literal('')),
+    name: z.string().min(2, 'Nome é obrigatório'),
+    email: z.string().email('Email inválido').optional().or(z.literal('')),
     phone: z.string().optional(),
     document: z.string().optional(),
     address: z.string().optional(),
@@ -70,7 +70,7 @@ export default function ReceiptGenerator() {
 
     // Calculations with IVA 16%
     const subtotal = selectedProducts.reduce((sum, item) => sum + item.total, 0);
-    const IVA_RATE = 0.16; // 16% IVA MoÃ§ambique
+    const IVA_RATE = 0.16; // 16% IVA Moçambique
     const tax = subtotal * IVA_RATE;
     const discount = 0;
     const total = subtotal + tax - discount;
@@ -197,7 +197,7 @@ export default function ReceiptGenerator() {
                 <Card padding="md">
                     <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Adicionar Produtos</h3>
                     <Input
-                        placeholder="Buscar produto por cÃ³digo ou nome..."
+                        placeholder="Buscar produto por código ou nome..."
                         value={searchProduct}
                         onChange={(e) => setSearchProduct(e.target.value)}
                     />
@@ -364,7 +364,7 @@ export default function ReceiptGenerator() {
 
                         {/* Footer */}
                         <div className="text-center mt-6 pt-4 border-t border-dashed border-gray-300 dark:border-dark-600">
-                            <p className="text-xs text-gray-500">Obrigado pela preferÃªncia!</p>
+                            <p className="text-xs text-gray-500">Obrigado pela preferência!</p>
                             <p className="text-xs text-gray-500">Volte sempre!</p>
                         </div>
                     </div>
@@ -409,17 +409,17 @@ export default function ReceiptGenerator() {
                     <Input
                         label="Telefone"
                         {...register('phone')}
-                        placeholder="(00) 00000-0000"
+                        placeholder="+258 84 000 0000"
                     />
                     <Input
                         label="Documento (BI/NUIT)"
                         {...register('document')}
-                        placeholder="000.000.000-00"
+                        placeholder="123456789"
                     />
                     <Input
-                        label="EndereÃ§o"
+                        label="Endereço"
                         {...register('address')}
-                        placeholder="Rua, nÃºmero, bairro"
+                        placeholder="Rua, número, bairro"
                     />
                     <div className="flex gap-3 pt-4">
                         <Button

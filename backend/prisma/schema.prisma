@@ -69,6 +69,7 @@ model Company {
   commissionRules           CommissionRule[]
   modules                   CompanyModule[]
   companySettings           CompanySettings?
+  notificationPreferences   NotificationPreference[]
   creditNotes               CreditNote[]
   creditPayments            CreditPayment[]
   customerOrders            CustomerOrder[]
@@ -337,6 +338,7 @@ model Warehouse {
   latitude            Decimal?            @db.Decimal(10, 8)
   longitude           Decimal?            @db.Decimal(11, 8)
   cashSessions        CashSession[]
+  invoices            Invoice[]
   parcels             Parcel[]
   productBatches      ProductBatch[]
   sales               Sale[]
@@ -980,14 +982,25 @@ model Invoice {
   companyId        String?
   printCount       Int              @default(0)
   quotationId      String?          @map("quotation_id")
+  warehouseId      String?          @map("warehouse_id")
+  // AT-MZ fiscal compliance:
+  // - hashCode: SHA-1 hash of (issueDate|invoiceNumber|grossTotal|previousHash)
+  // - previousHash: hash of the previous invoice in the company's series (chain)
+  // - atcud: Código Único de Documento — assigned by AT-MZ certified software
+  //   (left null until certification). Stored uppercase as per AT spec.
+  hashCode         String?          @map("hash_code")
+  previousHash     String?          @map("previous_hash")
+  atcud            String?
   creditNotes      CreditNote[]
   debitNotes       DebitNote[]
   items            InvoiceItem[]
   payments         InvoicePayment[]
   company          Company?         @relation(fields: [companyId], references: [id])
   customer         Customer?        @relation(fields: [customerId], references: [id])
+  warehouse        Warehouse?       @relation(fields: [warehouseId], references: [id])
 
   @@index([companyId])
+  @@index([warehouseId])
   @@map("invoices")
 }
 
@@ -1320,6 +1333,27 @@ model Alert {
   @@index([type])
   @@index([isRead, isResolved])
   @@map("alerts")
+}
+
+/// Per-role notification routing.
+/// Decides whether alerts of (module, alertType) go to the bell, the daily
+/// email digest, or both — for each role in the company. See [[audit-alerts]].
+model NotificationPreference {
+  id          String   @id @default(uuid())
+  companyId   String
+  role        String // super_admin | admin | manager | operator | cashier | stock_keeper
+  module      String // audit | invoices | inventory | ...
+  alertType   String? // null = any type in the module; or specific e.g. 'invoice_overdue'
+  inCenter    Boolean  @default(true)
+  inEmail     Boolean  @default(false)
+  minPriority String   @default("low") // low | medium | high | critical
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  company     Company  @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, role, module, alertType])
+  @@index([companyId, role])
+  @@map("notification_preferences")
 }
 
 model CompanySettings {

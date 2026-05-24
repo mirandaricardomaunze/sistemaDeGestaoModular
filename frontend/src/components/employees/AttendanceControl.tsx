@@ -176,7 +176,7 @@ export default function AttendanceControl() {
 
                 >
 
-                    Adicionar �  Área de Ponto
+                    Adicionar à Área de Ponto
 
                 </Button>
 
@@ -340,7 +340,7 @@ export default function AttendanceControl() {
 
                 onClose={() => setIsAddModalOpen(false)}
 
-                title="Adicionar �  Área de Ponto"
+                title="Adicionar à Área de Ponto"
 
                 size="md"
 

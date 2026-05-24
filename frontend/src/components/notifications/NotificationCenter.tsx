@@ -34,22 +34,24 @@ const MODULE_CONFIG: Record<string, { label: string; color: string; icon?: strin
     pharmacy: { label: 'Farmácia', color: 'red' },
     crm: { label: 'CRM', color: 'orange' },
     pos: { label: 'POS', color: 'cyan' },
+    audit: { label: 'Auditoria', color: 'amber' },
     general: { label: 'Geral', color: 'gray' }
 };
 
 // Route prefix → alert modules considered relevant to that section.
 // When inside one of these routes, the notification panel only surfaces
-// alerts tagged with these modules.
+// alerts tagged with these modules. Audit alerts are always relevant for
+// commercial/pharmacy/admin contexts since they signal cross-cutting risks.
 const ROUTE_MODULE_SCOPE: Record<string, AlertModule[]> = {
-    commercial: ['inventory', 'invoices', 'crm', 'pos'],
-    pharmacy: ['pharmacy', 'inventory', 'invoices'],
-    hospitality: ['hospitality'],
-    hotel: ['hospitality'],
-    'bottle-store': ['inventory', 'invoices', 'pos'],
-    bottlestore: ['inventory', 'invoices', 'pos'],
-    bottleStore: ['inventory', 'invoices', 'pos'],
-    restaurant: ['hospitality', 'inventory', 'pos'],
-    logistics: ['inventory'],
+    commercial: ['inventory', 'invoices', 'crm', 'pos', 'audit'],
+    pharmacy: ['pharmacy', 'inventory', 'invoices', 'audit'],
+    hospitality: ['hospitality', 'audit'],
+    hotel: ['hospitality', 'audit'],
+    'bottle-store': ['inventory', 'invoices', 'pos', 'audit'],
+    bottlestore: ['inventory', 'invoices', 'pos', 'audit'],
+    bottleStore: ['inventory', 'invoices', 'pos', 'audit'],
+    restaurant: ['hospitality', 'inventory', 'pos', 'audit'],
+    logistics: ['inventory', 'audit'],
 };
 
 function getScopeFromPath(pathname: string): AlertModule[] | null {

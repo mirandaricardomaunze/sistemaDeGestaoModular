@@ -1,205 +1,87 @@
 #!/usr/bin/env node
-// Corrige mojibake (UTF-8 lido como Latin-1) em ficheiros TS/TSX.
-// Uso: node scripts/fix-mojibake.mjs <file1> [file2] ...
+// Fix common mojibake caused by UTF-8 text being read as Windows-1252.
+// Usage: node scripts/fix-mojibake.mjs <file1> [file2] ...
 
 import fs from 'fs';
+import { TextDecoder } from 'util';
 
-// Ordem: sequências mais longas primeiro para evitar substituições parciais erradas.
-const replacements = [
-    // Compostos PT
-    ['Ã§Ã£o', 'ção'],
-    ['Ã§Ãµes', 'ções'],
-    ['Ã§Ã£', 'çã'],
-    ['Ã£o', 'ão'],
-    ['Ã£e', 'ãe'],
-    ['Ã£s', 'ãs'],
-    ['Ã©m', 'ém'],
-    ['Ã©s', 'és'],
-    ['Ã­s', 'ís'],
-    ['Ã­vel', 'ível'],
+const decoder = new TextDecoder('utf-8', { fatal: false });
 
-    // Box-drawing (não incluir 'â”' isolado — ambíguo)
-    ['â”€', '─'],
-    ['â”‚', '│'],
-    ['â•\x90', '═'],
-    ['â• ', '═'],
+const cp1252 = new Map([
+    [0x20ac, 0x80], [0x201a, 0x82], [0x0192, 0x83], [0x201e, 0x84],
+    [0x2026, 0x85], [0x2020, 0x86], [0x2021, 0x87], [0x02c6, 0x88],
+    [0x2030, 0x89], [0x0160, 0x8a], [0x2039, 0x8b], [0x0152, 0x8c],
+    [0x017d, 0x8e], [0x2018, 0x91], [0x2019, 0x92], [0x201c, 0x93],
+    [0x201d, 0x94], [0x2022, 0x95], [0x2013, 0x96], [0x2014, 0x97],
+    [0x02dc, 0x98], [0x2122, 0x99], [0x0161, 0x9a], [0x203a, 0x9b],
+    [0x0153, 0x9c], [0x017e, 0x9e], [0x0178, 0x9f],
+]);
 
-    // Smart quotes / dashes / bullets / symbols / emojis
-    ['â€™', '\''],
-    ['â€œ', '"'],
-    ['â€"', '—'],
-    ['â€”', '—'],
-    ['â€¦', '…'],
-    ['â€¢', '•'],
-    ['â†’', '→'],
-    ['âš ï¸ ', '⚠️'],
-    ['âš ', '⚠️'],
-    ['\xf0\x9f\x9a\xa8', '🚨'],
-    ['\xf0\x9f\x8d\xbe', '🍾'],
-    ['\xf0\x9f\x8d\xba', '🍺'],
-    ['\xf0\x9f\x8d\x9d', '🍽️'],
-    ['ââ€°¥', '≥'],
-    ['Ã—', '×'],
-    ['â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€', '─────────────'],
+const suspicious = /\u00c3[\s\S]|\u00c2[\s\S]|\u00e2[\s\S]{2}|\u00ef\u00bb\u00bf|\u00f0[\s\S]{3}/g;
+const bad = /\u00c3|\u00c2|\u00e2|\u00ef\u00bb\u00bf|\ufeff|\ufffd|\u00f0\u0178/;
+const badGlobal = /\u00c3|\u00c2|\u00e2|\u00ef\u00bb\u00bf|\ufeff|\ufffd|\u00f0\u0178/g;
 
-    // Corrupted plural words ending in 'aces' where 'çõ' was lost/corrupted
-    ['exportaces', 'exportações'],
-    ['transaces', 'transações'],
-    ['Transaces', 'Transações'],
-    ['utilizaces', 'utilizações'],
-    ['declaraces', 'declarações'],
-    ['obrigaces', 'obrigações'],
-    ['localizaces', 'localizações'],
-    ['expiraces', 'expirações'],
-    ['alteraces', 'alterações'],
-    ['operaces', 'operações'],
-    ['configuraces', 'configurações'],
-    ['informaces', 'informações'],
-    ['situaces', 'situações'],
-    [' as aces ', ' as ações '],
-    [' de aces ', ' de ações '],
-    [' para aces ', ' para ações '],
-    [' incluir aces ', ' incluir ações '],
-    [' excluir/incluir aces ', ' excluir/incluir ações '],
-    ['rastrear todas as aces', 'rastrear todas as ações'],
+function encodeCp1252(text) {
+    const bytes = [];
+    for (const char of text) {
+        const code = char.codePointAt(0);
+        if (cp1252.has(code)) {
+            bytes.push(cp1252.get(code));
+        } else if (code <= 0xff) {
+            bytes.push(code);
+        } else {
+            return null;
+        }
+    }
+    return Uint8Array.from(bytes);
+}
 
-    // Missing accents in common words
-    [' j ', ' já '],
-    ['(j ', '(já '],
-    [' j)', ' já)'],
-    [' accao nao ', ' acção não '],
-    [' acao nao ', ' ação não '],
-    [' Ainda nao ', ' Ainda não '],
-    [' ainda nao ', ' ainda não '],
-    [' j nao ', ' já não '],
-    [' ja nao ', ' já não '],
-    [' accao ', ' acção '],
-    [' acao ', ' ação '],
-    [' accao.', ' acção.'],
-    [' acao.', ' ação.'],
-    [' modulo.', ' módulo.'],
-    [' modulo ', ' módulo '],
-    [' saida ', ' saída '],
+function score(text) {
+    return (text.match(badGlobal) || []).length;
+}
 
-    // Vogais minúsculas com acento (UTF-8 lido como Latin-1)
-    // 'à' (U+00E0) → C3 A0 em UTF-8 → 'Ã' + NBSP (U+00A0) no mojibake
-    ['Ã ', 'à'],
-    ['Ã ', 'à'],
-    ['Ã¡', 'á'],
-    ['Ã¢', 'â'],
-    ['Ã£', 'ã'],
-    ['Ã¤', 'ä'],
-    ['Ã§', 'ç'],
-    ['Ã¨', 'è'],
-    ['Ã©', 'é'],
-    ['Ãª', 'ê'],
-    ['Ã«', 'ë'],
-    ['Ã­', 'í'],
-    ['Ã®', 'î'],
-    ['Ã¯', 'ï'],
-    ['Ã³', 'ó'],
-    ['Ã´', 'ô'],
-    ['Ãµ', 'õ'],
-    ['Ã¶', 'ö'],
-    ['Ã¹', 'ù'],
-    ['Ãº', 'ú'],
-    ['Ã»', 'û'],
-    ['Ã¼', 'ü'],
-
-    // Maiúsculas
-    ['Ã€', 'À'],
-    ['Ã\x81', 'Á'],
-    ['Ã ', 'Á'],
-    ['Ã‚', 'Â'],
-    ['Ãƒ', 'Ã'],
-    ['Ã„', 'Ä'],
-    ['Ã‡', 'Ç'],
-    ['Ãˆ', 'È'],
-    ['Ã‰', 'É'],
-    ['ÃŠ', 'Ê'],
-    ['Ã‹', 'Ë'],
-    ['ÃŒ', 'Ì'],
-    ['Ã\x8D', 'Í'],
-    ['ÃŽ', 'Î'],
-    ['Ã\x8F', 'Ï'],
-    ['Ã’', 'Ò'],
-    ['Ã“', 'Ó'],
-    ['Ã"', 'Ó'], // legado/typo
-    ['Ã”', 'Ô'],
-    ['Ã•', 'Õ'],
-    ['Ã–', 'Ö'],
-    ['Ã—', '×'],
-    ['Ã™', 'Ù'],
-    ['Ãš', 'Ú'],
-    ['Ã›', 'Û'],
-    ['Ãœ', 'Ü'],
-
-    // Diversos: 'Â' + char no range 0xA0-0xBF é mojibake para U+00A0-U+00BF
-    ['Â°', '°'],
-    ['Â²', '²'],
-    ['Â³', '³'],
-    ['Â§', '§'],
-    ['Â®', '®'],
-    ['Â¡', '¡'],
-    ['Â¿', '¿'],
-    ['Âª', 'ª'],
-    ['Âº', 'º'],
-    ['Âµ', 'µ'],
-    ['Â·', '·'],
-    ['Â«', '«'],
-    ['Â»', '»'],
-    ['Â¢', '¢'],
-    ['Â£', '£'],
-    ['Â¥', '¥'],
-    ['Â¬', '¬'],
-    ['Â±', '±'],
-    ['Â´', '´'],
-    ['Â½', '½'],
-    ['Â¼', '¼'],
-    ['Â¾', '¾'],
-
-    // BOM
-    ['﻿', ''],
-];
+function decodeFragment(fragment) {
+    const bytes = encodeCp1252(fragment);
+    if (!bytes) return fragment;
+    const decoded = decoder.decode(bytes);
+    if (decoded.includes('\ufffd')) return fragment;
+    return score(decoded) <= score(fragment) ? decoded : fragment;
+}
 
 function fix(content) {
     let result = content;
-    let totalChanges = 0;
-    for (const [from, to] of replacements) {
-        const before = result.length;
-        const parts = result.split(from);
-        if (parts.length > 1) {
-            totalChanges += parts.length - 1;
-            result = parts.join(to);
-        }
-        void before;
+    for (let pass = 0; pass < 6; pass++) {
+        const next = result.replace(suspicious, decodeFragment);
+        if (next === result) break;
+        result = next;
     }
-    return { result, totalChanges };
+    return result
+        .replace(/^\ufeff/, '')
+        .replaceAll("['\ufeff' + csv]", "['\\uFEFF' + csv]")
+        .replaceAll('["\ufeff" + csv]', '["\\uFEFF" + csv]');
 }
 
 const files = process.argv.slice(2);
 if (files.length === 0) {
-    console.error('Uso: node scripts/fix-mojibake.mjs <ficheiro> [...]');
+    console.error('Usage: node scripts/fix-mojibake.mjs <file1> [...]');
     process.exit(1);
 }
 
-let totalFiles = 0;
-let totalReplacements = 0;
-
+let changedFiles = 0;
 for (const file of files) {
     try {
-        const original = fs.readFileSync(file, 'utf8');
-        const { result, totalChanges } = fix(original);
-        if (totalChanges > 0) {
-            fs.writeFileSync(file, result, 'utf8');
-            console.log(`${file}: ${totalChanges} substituições`);
-            totalFiles++;
-            totalReplacements += totalChanges;
+        if (!fs.existsSync(file) || !fs.statSync(file).isFile()) continue;
+        const before = fs.readFileSync(file, 'utf8');
+        if (!bad.test(before)) continue;
+        const after = fix(before);
+        if (after !== before) {
+            fs.writeFileSync(file, after, 'utf8');
+            changedFiles++;
+            console.log(file);
         }
-    } catch (e) {
-        console.error(`${file}: ERRO`, e.message);
+    } catch (error) {
+        console.error(`${file}: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
 
-console.log(`---`);
-console.log(`${totalFiles} ficheiro(s) alterado(s), ${totalReplacements} substituição(ões) totais.`);
+console.log(`changed=${changedFiles}`);

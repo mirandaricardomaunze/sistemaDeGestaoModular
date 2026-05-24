@@ -1,0 +1,49 @@
+# Monorepo .dockerignore — applies to both frontend and backend builds (context = root)
+
+# Node
+node_modules
+**/node_modules
+
+# Build output
+dist
+**/dist
+frontend/dev-dist
+
+# Env / secrets — keep only .env.example
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Logs / coverage
+*.log
+logs
+**/logs
+coverage
+**/coverage
+
+# Git / IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Docs (not needed in image)
+*.md
+**/*.md
+!**/README.md
+
+# Tests
+**/__tests__
+**/*.test.ts
+**/*.spec.ts
+
+# OS / misc
+.DS_Store
+Thumbs.db
+
+# Backups / uploads
+backend/backups
+backend/uploads

@@ -546,14 +546,33 @@ describe('SAFTService', () => {
 
 ## ✅ Checklist de Conclusão
 
-- [ ] `npm install xmlbuilder2` no backend
-- [ ] `xmlBuilder.ts` criado com `escapeXml`, `formatDecimal`, `formatSAFTDate`
-- [ ] `saft.validation.ts` com schema Zod
-- [ ] `saft.service.ts` com SAFTService completo
-- [ ] `saft.routes.ts` registado no `app.ts`
-- [ ] `fiscal.api.ts` com método `downloadSAFT()`
-- [ ] Botão SAF-T no `FiscalReportGenerator.tsx` funcional
-- [ ] `tsc --noEmit` sem erros
-- [ ] Testes unitários passam: `npm test saft`
-- [ ] Download do XML testado manualmente no browser
-- [ ] XML validado contra o schema SAF-T MZ
+- [x] `xmlbuilder2` instalado no backend
+- [x] `xmlBuilder.ts` com `escapeXml`, `formatDecimal`, `formatSAFTDate`
+- [x] `saft.validation.ts` com schema Zod
+- [x] `saftService.ts` completo
+- [x] `saft.ts` route registada
+- [x] `saft.api.ts` com `downloadSAFT()`
+- [x] Botão SAF-T no `FiscalReportGenerator.tsx` funcional
+- [x] Hash chain SHA-1 implementado em `invoicesService.create` (2026-05-23)
+- [x] Campos `hashCode`, `previousHash`, `atcud` no schema Invoice
+- [x] SAF-T usa `inv.hashCode` e `inv.atcud` reais (fallback '0' para pré-rollout)
+- [x] Testes unitários: `fiscalHashChain.test.ts` + `saft.test.ts`
+- [ ] Software validation number certificado pela AT-MZ ⚠️ EXTERNO
+- [ ] Integração com endpoint AT-MZ para obter ATCUDs reais ⚠️ EXTERNO
+
+## 🔐 Hash Chain — Status
+
+Implementado a 2026-05-23. Cada nova factura calcula:
+```
+SHA-1(issueDate.slice(0,19) | invoiceNumber | grossTotal.toFixed(2) | previousHash)
+```
+e referencia o `hashCode` da factura anterior (ordenado por `createdAt desc`).
+
+A primeira factura ("genesis") tem `previousHash = null`. Cadeia é validável post-hoc
+recalculando cada hash e comparando — qualquer alteração a uma factura antiga
+invalida todas as posteriores (tamper-evident).
+
+**Não substitui** certificação AT-MZ formal. Para produção legal:
+1. Submeter pedido de certificação à AT (processo burocrático)
+2. Receber software validation number → preencher em `CompanySettings.softwareValidationNumber`
+3. Integrar API AT para emissão de ATCUDs reais → preencher `Invoice.atcud` no `create`

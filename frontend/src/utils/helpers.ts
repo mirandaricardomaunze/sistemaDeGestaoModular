@@ -176,8 +176,10 @@ export function isValidEmail(email: string): boolean {
 }
 
 export function isValidPhone(phone: string): boolean {
-    const phoneRegex = /^\(\d{2}\)\s?\d{4,5}-?\d{4}$/;
-    return phoneRegex.test(phone);
+    // Mozambique: 9 digits, mobile starts with 8, landline starts with 2.
+    // Tolerates optional +258 / 258 prefix and spaces/hyphens.
+    const cleaned = phone.replace(/[\s-]/g, '').replace(/^\+?258/, '');
+    return /^[28]\d{8}$/.test(cleaned);
 }
 
 export function isValidCPF(cpf: string): boolean {

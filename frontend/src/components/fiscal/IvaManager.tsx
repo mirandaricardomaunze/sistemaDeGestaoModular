@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Card, Button, Input, Modal, Badge, ConfirmationModal, Pagination, SimpleTable, usePagination } from '../ui';
+import { MetricCard } from '../common/ModuleMetricCard';
 import {
     HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineArrowPath,
     HiOutlineCheckCircle, HiOutlineChartBar, HiOutlineCurrencyDollar,
@@ -204,52 +205,31 @@ export default function IvaManager() {
             {/* Dashboard Summary Cards */}
             {summary && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <Card padding="md">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                                <HiOutlineChartBar className="w-5 h-5 text-primary-600" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-500">Total de Taxas</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{summary.totalRates}</p>
-                            </div>
-                        </div>
-                    </Card>
-                    <Card padding="md">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                                <HiOutlineCheckCircle className="w-5 h-5 text-emerald-600" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-500">Taxas Activas</p>
-                                <p className="text-2xl font-bold text-emerald-600">{summary.activeRates}</p>
-                            </div>
-                        </div>
-                    </Card>
-                    <Card padding="md">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                <HiOutlineCurrencyDollar className="w-5 h-5 text-blue-600" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-500">IVA Cobrado</p>
-                                <p className="text-lg font-bold text-blue-600">{formatCurrency(summary.totalIvaCollected)}</p>
-                            </div>
-                        </div>
-                    </Card>
-                    <Card padding="md">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                                <HiOutlineStar className="w-5 h-5 text-amber-600" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-500">Taxa Padrão</p>
-                                <p className="text-lg font-bold text-gray-900 dark:text-white">
-                                    {summary.defaultRate ? `${Number(summary.defaultRate.rate)}%` : ''}
-                                </p>
-                            </div>
-                        </div>
-                    </Card>
+                    <MetricCard
+                        icon={<HiOutlineChartBar className="w-5 h-5" />}
+                        color="primary"
+                        value={summary.totalRates}
+                        label="Total de Taxas"
+                    />
+                    <MetricCard
+                        icon={<HiOutlineCheckCircle className="w-5 h-5" />}
+                        color="emerald"
+                        value={summary.activeRates}
+                        label="Taxas Activas"
+                    />
+                    <MetricCard
+                        icon={<HiOutlineCurrencyDollar className="w-5 h-5" />}
+                        color="blue"
+                        value={summary.totalIvaCollected}
+                        label="IVA Cobrado"
+                        isCurrency
+                    />
+                    <MetricCard
+                        icon={<HiOutlineStar className="w-5 h-5" />}
+                        color="amber"
+                        value={summary.defaultRate ? `${Number(summary.defaultRate.rate)}%` : '—'}
+                        label="Taxa Padrão"
+                    />
                 </div>
             )}
 

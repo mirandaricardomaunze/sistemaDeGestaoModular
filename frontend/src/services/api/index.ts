@@ -57,7 +57,7 @@ export { ivaAPI, type IvaRate, type CreateIvaRateDto } from './iva.api';
 export { batchesAPI, type ProductBatch, type CreateBatchDto } from './batches.api';
 
 // Commercial Module Analytics
-export { commercialAPI, shiftAPI, type CommercialAnalytics, type MarginAnalysis, type MarginByCategory, type MarginByProduct, type StockAgingReport, type StockAgingProduct, type SupplierPerformance, type PurchaseOrder, type InventoryTurnoverItem, type SalesReport, type ShiftSession, type ShiftSummary, type ShiftZReport, type InventoryForecast } from './commercial.api';
+export { commercialAPI, shiftAPI, type CommercialAnalytics, type MarginAnalysis, type MarginByCategory, type MarginByProduct, type StockAgingReport, type StockAgingProduct, type SupplierPerformance, type PurchaseOrder, type InventoryTurnoverItem, type SalesReport, type ShiftSession, type ShiftSummary, type ShiftZReport, type InventoryForecast, type AIDecisionSuggestion } from './commercial.api';
 export {
     salesTargetsAPI,
     type SalesTarget,

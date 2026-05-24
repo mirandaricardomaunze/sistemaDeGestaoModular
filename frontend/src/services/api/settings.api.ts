@@ -165,7 +165,7 @@ export const campaignsAPI = {
 // Alerts API - Module-aware notifications system
 // ============================================================================
 
-export type AlertModule = 'pos' | 'hospitality' | 'pharmacy' | 'crm' | 'invoices' | 'inventory';
+export type AlertModule = 'pos' | 'hospitality' | 'pharmacy' | 'crm' | 'invoices' | 'inventory' | 'audit';
 export type AlertPriority = 'critical' | 'high' | 'medium' | 'low';
 
 export interface Alert {

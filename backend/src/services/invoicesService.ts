@@ -1,4 +1,5 @@
 import { Prisma, InvoiceStatus, PaymentMethod } from '@prisma/client';
+import { createHash } from 'crypto';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { buildPaginationMeta, parseFields } from '../utils/pagination';
@@ -8,6 +9,27 @@ import { ResultHandler } from '../utils/result';
 import { auditService } from './auditService';
 import { approvalsService } from './approvalsService';
 import { getThresholds, isOverThreshold } from './approvals/thresholds';
+
+/**
+ * Fiscal hash chain per AT-MZ requirement: each invoice hashes
+ * (issueDate|invoiceNumber|grossTotal|previousHash). The chain lets the auditor
+ * detect tampering — flipping any field invalidates every subsequent hash.
+ * See [[saft-xml]] skill.
+ */
+function buildFiscalHash(params: {
+    issueDate: Date;
+    invoiceNumber: string;
+    grossTotal: number;
+    previousHash: string | null;
+}): string {
+    const payload = [
+        params.issueDate.toISOString().slice(0, 19), // up to seconds, no tz
+        params.invoiceNumber,
+        params.grossTotal.toFixed(2),
+        params.previousHash ?? '',
+    ].join('|');
+    return createHash('sha1').update(payload, 'utf8').digest('hex').toUpperCase();
+}
 import type {
     CreateInvoiceInput,
     UpdateInvoiceInput,
@@ -32,6 +54,8 @@ const roundMoney = (value: number) => Math.round((Number(value) || 0) * 100) / 1
 type InvoiceListParams = {
     status?: InvoiceStatus | 'all';
     customerId?: string;
+    search?: string;
+    warehouseId?: string;
     startDate?: string;
     endDate?: string;
     page?: string | number;
@@ -161,7 +185,7 @@ function serializeDebitNote(note: DebitNoteWithRelations) {
 
 export class InvoicesService {
     async list(params: InvoiceListParams, companyId: string) {
-        const { status, customerId, startDate, endDate, page = '1', limit = '20', sortBy = 'createdAt', sortOrder = 'desc' } = params;
+        const { status, customerId, search, warehouseId, startDate, endDate, page = '1', limit = '20', sortBy = 'createdAt', sortOrder = 'desc' } = params;
         const pageNum = parseInt(String(page));
         const limitNum = parseInt(String(limit));
         const skip = (pageNum - 1) * limitNum;
@@ -169,6 +193,17 @@ export class InvoicesService {
         const where: Prisma.InvoiceWhereInput = { companyId };
         if (status && status !== 'all') where.status = status as InvoiceStatus;
         if (customerId) where.customerId = customerId;
+        if (search?.trim()) {
+            const term = search.trim();
+            where.OR = [
+                { invoiceNumber: { contains: term, mode: 'insensitive' } },
+                { orderNumber: { contains: term, mode: 'insensitive' } },
+                { customerName: { contains: term, mode: 'insensitive' } },
+                { customerEmail: { contains: term, mode: 'insensitive' } },
+                { customerPhone: { contains: term, mode: 'insensitive' } },
+            ];
+        }
+        if (warehouseId && warehouseId !== 'all') where.warehouseId = warehouseId;
         if (startDate || endDate) {
             where.issueDate = {};
             if (startDate) where.issueDate.gte = new Date(String(startDate));
@@ -431,12 +466,31 @@ export class InvoicesService {
                 }
             }
 
+            // ── AT-MZ fiscal hash chain ─────────────────────────────────────
+            // Fetch the previous invoice's hash so we can chain. Order by
+            // createdAt to guarantee deterministic ordering even when issueDate
+            // ties. Within the same transaction, so concurrent creates are
+            // serialised by the outer prisma.$transaction.
+            const previous = await tx.invoice.findFirst({
+                where: { companyId },
+                orderBy: { createdAt: 'desc' },
+                select: { hashCode: true },
+            });
+            const issueDate = new Date();
+            const hashCode = buildFiscalHash({
+                issueDate,
+                invoiceNumber,
+                grossTotal: finalTotal,
+                previousHash: previous?.hashCode ?? null,
+            });
+
             const invoice = await tx.invoice.create({
                 data: {
                     invoiceNumber,
                     companyId,
                     orderId: data.orderId || null,
                     orderNumber: data.orderNumber || null,
+                    warehouseId: (data as { warehouseId?: string | null }).warehouseId || null,
                     customerId: data.customerId || null,
                     customerName: data.customerName || 'Cliente',
                     customerEmail: data.customerEmail || null,
@@ -448,9 +502,12 @@ export class InvoicesService {
                     tax: finalTax,
                     total: finalTotal,
                     amountDue: finalTotal,
+                    issueDate,
                     dueDate: data.dueDate ? new Date(data.dueDate) : new Date(),
                     notes: data.notes || null,
                     terms: data.paymentTerms || null,
+                    hashCode,
+                    previousHash: previous?.hashCode ?? null,
                     items: {
                         create: verifiedItems.map((item) => ({
                             productId: item.productId || null,

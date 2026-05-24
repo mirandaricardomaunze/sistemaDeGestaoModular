@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sistema AI Decision Panel"
+  short_description: "Implementar e manter o painel de sugestões IA do Sistema."
+  default_prompt: "Usa esta skill para continuar o trabalho profissional no painel de sugestões IA do módulo comercial do Sistema."

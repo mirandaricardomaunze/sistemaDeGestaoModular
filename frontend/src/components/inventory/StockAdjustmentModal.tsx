@@ -1,4 +1,4 @@
-﻿import { logger } from '../../utils/logger';
+import { logger } from '../../utils/logger';
 import { useState, useEffect } from 'react';
 import { HiOutlinePlus, HiOutlineMinus, HiOutlineListBullet, HiOutlineCheck } from 'react-icons/hi2';
 import { Modal, Button, Input, Select, Textarea } from '../ui';
@@ -63,7 +63,7 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
 
     const operationOptions = [
         { id: 'add' as const, label: 'Entrada (+)', icon: <HiOutlinePlus className="w-5 h-5" />, color: 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20' },
-        { id: 'subtract' as const, label: 'SaÃ­da (-)', icon: <HiOutlineMinus className="w-5 h-5" />, color: 'text-rose-600 bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/20' },
+        { id: 'subtract' as const, label: 'Saída (-)', icon: <HiOutlineMinus className="w-5 h-5" />, color: 'text-rose-600 bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/20' },
         { id: 'set' as const, label: 'Definir (=)', icon: <HiOutlineListBullet className="w-5 h-5" />, color: 'text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/20' },
     ];
 
@@ -124,7 +124,7 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
                         autoFocus
                     />
                     <Select
-                        label="ArmazÃ©m"
+                        label="Armazém"
                         options={warehouses.map(w => ({ value: w.id, label: w.name }))}
                         value={warehouseId}
                         onChange={(e) => setWarehouseId(e.target.value)}
@@ -133,11 +133,11 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
                 </div>
 
                 <Textarea
-                    label="Motivo do Ajuste (ObrigatÃ³rio)"
+                    label="Motivo do Ajuste (Obrigatório)"
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     required
-                    placeholder="Ex: Compra de mercadoria, Quebra detectada, InventÃ¡rio periÃ³dico..."
+                    placeholder="Ex: Compra de mercadoria, Quebra detectada, Inventário periódico..."
                     rows={3}
                 />
 

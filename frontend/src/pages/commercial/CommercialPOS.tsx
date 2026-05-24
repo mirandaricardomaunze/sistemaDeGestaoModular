@@ -118,6 +118,7 @@ import { CommercialPaymentModal } from '../../components/commercial/pos/Commerci
 import type { PaymentEntry } from '../../components/commercial/pos/CommercialPaymentModal';
 import { CommercialShiftModal } from '../../components/commercial/pos/CommercialShiftModal';
 import type { ShiftData } from '../../components/commercial/pos/CommercialShiftModal';
+import { ShiftReminder } from '../../components/pos/ShiftReminder';
 import { CommercialReceiptModal } from '../../components/commercial/pos/CommercialReceiptModal';
 import type { ReceiptData } from '../../components/commercial/pos/CommercialReceiptModal';
 import { CommercialScaleModal } from '../../components/commercial/pos/CommercialScaleModal';
@@ -1005,6 +1006,15 @@ export default function CommercialPOS() {
         setShowShiftModal(true);
     }, [shift]);
 
+    const handleReminderCloseShift = useCallback(() => {
+        setShiftModalMode('close');
+        setShowShiftModal(true);
+    }, []);
+
+    const handleReminderViewHistory = useCallback(() => {
+        navigate('/commercial/history?tab=shifts');
+    }, [navigate]);
+
     const handleReprintLast = useCallback(() => {
         if (lastReceipt) {
             setShowReceiptModal(true);
@@ -1182,6 +1192,14 @@ export default function CommercialPOS() {
                 </div>
             </div>
 
+            <ShiftReminder
+                shift={activeShift}
+                summary={shiftSummary}
+                isInteractionBlocked={showPaymentModal || showReceiptModal || showShiftModal || showMovementModal || checkoutLoading || shiftLoading}
+                onCloseShift={handleReminderCloseShift}
+                onViewHistory={handleReminderViewHistory}
+            />
+
             {/* Layout 60/40 */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 h-[calc(100vh-220px)]">
                 <div className="lg:col-span-3 overflow-y-auto pr-2 scrollbar-none">
@@ -1347,5 +1365,3 @@ export default function CommercialPOS() {
         </div>
     );
 }
-
-

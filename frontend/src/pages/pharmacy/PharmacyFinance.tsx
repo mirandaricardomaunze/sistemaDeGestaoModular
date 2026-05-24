@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,10 +26,10 @@ import { logger } from '../../utils/logger';
 // Validation Schema (Matches backend validation)
 const transactionSchema = z.object({
     type: z.enum(['income', 'expense']),
-    category: z.string().min(1, 'Categoria Ã© obrigatÃ³ria'),
-    description: z.string().min(2, 'DescriÃ§Ã£o Ã© obrigatÃ³ria'),
+    category: z.string().min(1, 'Categoria é obrigatória'),
+    description: z.string().min(2, 'Descrição é obrigatória'),
     amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
-    date: z.string().min(1, 'Data Ã© obrigatÃ³ria'),
+    date: z.string().min(1, 'Data é obrigatória'),
     dueDate: z.string().optional().nullable(),
     paymentMethod: z.string().optional().nullable(),
     reference: z.string().optional().nullable(),
@@ -40,7 +40,7 @@ type TransactionFormData = z.infer<typeof transactionSchema>;
 
 type TimePeriod = '1m' | '3m' | '6m' | '1y';
 const periodOptions: { value: TimePeriod; label: string }[] = [
-    { value: '1m', label: '1 MÃªs' },
+    { value: '1m', label: '1 Mês' },
     { value: '3m', label: '3 Meses' },
     { value: '6m', label: '6 Meses' },
     { value: '1y', label: '1 Ano' },
@@ -137,10 +137,10 @@ export default function PharmacyFinance() {
         try {
             if (editingTransaction) {
                 await pharmacyAPI.updateTransaction(editingTransaction.id, data);
-                toast.success('TransaÃ§Ã£o actualizada!');
+                toast.success('Transação actualizada!');
             } else {
                 await pharmacyAPI.createTransaction(data);
-                toast.success('TransaÃ§Ã£o registrada!');
+                toast.success('Transação registrada!');
             }
             setShowFormModal(false);
             setEditingTransaction(null);
@@ -169,45 +169,45 @@ export default function PharmacyFinance() {
         if (!transactionToDelete) return;
         try {
             await pharmacyAPI.deleteTransaction(transactionToDelete.id);
-            toast.success('TransaÃ§Ã£o eliminada!');
+            toast.success('Transação eliminada!');
             setDeleteModalOpen(false);
             setTransactionToDelete(null);
             fetchData();
         } catch (error) {
-            toast.error('Erro ao eliminar transaÃ§Ã£o');
+            toast.error('Erro ao eliminar transação');
         }
     };
 
     const incomeCategories = [
         { value: 'Sales', label: 'Vendas (POS)' },
-        { value: 'Insurance', label: 'Seguradoras / ConvÃªnios' },
-        { value: 'Consultation', label: 'Consultas FarmacÃªuticas' },
+        { value: 'Insurance', label: 'Seguradoras / Convênios' },
+        { value: 'Consultation', label: 'Consultas Farmacêuticas' },
         { value: 'Other_Income', label: 'Outros Proveitos' },
     ];
 
     const expenseCategories = [
         { value: 'inventory', label: 'Compra de Stock' },
-        { value: 'Salary', label: 'SalÃ¡rios' },
-        { value: 'Rent', label: 'Aluguer da InstalaÃ§Ã£o' },
-        { value: 'Medical_Equipment', label: 'Equipamento MÃ©dico' },
-        { value: 'Disposables', label: 'ConsumÃ­veis / Descartveis' },
-        { value: 'Utilities', label: 'Ãgua / Luz / Internet' },
+        { value: 'Salary', label: 'Salários' },
+        { value: 'Rent', label: 'Aluguer da Instalação' },
+        { value: 'Medical_Equipment', label: 'Equipamento Médico' },
+        { value: 'Disposables', label: 'Consumíveis / Descartveis' },
+        { value: 'Utilities', label: 'Água / Luz / Internet' },
         { value: 'Licensing', label: 'Licenciamento e Taxas' },
         { value: 'Other_Expense', label: 'Outras Despesas' },
     ];
 
     const paymentMethods = [
-        { value: 'cash', label: 'NumerÃ¡rio (Dinheiro)' },
-        { value: 'card', label: 'CartÃ£o (POS/TPA)' },
+        { value: 'cash', label: 'Numerário (Dinheiro)' },
+        { value: 'card', label: 'Cartão (POS/TPA)' },
         { value: 'mpesa', label: 'M-Pesa' },
         { value: 'emola', label: 'E-Mola' },
-        { value: 'transfer', label: 'TransferÃªncia BancÃ¡ria' },
+        { value: 'transfer', label: 'Transferência Bancária' },
     ];
 
     return (
         <div className="space-y-6">
             <PageHeader 
-                title="GestÃ£o Financeira da FarmÃ¡cia"
+                title="Gestão Financeira da Farmácia"
                 subtitle="Controle profissional de despesas, receitas e fluxo de caixa"
                 icon={<HiOutlineCurrencyDollar />}
                 actions={
@@ -257,7 +257,7 @@ export default function PharmacyFinance() {
                 />
 
                 <MetricCard
-                    label="Lucro LÃ­quido"
+                    label="Lucro Líquido"
                     value={summary.netProfit}
                     icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
                     color="teal"
@@ -293,7 +293,7 @@ export default function PharmacyFinance() {
 
                 <div className="flex items-center gap-2 w-full lg:w-auto">
                     <Input
-                        placeholder="Buscar por descriÃ§Ã£o..."
+                        placeholder="Buscar por descrição..."
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                         leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
@@ -320,10 +320,10 @@ export default function PharmacyFinance() {
                             <tr className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] italic">
                                 <th className="px-6 py-4 text-left">Tipo</th>
                                 <th className="px-6 py-4 text-left">Data</th>
-                                <th className="px-6 py-4 text-left">DescriÃ§Ã£o</th>
+                                <th className="px-6 py-4 text-left">Descrição</th>
                                 <th className="px-6 py-4 text-left">Categoria</th>
                                 <th className="px-6 py-4 text-right">Valor</th>
-                                <th className="px-6 py-4 text-center">AÃ§Ãµes</th>
+                                <th className="px-6 py-4 text-center">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-dark-800 divide-y divide-gray-100 dark:divide-dark-700">
@@ -336,7 +336,7 @@ export default function PharmacyFinance() {
                             ) : transactions.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-20 text-center text-gray-400 italic font-medium">
-                                        Nenhuma transaÃ§Ã£o encontrada no perÃ­odo selecionado.
+                                        Nenhuma transação encontrada no período selecionado.
                                     </td>
                                 </tr>
                             ) : (
@@ -416,7 +416,7 @@ export default function PharmacyFinance() {
                     setEditingTransaction(null);
                     reset();
                 }}
-                title={editingTransaction ? "Editar TransaÃ§Ã£o" : "Nova TransaÃ§Ã£o Financeira"}
+                title={editingTransaction ? "Editar Transação" : "Nova Transação Financeira"}
                 size="lg"
             >
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -482,7 +482,7 @@ export default function PharmacyFinance() {
                     </div>
 
                     <Input
-                        label="DescriÃ§Ã£o da TransaÃ§Ã£o *"
+                        label="Descrição da Transação *"
                         {...register('description')}
                         error={errors.description?.message}
                         placeholder="Ex: Pagamento mensal de aluguer"
@@ -490,7 +490,7 @@ export default function PharmacyFinance() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input
-                            label="Data da OperaÃ§Ã£o *"
+                            label="Data da Operação *"
                             type="date"
                             {...register('date')}
                             error={errors.date?.message}
@@ -509,14 +509,14 @@ export default function PharmacyFinance() {
                             {...register('paymentMethod')}
                         />
                         <Input
-                            label="ReferÃªncia / Documento"
+                            label="Referência / Documento"
                             {...register('reference')}
                             placeholder="Ex: Factura #1234"
                         />
                     </div>
 
                     <Input
-                        label="ObservaÃ§Ãµes Internas (Opcional)"
+                        label="Observações Internas (Opcional)"
                         {...register('notes')}
                         placeholder="Notas adicionais para controle..."
                     />
@@ -526,7 +526,7 @@ export default function PharmacyFinance() {
                             Cancelar
                         </Button>
                         <Button type="submit" variant={selectedType === 'income' ? 'primary' : 'danger'}>
-                            {editingTransaction ? 'Salvar AlteraÃ§Ãµes' : 'Gravar TransaÃ§Ã£o'}
+                            {editingTransaction ? 'Salvar Alterações' : 'Gravar Transação'}
                         </Button>
                     </div>
                 </form>
@@ -536,12 +536,12 @@ export default function PharmacyFinance() {
             <Modal
                 isOpen={deleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
-                title="Confirmar EliminaÃ§Ã£o"
+                title="Confirmar Eliminação"
                 size="sm"
             >
                 <div className="space-y-4 py-2">
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Esta acÃ§Ã£o nÃ£o pode ser desfeita. Tem certeza que deseja eliminar este registo financeiro?
+                        Esta acção não pode ser desfeita. Tem certeza que deseja eliminar este registo financeiro?
                     </p>
                     <div className="flex gap-3 justify-end pt-4">
                         <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>

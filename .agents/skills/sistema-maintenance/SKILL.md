@@ -89,3 +89,5 @@ Report warnings separately from hard failures.
 ## Reference
 
 Read `references/known-findings.md` when resuming the broad cleanup or when the user asks to continue from the last full-system analysis.
+
+For work on the commercial AI suggestions panel, use `sistema-ai-decision-panel` and read its `references/current-implementation.md` before changing code.

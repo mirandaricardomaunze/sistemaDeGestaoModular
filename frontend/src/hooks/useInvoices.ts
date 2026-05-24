@@ -18,6 +18,7 @@ interface UseInvoicesParams {
     status?: string;
     customerId?: string;
     search?: string;
+    warehouseId?: string;
     startDate?: string;
     endDate?: string;
     page?: number;

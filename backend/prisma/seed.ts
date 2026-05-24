@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
@@ -144,20 +145,44 @@ async function main() {
 
     // Create default admin user
     const hashedPassword = await bcrypt.hash('admin123', 12);
-    const superHashedPassword = await bcrypt.hash('superadmin123', 12);
+    const superAdminEmail = (process.env.SUPERADMIN_EMAIL || 'mirandamaunze122@gmail.com').trim().toLowerCase();
 
-    const superAdmin = await prisma.user.upsert({
-        where: { email: 'superadmin@sistema.co.mz' },
-        update: {},
-        create: {
-            email: 'superadmin@sistema.co.mz',
+    const superAdminPassword = process.env.SUPERADMIN_PASSWORD?.trim();
+
+    if (!superAdminPassword) {
+        console.warn('SUPERADMIN_PASSWORD is not set. Skipping Super Admin seed.');
+    } else {
+        const superHashedPassword = await bcrypt.hash(superAdminPassword, 12);
+        const legacySuperAdminEmail = 'superadmin@sistema.co.mz';
+        const existingSuperAdmin = await prisma.user.findUnique({ where: { email: superAdminEmail } });
+        const legacySuperAdmin = superAdminEmail !== legacySuperAdminEmail
+            ? await prisma.user.findUnique({ where: { email: legacySuperAdminEmail } })
+            : null;
+
+        const superAdminData = {
+            email: superAdminEmail,
             password: superHashedPassword,
-            name: 'Super Administrador',
-            role: 'super_admin',
-            phone: '+258 84 000 0001'
-        }
-    });
-    console.log('✅ Super Admin user created:', superAdmin.email);
+            name: process.env.SUPERADMIN_NAME || 'Super Administrador',
+            role: 'super_admin' as const,
+            phone: process.env.SUPERADMIN_PHONE || '+258 84 000 0001',
+            companyId: null,
+            isActive: true,
+        };
+
+        const superAdmin = existingSuperAdmin
+            ? await prisma.user.update({
+                where: { id: existingSuperAdmin.id },
+                data: superAdminData,
+            })
+            : legacySuperAdmin?.role === 'super_admin'
+                ? await prisma.user.update({
+                    where: { id: legacySuperAdmin.id },
+                    data: superAdminData,
+                })
+                : await prisma.user.create({ data: superAdminData });
+
+        console.log('Super Admin user ready:', superAdmin.email);
+    }
 
     const admin = await prisma.user.upsert({
         where: { email: 'admin@sistema.co.mz' },

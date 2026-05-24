@@ -1,0 +1,4 @@
+﻿interface:
+  display_name: "Sistema Shift Alerts"
+  short_description: "Alertas profissionais para turnos esquecidos"
+  default_prompt: "Use $sistema-shift-alerts para implementar alertas profissionais de turnos abertos ha demasiado tempo no Sistema."

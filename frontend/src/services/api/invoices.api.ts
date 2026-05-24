@@ -8,9 +8,16 @@ export const invoicesAPI = {
     getAll: async (params?: {
         status?: string;
         customerId?: string;
+        search?: string;
+        warehouseId?: string;
         startDate?: string;
         endDate?: string;
+        page?: number;
+        limit?: number;
+        sortBy?: string;
+        sortOrder?: 'asc' | 'desc';
         originModule?: string;
+        fields?: string;
     }) => {
         const response = await api.get('/invoices', { params });
         return response.data;

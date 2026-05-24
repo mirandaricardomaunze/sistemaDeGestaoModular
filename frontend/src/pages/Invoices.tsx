@@ -1,4 +1,4 @@
-﻿import { logger } from '../utils/logger';
+import { logger } from '../utils/logger';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -38,7 +38,7 @@ import type { Invoice, InvoiceStatus } from '../types';
 import toast from 'react-hot-toast';
 import { PAGE_SIZE } from '../utils/constants';
 
-// â”€â”€ Local shapes for invoice-source items and product picks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Local shapes for invoice-source items and product picks ────────────────
 type SourceItem = {
     productId?: string | null;
     description: string;
@@ -66,9 +66,10 @@ type ProductPick = { id: string; name: string; price: number };
 type ApiValidationError = { path?: string; message?: string };
 
 // Time period options
-type TimePeriod = '1m' | '3m' | '6m' | '1y';
+type TimePeriod = 'all' | '1m' | '3m' | '6m' | '1y';
 const periodOptions: { value: TimePeriod; label: string }[] = [
-    { value: '1m', label: '1 MÃªs' },
+    { value: 'all', label: 'Todas' },
+    { value: '1m', label: '1 Mês' },
     { value: '3m', label: '3 Meses' },
     { value: '6m', label: '6 Meses' },
     { value: '1y', label: '1 Ano' },
@@ -78,9 +79,9 @@ const periodOptions: { value: TimePeriod; label: string }[] = [
 const invoiceItemSchema = z.object({
     id: z.string(),
     productId: z.string().optional().nullable(),
-    description: z.string().min(1, 'DescriÃ§Ã£o obrigatÃ³ria'),
-    quantity: z.coerce.number().min(1, 'MÃ­nimo 1'),
-    unitPrice: z.coerce.number().min(0.01, 'PreÃ§o invÃ¡lido'),
+    description: z.string().min(1, 'Descrição obrigatória'),
+    quantity: z.coerce.number().min(1, 'Mínimo 1'),
+    unitPrice: z.coerce.number().min(0.01, 'Preço inválido'),
     discount: z.coerce.number().min(0).default(0),
     total: z.number(),
 });
@@ -88,13 +89,14 @@ const invoiceItemSchema = z.object({
 const invoiceSchema = z.object({
     orderId: z.string().optional(),
     orderNumber: z.string().optional(),
-    customerName: z.string().min(2, 'Nome obrigatÃ³rio'),
-    customerEmail: z.string().email('Email invÃ¡lido').optional().or(z.literal('')),
+    warehouseId: z.string().optional(),
+    customerName: z.string().min(2, 'Nome obrigatório'),
+    customerEmail: z.string().email('Email inválido').optional().or(z.literal('')),
     customerPhone: z.string().optional(),
     customerAddress: z.string().optional(),
     customerDocument: z.string().optional(),
-    issueDate: z.string().min(1, 'Data obrigatÃ³ria'),
-    dueDate: z.string().min(1, 'Vencimento obrigatÃ³rio'),
+    issueDate: z.string().min(1, 'Data obrigatória'),
+    dueDate: z.string().min(1, 'Vencimento obrigatório'),
     items: z.array(invoiceItemSchema).min(1, 'Adicione pelo menos um item'),
     discount: z.coerce.number().min(0).default(0),
     tax: z.coerce.number().min(0).default(0),
@@ -106,9 +108,9 @@ type InvoiceFormData = z.infer<typeof invoiceSchema>;
 
 // Payment Schema
 const paymentSchema = z.object({
-    amount: z.coerce.number().min(0.01, 'Valor obrigatÃ³rio'),
-    method: z.string().min(1, 'MÃ©todo obrigatÃ³rio'),
-    date: z.string().min(1, 'Data obrigatÃ³ria'),
+    amount: z.coerce.number().min(0.01, 'Valor obrigatório'),
+    method: z.string().min(1, 'Método obrigatório'),
+    date: z.string().min(1, 'Data obrigatória'),
     reference: z.string().optional(),
     notes: z.string().optional(),
 });
@@ -128,7 +130,7 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
 
 // Sample orders are removed in favor of real data from the API
 
-import { useInvoices, useProducts } from '../hooks/useData';
+import { useInvoices, useProducts, useWarehouses } from '../hooks/useData';
 import { useDebounce } from '../hooks/useDebounce';
 
 interface InvoicesProps {
@@ -142,14 +144,19 @@ export default function Invoices({ originModule }: InvoicesProps) {
     const [search, setSearch] = useState(searchParams.get('search') || '');
     const debouncedSearch = useDebounce(search, 300);
     const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || 'all');
+    const [warehouseFilter, setWarehouseFilter] = useState<string>(searchParams.get('warehouseId') || 'all');
 
     const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
-    const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('1m');
+    const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('all');
+    // Custom date overrides — when set, take priority over the period preset.
+    const [customStartDate, setCustomStartDate] = useState<string>('');
+    const [customEndDate, setCustomEndDate] = useState<string>('');
 
     // Get date range based on period
     const periodStartDate = useMemo(() => {
         const now = new Date();
         switch (selectedPeriod) {
+            case 'all': return null;
             case '1m': return subDays(now, 30);
             case '3m': return subDays(now, 90);
             case '6m': return subDays(now, 180);
@@ -157,12 +164,35 @@ export default function Invoices({ originModule }: InvoicesProps) {
         }
     }, [selectedPeriod]);
 
+    // Effective dates passed to the API: custom values override the period preset.
+    const effectiveStartDate = customStartDate
+        ? new Date(customStartDate).toISOString()
+        : periodStartDate?.toISOString();
+    const effectiveEndDate = customEndDate
+        ? new Date(customEndDate + 'T23:59:59').toISOString()
+        : undefined;
+    const hasCustomDates = Boolean(customStartDate || customEndDate);
+    const { warehouses } = useWarehouses();
+    const warehouseOptions = useMemo(() => [
+        { value: 'all', label: 'Todos os Armazéns' },
+        ...warehouses
+            .filter((warehouse) => warehouse.isActive !== false)
+            .map((warehouse) => ({
+                value: warehouse.id,
+                label: warehouse.code ? `${warehouse.name} (${warehouse.code})` : warehouse.name,
+            })),
+    ], [warehouses]);
+    const hasActiveFilters = Boolean(search || statusFilter !== 'all' || warehouseFilter !== 'all' || selectedPeriod !== 'all' || hasCustomDates);
+
     useEffect(() => {
         const searchParam = searchParams.get('search');
         if (searchParam !== null) setSearch(searchParam);
 
         const statusParam = searchParams.get('status');
         if (statusParam !== null) setStatusFilter(statusParam);
+
+        const warehouseParam = searchParams.get('warehouseId');
+        if (warehouseParam !== null) setWarehouseFilter(warehouseParam);
 
         // Auto-open modal if redirected from a specific sale/order
         const openParam = searchParams.get('open');
@@ -190,7 +220,9 @@ export default function Invoices({ originModule }: InvoicesProps) {
     } = useInvoices({
         search: debouncedSearch || undefined,
         status: statusFilter === 'all' ? undefined : statusFilter,
-        startDate: periodStartDate?.toISOString(),
+        warehouseId: warehouseFilter === 'all' ? undefined : warehouseFilter,
+        startDate: effectiveStartDate,
+        endDate: effectiveEndDate,
         page,
         limit: pageSize,
         originModule,
@@ -301,7 +333,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
             discount: 0,
             tax: 0,
             notes: '',
-            terms: 'Pagamento em at 30 dias apÃ³s emissÃ£o.',
+            terms: 'Pagamento em at 30 dias após emissão.',
         },
     });
 
@@ -330,8 +362,8 @@ export default function Invoices({ originModule }: InvoicesProps) {
     const paymentMethods = [
         { value: 'pix', label: 'PIX' },
         { value: 'cash', label: 'Dinheiro' },
-        { value: 'card', label: 'CartÃ£o' },
-        { value: 'transfer', label: 'TransferÃªncia' },
+        { value: 'card', label: 'Cartão' },
+        { value: 'transfer', label: 'Transferência' },
         { value: 'mpesa', label: 'M-Pesa' },
     ];
 
@@ -470,9 +502,11 @@ export default function Invoices({ originModule }: InvoicesProps) {
             cell: ({ row }) => {
                 const inv = row.original;
                 const canSend = inv.status === 'draft';
-                const canPay = inv.status === 'sent' || inv.status === 'partial' || inv.status === 'overdue';
+                // Mirror the details-modal rule: anything that isn't paid or cancelled can receive a payment.
+                // Includes 'draft' so the operator can register cash received before formally sending the invoice.
+                const canPay = inv.status !== 'paid' && inv.status !== 'cancelled' && inv.amountDue > 0;
                 return (
-                    <div className="flex justify-center gap-1">
+                    <div className="flex justify-center items-center gap-1.5">
                         <Button variant="ghost" onClick={() => handleViewInvoice(inv)} className="p-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg" title="Ver">
                             <HiOutlineEye className="w-4 h-4 text-gray-500" />
                         </Button>
@@ -485,18 +519,24 @@ export default function Invoices({ originModule }: InvoicesProps) {
                             </Button>
                         )}
                         {canPay && (
-                            <Button
-                                variant="ghost"
-                                onClick={() => {
-                                    setSelectedInvoice(inv);
-                                    resetPayment({ amount: inv.amountDue, method: 'pix', date: format(new Date(), 'yyyy-MM-dd') });
-                                    setShowPaymentModal(true);
-                                }}
-                                className="p-1.5 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg"
-                                title="Pagamento"
-                            >
-                                <HiOutlineBanknotes className="w-4 h-4 text-green-500" />
-                            </Button>
+                            <>
+                                <span className="w-px h-5 bg-gray-200 dark:bg-dark-600 mx-0.5" />
+                                <Button
+                                    onClick={() => {
+                                        setSelectedInvoice(inv);
+                                        resetPayment({ amount: inv.amountDue, method: 'pix', date: format(new Date(), 'yyyy-MM-dd') });
+                                        setShowPaymentModal(true);
+                                    }}
+                                    className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest shadow-sm shadow-emerald-500/20"
+                                    title={`Registar pagamento de ${formatCurrency(inv.amountDue)}`}
+                                >
+                                    <HiOutlineBanknotes className="w-3.5 h-3.5" />
+                                    Pagar
+                                    <span className="font-mono tabular-nums normal-case tracking-normal text-[10px] opacity-90">
+                                        {formatCurrency(inv.amountDue)}
+                                    </span>
+                                </Button>
+                            </>
                         )}
                     </div>
                 );
@@ -564,7 +604,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                 total: Number(source.total || 0),
             });
 
-            toast.success(`${source.type === 'pharmacy' ? 'Venda de FarmÃ¡cia' : 'Encomenda'} ${source.number} carregada!`);
+            toast.success(`${source.type === 'pharmacy' ? 'Venda de Farmácia' : 'Encomenda'} ${source.number} carregada!`);
         }
     };
 
@@ -632,6 +672,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                 await createInvoice({
                     orderId: data.orderId || undefined,
                     orderNumber: data.orderNumber || undefined,
+                    warehouseId: data.warehouseId || undefined,
                     customerName: data.customerName,
                     customerEmail: data.customerEmail || undefined,
                     customerPhone: data.customerPhone || undefined,
@@ -653,7 +694,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
             const responseData = apiErr?.response?.data;
             if (responseData?.errors && Array.isArray(responseData.errors)) {
                 const errorDetails = responseData.errors.map((e) => `${e.path}: ${e.message}`).join(', ');
-                toast.error(`Erro de validaÃ§Ã£o: ${errorDetails}`);
+                toast.error(`Erro de validação: ${errorDetails}`);
             } else {
                 const message = responseData?.message || responseData?.error || apiErr?.message || 'Erro ao criar fatura';
                 toast.error(message);
@@ -666,8 +707,8 @@ export default function Invoices({ originModule }: InvoicesProps) {
     type RHFFieldErrors = Record<string, { message?: string; root?: { message?: string } } | undefined>;
     const onFormError = (errors: RHFFieldErrors) => {
         const firstError = Object.values(errors).find((e) => e?.message || e?.root?.message);
-        const message = firstError?.message || firstError?.root?.message || 'Verifique os campos obrigatÃ³rios';
-        toast.error(`Erro de validaÃ§Ã£o: ${message}`);
+        const message = firstError?.message || firstError?.root?.message || 'Verifique os campos obrigatórios';
+        toast.error(`Erro de validação: ${message}`);
         logger.error('Form validation errors:', errors);
     };
 
@@ -747,14 +788,14 @@ export default function Invoices({ originModule }: InvoicesProps) {
 
     const tabs = [
         { id: 'invoices' as const, label: 'Faturas', icon: <HiOutlineDocumentText className="w-5 h-5" /> },
-        { id: 'credit_notes' as const, label: 'Notas de CrÃ©dito', icon: <HiOutlineBanknotes className="w-5 h-5" /> },
+        { id: 'credit_notes' as const, label: 'Notas de Crédito', icon: <HiOutlineBanknotes className="w-5 h-5" /> },
     ];
 
     return (
         <div className="space-y-6">
             <PageHeader 
-                title={`FacturaÃ§Ã£o & CrÃ©dito ${originModule === 'pharmacy' ? 'FarmÃ¡cia' : ''}`}
-                subtitle={`GestÃ£o de Facturas ${originModule === 'pharmacy' ? 'da FarmÃ¡cia' : ''}, Notas de CrÃ©dito e Fluxos de Recebimento`}
+                title={`Facturação & Crédito ${originModule === 'pharmacy' ? 'Farmácia' : ''}`}
+                subtitle={`Gestão de Facturas ${originModule === 'pharmacy' ? 'da Farmácia' : ''}, Notas de Crédito e Fluxos de Recebimento`}
                 icon={<HiOutlineDocumentText className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <>
@@ -809,15 +850,18 @@ export default function Invoices({ originModule }: InvoicesProps) {
                     <div className="space-y-6 animate-in fade-in duration-500">
                         {/* Period Filter for Invoices */}
                         <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700">
-                            <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
+                            <div className="flex flex-wrap items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
                                 {periodOptions.map((option) => (
                                     <Button
                                         key={option.value}
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => setSelectedPeriod(option.value)}
+                                        onClick={() => {
+                                            setSelectedPeriod(option.value);
+                                            setPage(1);
+                                        }}
                                         className={cn(
-                                            'px-6 py-2 rounded-md text-xs font-bold uppercase tracking-widest active:scale-95',
+                                            'px-3 sm:px-6 py-2 rounded-md text-xs font-bold uppercase tracking-widest active:scale-95',
                                             selectedPeriod === option.value
                                                 ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm hover:bg-white'
                                                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
@@ -855,69 +899,48 @@ export default function Invoices({ originModule }: InvoicesProps) {
                             />
                         </div>
 
-                        {/* Chart & Filters */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <Card padding="md" className="overflow-visible">
-                                <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Status das Faturas</h3>
-                                <div className="h-40">
-                                    {statusDistribution.length > 0 ? (
-                                        <ResponsiveContainer width="100%" height={160}>
-                                            <PieChart>
-                                                <Pie data={statusDistribution} cx="50%" cy="50%" innerRadius={35} outerRadius={60} dataKey="value">
-                                                    {statusDistribution.map((entry, index) => (
-                                                        <Cell key={index} fill={entry.color} />
-                                                    ))}
-                                                </Pie>
-                                                <Tooltip />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    ) : (
-                                        <div className="h-full flex items-center justify-center text-gray-500">Sem dados</div>
+                        {/* Status Distribution Chart */}
+                        <Card padding="md" className="overflow-visible">
+                            <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+                                <div className="flex-shrink-0 lg:w-1/3">
+                                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Status das Faturas</h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Distribuição no período seleccionado</p>
+                                </div>
+                                <div className="flex-1 flex flex-col sm:flex-row items-center gap-6">
+                                    <div className="h-40 w-full sm:w-48 flex-shrink-0">
+                                        {statusDistribution.length > 0 ? (
+                                            <ResponsiveContainer width="100%" height={160}>
+                                                <PieChart>
+                                                    <Pie data={statusDistribution} cx="50%" cy="50%" innerRadius={35} outerRadius={60} dataKey="value">
+                                                        {statusDistribution.map((entry, index) => (
+                                                            <Cell key={index} fill={entry.color} />
+                                                        ))}
+                                                    </Pie>
+                                                    <Tooltip />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                        ) : (
+                                            <div className="h-full flex items-center justify-center text-gray-500 text-sm">Sem dados</div>
+                                        )}
+                                    </div>
+                                    {statusDistribution.length > 0 && (
+                                        <div className="flex-1 grid grid-cols-2 gap-2">
+                                            {statusDistribution.map((item, index) => (
+                                                <div key={index} className="flex items-center gap-2 text-sm">
+                                                    <div
+                                                        className="w-3 h-3 rounded-full flex-shrink-0"
+                                                        style={{ backgroundColor: item.color }}
+                                                    />
+                                                    <span className="text-gray-600 dark:text-gray-400 truncate">{item.name}: {item.value}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     )}
                                 </div>
-                                {/* Legend */}
-                                {statusDistribution.length > 0 && (
-                                    <div className="mt-4 grid grid-cols-2 gap-2">
-                                        {statusDistribution.map((item, index) => (
-                                            <div key={index} className="flex items-center gap-2 text-sm">
-                                                <div
-                                                    className="w-3 h-3 rounded-full flex-shrink-0"
-                                                    style={{ backgroundColor: item.color }}
-                                                />
-                                                <span className="text-gray-600 dark:text-gray-400 truncate">{item.name}: {item.value}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </Card>
+                            </div>
+                        </Card>
 
-                            <Card padding="md" className="lg:col-span-2 bg-gray-100/50 dark:bg-dark-800/50 border-none shadow-none">
-                                <div className="flex flex-col sm:flex-row gap-4 mb-2">
-                                    <div className="flex-1 relative">
-                                        <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
-                                        <Input 
-                                            placeholder="Buscar facturas por nÃºmero ou cliente..." 
-                                            value={search} 
-                                            onChange={(e) => setSearch(e.target.value)} 
-                                            className="pl-10 bg-white dark:bg-dark-900 border-none shadow-sm h-11"
-                                        />
-                                    </div>
-                                    <div className="w-full sm:w-48">
-                                        <Select 
-                                            options={statusOptions} 
-                                            value={statusFilter} 
-                                            onChange={(e) => setStatusFilter(e.target.value)} 
-                                            className="h-11 bg-white dark:bg-dark-900 border-none shadow-sm"
-                                        />
-                                    </div>
-                                </div>
-                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
-                                    {pagination?.total || invoices.length} facturas encontradas no perÃ­odo
-                                </p>
-                            </Card>
-                        </div>
-
-                        {/* Invoice List */}
+                        {/* Invoice List (com filtros integrados no topo do card) */}
                         <SmartTable
                             data={invoices}
                             columns={invoiceColumns}
@@ -930,7 +953,199 @@ export default function Invoices({ originModule }: InvoicesProps) {
                             onEmptyAction={() => setShowFormModal(true)}
                             emptyActionLabel="Nova Fatura"
                             minHeight="450px"
-                            hideToolbar
+                            search={{
+                                value: search,
+                                onChange: (value) => {
+                                    setSearch(value);
+                                    setPage(1);
+                                },
+                                placeholder: 'Buscar facturas por número ou cliente...',
+                            }}
+                            renderFilters={
+                                <div className="contents">
+                                    {/* Filters */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[180px_240px_160px_160px_auto] gap-3 items-end">
+                                        <div className="hidden">
+                                            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none z-10" />
+                                            <Input
+                                                placeholder="Buscar facturas por número ou cliente..."
+                                                value={search}
+                                                onChange={(e) => {
+                                                    setSearch(e.target.value);
+                                                    setPage(1);
+                                                }}
+                                                className="pl-10"
+                                                size="sm"
+                                            />
+                                        </div>
+                                        <Select
+                                            label="Status"
+                                            options={statusOptions}
+                                            value={statusFilter}
+                                            onChange={(e) => {
+                                                setStatusFilter(e.target.value);
+                                                setPage(1);
+                                            }}
+                                            size="sm"
+                                        />
+                                        <Select
+                                            label="Armazém"
+                                            options={warehouseOptions}
+                                            value={warehouseFilter}
+                                            onChange={(e) => {
+                                                setWarehouseFilter(e.target.value);
+                                                setPage(1);
+                                            }}
+                                            size="sm"
+                                        />
+                                        <Input
+                                            label="De"
+                                            type="date"
+                                            value={customStartDate}
+                                            onChange={(e) => {
+                                                setCustomStartDate(e.target.value);
+                                                setPage(1);
+                                            }}
+                                            size="sm"
+                                        />
+                                        <Input
+                                            label="Até"
+                                            type="date"
+                                            value={customEndDate}
+                                            onChange={(e) => {
+                                                setCustomEndDate(e.target.value);
+                                                setPage(1);
+                                            }}
+                                            size="sm"
+                                        />
+                                        {hasActiveFilters && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setSearch('');
+                                                    setStatusFilter('all');
+                                                    setWarehouseFilter('all');
+                                                    setCustomStartDate('');
+                                                    setCustomEndDate('');
+                                                    setSelectedPeriod('all');
+                                                    setPage(1);
+                                                }}
+                                                className="h-10 px-3 bg-white dark:bg-dark-800 text-[10px] font-black uppercase tracking-widest"
+                                            >
+                                                Limpar
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    {/* Row 2: period + date range */}
+                                    <div className="hidden">
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2">Período</label>
+                                            <div className="flex items-center h-10 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
+                                                {periodOptions.map((option) => (
+                                                    <Button
+                                                        key={option.value}
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setSelectedPeriod(option.value);
+                                                            setPage(1);
+                                                        }}
+                                                        className={cn(
+                                                            'h-8 px-3 rounded-md text-[10px] font-black uppercase tracking-widest',
+                                                            selectedPeriod === option.value
+                                                                ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm'
+                                                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                                        )}
+                                                    >
+                                                        {option.label}
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2">De</label>
+                                            <Input
+                                                type="date"
+                                                value={customStartDate}
+                                                onChange={(e) => {
+                                                    setCustomStartDate(e.target.value);
+                                                    setPage(1);
+                                                }}
+                                                size="sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-1.5">Até</label>
+                                            <Input
+                                                type="date"
+                                                value={customEndDate}
+                                                onChange={(e) => {
+                                                    setCustomEndDate(e.target.value);
+                                                    setPage(1);
+                                                }}
+                                                size="sm"
+                                            />
+                                        </div>
+                                        {hasActiveFilters && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setSearch('');
+                                                    setStatusFilter('all');
+                                                    setWarehouseFilter('all');
+                                                    setCustomStartDate('');
+                                                    setCustomEndDate('');
+                                                    setSelectedPeriod('all');
+                                                    setPage(1);
+                                                }}
+                                                className="h-10 px-3 bg-white dark:bg-dark-800 text-[10px] font-black uppercase tracking-widest"
+                                            >
+                                                Limpar filtros
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    {/* Row 3: quick-status chips */}
+                                    <div className="hidden">
+                                        {[
+                                            { value: 'all', label: 'Todas', cls: 'bg-slate-100 text-slate-700 dark:bg-dark-700 dark:text-gray-300' },
+                                            { value: 'paid', label: 'Pagas', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
+                                            { value: 'partial', label: 'Parciais', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
+                                            { value: 'sent', label: 'Pendentes', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+                                            { value: 'overdue', label: 'Vencidas', cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
+                                            { value: 'draft', label: 'Rascunho', cls: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' },
+                                        ].map(chip => {
+                                            const active = statusFilter === chip.value;
+                                            return (
+                                                <button
+                                                    key={chip.value}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setStatusFilter(chip.value);
+                                                        setPage(1);
+                                                    }}
+                                                    className={cn(
+                                                        'h-7 px-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all',
+                                                        active
+                                                            ? chip.cls + ' ring-2 ring-offset-1 ring-current/40 dark:ring-offset-dark-900 shadow-sm'
+                                                            : 'bg-gray-50 text-gray-500 dark:bg-dark-800 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-dark-700'
+                                                    )}
+                                                >
+                                                    {chip.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <p className="hidden">
+                                        {pagination?.total || invoices.length} facturas encontradas{hasCustomDates ? ' (datas personalizadas)' : ' no período'}
+                                    </p>
+                                </div>
+                            }
                             pagination={{
                                 currentPage: page,
                                 totalItems,
@@ -957,7 +1172,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                             <div className="flex items-center justify-between mb-3">
                                 <h4 className="font-semibold text-primary-700 dark:text-primary-300">Vincular Venda ou Encomenda</h4>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-primary-500">
-                                    {availableSources.length} disponÃ­veis
+                                    {availableSources.length} disponíveis
                                 </span>
                             </div>
 
@@ -966,7 +1181,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                 <div className="relative">
                                     <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
                                     <Input
-                                        placeholder="Pesquisar por nÃºmero, cliente ou tipo..."
+                                        placeholder="Pesquisar por número, cliente ou tipo..."
                                         value={sourceSearch}
                                         onChange={(e) => {
                                             setSourceSearch(e.target.value);
@@ -1000,12 +1215,12 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                             }}
                                             className="w-full text-left p-3 border-b border-gray-100 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700 text-sm text-gray-600 dark:text-gray-300"
                                         >
-                                            <span className="italic">CriaÃ§Ã£o Manual (Sem vÃ­nculo)</span>
+                                            <span className="italic">Criação Manual (Sem vínculo)</span>
                                         </Button>
                                         {filteredSources.length === 0 ? (
                                             <div className="p-6 text-center text-sm text-gray-500">
                                                 {availableSources.length === 0
-                                                    ? 'Nenhuma venda ou encomenda pendente de faturaÃ§Ã£o encontrada.'
+                                                    ? 'Nenhuma venda ou encomenda pendente de faturação encontrada.'
                                                     : `Nenhum resultado para "${sourceSearch}"`}
                                             </div>
                                         ) : (
@@ -1029,7 +1244,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                                                         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                                                                         : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                                                                 )}>
-                                                                    {source.type === 'pharmacy' ? 'FarmÃ¡cia' : 'Comercial'}
+                                                                    {source.type === 'pharmacy' ? 'Farmácia' : 'Comercial'}
                                                                 </span>
                                                                 <span className="font-mono text-xs font-bold text-gray-900 dark:text-white">{source.number}</span>
                                                                 {source.status && source.status !== 'completed' && (
@@ -1081,7 +1296,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                             )}
 
                             {availableSources.length === 0 && (
-                                <p className="text-xs text-amber-600 mt-2 italic">Nenhuma venda ou encomenda pendente de faturaÃ§Ã£o encontrada.</p>
+                                <p className="text-xs text-amber-600 mt-2 italic">Nenhuma venda ou encomenda pendente de faturação encontrada.</p>
                             )}
                         </Card>
                     )}
@@ -1093,11 +1308,19 @@ export default function Invoices({ originModule }: InvoicesProps) {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Input label="Telefone" {...register('customerPhone')} />
                         <Input label="Documento (BI/NUIT)" {...register('customerDocument')} />
-                        <Input label="EndereÃ§o" {...register('customerAddress')} />
+                        <Input label="Endereço" {...register('customerAddress')} />
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <Input label="EmissÃ£o *" type="date" {...register('issueDate')} error={errors.issueDate?.message} />
+                        <Input label="Emissão *" type="date" {...register('issueDate')} error={errors.issueDate?.message} />
                         <Input label="Vencimento *" type="date" {...register('dueDate')} error={errors.dueDate?.message} />
+                        <Select
+                            label="Armazém"
+                            options={[
+                                { value: '', label: 'Nenhum (sem armazém)' },
+                                ...warehouseOptions.filter(o => o.value !== 'all'),
+                            ]}
+                            {...register('warehouseId')}
+                        />
                         <Input
                             label={lockedSource ? 'Desconto (da encomenda)' : 'Desconto'}
                             type="number"
@@ -1106,7 +1329,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                             {...register('discount')}
                         />
                         <Input
-                            label={lockedSource ? `IVA (${lockedSource.taxRate}% â€” congelado)` : 'IVA'}
+                            label={lockedSource ? `IVA (${lockedSource.taxRate}% — congelado)` : 'IVA'}
                             type="number"
                             step="0.01"
                             disabled={!!lockedSource}
@@ -1115,7 +1338,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                     </div>
                     {lockedSource && (
                         <p className="text-xs text-amber-600 italic -mt-2">
-                            Os valores foram herdados da {lockedSource.type === 'pharmacy' ? 'venda' : 'encomenda'}. Para alterar preÃ§os ou IVA, remova o vÃ­nculo acima.
+                            Os valores foram herdados da {lockedSource.type === 'pharmacy' ? 'venda' : 'encomenda'}. Para alterar preços ou IVA, remova o vínculo acima.
                         </p>
                     )}
 
@@ -1144,7 +1367,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                         {!lockedSource && (
                         <div className="relative">
                             <Input
-                                placeholder="esquisar produto no inventÃ¡rio por nome ou cÃ³digo..."
+                                placeholder="esquisar produto no inventário por nome ou código..."
                                 value={productSearch}
                                 onChange={(e) => {
                                     setProductSearch(e.target.value);
@@ -1193,13 +1416,13 @@ export default function Invoices({ originModule }: InvoicesProps) {
                         {fields.map((field, index) => (
                             <div key={field.id} className="grid grid-cols-12 gap-2 items-end">
                                 <div className="col-span-5">
-                                    <Input placeholder="DescriÃ§Ã£o" disabled={!!lockedSource} {...register(`items.${index}.description`)} />
+                                    <Input placeholder="Descrição" disabled={!!lockedSource} {...register(`items.${index}.description`)} />
                                 </div>
                                 <div className="col-span-2">
                                     <Input type="number" placeholder="Qtd" disabled={!!lockedSource} {...register(`items.${index}.quantity`)} onChange={() => updateItemTotal(index)} />
                                 </div>
                                 <div className="col-span-2">
-                                    <Input type="number" step="0.01" placeholder="PreÃ§o" disabled={!!lockedSource} {...register(`items.${index}.unitPrice`)} onChange={() => updateItemTotal(index)} />
+                                    <Input type="number" step="0.01" placeholder="Preço" disabled={!!lockedSource} {...register(`items.${index}.unitPrice`)} onChange={() => updateItemTotal(index)} />
                                 </div>
                                 <div className="col-span-2">
                                     <p className="text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(watchItems?.[index]?.total || 0)}</p>
@@ -1215,7 +1438,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                         </div>
                     </div>
 
-                    <Input label="ObservaÃ§Ãµes" {...register('notes')} />
+                    <Input label="Observações" {...register('notes')} />
                     <Input label="Termos" {...register('terms')} />
 
                     <div className="flex gap-3 justify-end pt-4 border-t">
@@ -1232,10 +1455,10 @@ export default function Invoices({ originModule }: InvoicesProps) {
                     <p className="text-sm text-gray-500">Valor pendente: <span className="font-medium text-red-600">{formatCurrency(selectedInvoice?.amountDue || 0)}</span></p>
                     <div className="grid grid-cols-2 gap-4">
                         <Input label="Valor *" type="number" step="0.01" {...registerPayment('amount')} error={paymentErrors.amount?.message} />
-                        <Select label="MÃ©todo *" options={paymentMethods} {...registerPayment('method')} error={paymentErrors.method?.message} />
+                        <Select label="Método *" options={paymentMethods} {...registerPayment('method')} error={paymentErrors.method?.message} />
                     </div>
                     <Input label="Data *" type="date" {...registerPayment('date')} error={paymentErrors.date?.message} />
-                    <Input label="ReferÃªncia" {...registerPayment('reference')} placeholder="NÂº transaÃ§Ã£o, comprovante..." />
+                    <Input label="Referência" {...registerPayment('reference')} placeholder="Nº transação, comprovante..." />
                     <div className="flex gap-3 justify-end pt-4 border-t">
                         <Button type="button" variant="ghost" onClick={() => setShowPaymentModal(false)}>Cancelar</Button>
                         <Button type="submit">Registrar Pagamento</Button>
@@ -1261,7 +1484,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                             </div>
                         </div>
                         <div className="grid grid-cols-3 gap-4 text-sm">
-                            <div><p className="text-gray-500">EmissÃ£o</p><p className="font-medium">{format(parseISO(selectedInvoice.issueDate), 'dd/MM/yyyy')}</p></div>
+                            <div><p className="text-gray-500">Emissão</p><p className="font-medium">{format(parseISO(selectedInvoice.issueDate), 'dd/MM/yyyy')}</p></div>
                             <div><p className="text-gray-500">Vencimento</p><p className="font-medium">{format(parseISO(selectedInvoice.dueDate), 'dd/MM/yyyy')}</p></div>
                             {selectedInvoice.paidDate && <div><p className="text-gray-500">Pago em</p><p className="font-medium text-green-600">{format(parseISO(selectedInvoice.paidDate), 'dd/MM/yyyy')}</p></div>}
                         </div>

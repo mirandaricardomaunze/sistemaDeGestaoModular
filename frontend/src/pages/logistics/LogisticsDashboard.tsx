@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, Button, Badge, Modal, Select, Input, Skeleton } from '../../components/ui';
 import { useWarehouses } from '../../hooks/useWarehouses';
@@ -58,17 +58,31 @@ const PERIOD_OPTIONS = [
     { label: '1 Ano', value: 365 },
 ];
 
-const GlassmorphicTooltip = ({ active, payload, label, formatter }: any) => {
+type ChartTooltipItem = {
+    color?: string;
+    fill?: string;
+    name?: ReactNode;
+    value?: unknown;
+};
+
+type GlassmorphicTooltipProps = {
+    active?: boolean;
+    payload?: ChartTooltipItem[];
+    label?: ReactNode;
+    formatter?: (value: unknown) => ReactNode;
+};
+
+const GlassmorphicTooltip = ({ active, payload, label, formatter }: GlassmorphicTooltipProps) => {
     if (active && payload && payload.length) {
         return (
             <div className="backdrop-blur-md bg-white/95 dark:bg-dark-900/95 border border-slate-200/90 dark:border-white/10 p-3 rounded-xl shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] z-50">
                 {label && <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">{label}</p>}
-                {payload.map((item: any, index: number) => (
+                {payload.map((item, index) => (
                     <div key={index} className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color || item.fill }} />
                         <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{item.name}:</span>
                         <span className="text-xs font-black text-slate-900 dark:text-white tabular-nums">
-                            {formatter ? formatter(item.value) : item.value}
+                            {formatter ? formatter(item.value) : String(item.value ?? '')}
                         </span>
                     </div>
                 ))}

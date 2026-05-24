@@ -215,7 +215,7 @@ export class CustomersService {
             }
         });
 
-        if (!customer) throw ApiError.notFound('Cliente nÃ£o encontrado');
+        if (!customer) throw ApiError.notFound('Cliente não encontrado');
 
         const now = new Date();
         const [invoices, recentInvoicePayments, creditSales] = await Promise.all([

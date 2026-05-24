@@ -295,7 +295,7 @@ export default function PharmacyPatients() {
 
                                             {/* Allergies */}
                                             <div>
-                                                <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">� ️ï¸ Alergias Conhecidas</p>
+                                                <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">Atenção: Alergias Conhecidas</p>
                                                 {editMode ? (
                                                     <div className="space-y-2">
                                                         <div className="flex flex-wrap gap-2 mb-2">

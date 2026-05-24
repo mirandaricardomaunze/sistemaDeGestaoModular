@@ -167,7 +167,7 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                                     />
                                     <Input
                                         label="Telefone"
-                                        placeholder="840000000"
+                                        placeholder="+258 84 000 0000"
                                         size="sm"
                                         value={manualPhone}
                                         onChange={e => setManualPhone(e.target.value)}

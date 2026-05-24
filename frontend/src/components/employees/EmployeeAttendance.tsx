@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -91,8 +91,8 @@ export default function EmployeeAttendance() {
                 checkIn: newStatus === 'present' ? format(new Date(), 'HH:mm') : undefined,
             });
 
-            if (newStatus === 'present') toast.success('Registo de presenÃ§a efetuado com sucesso!');
-            else if (newStatus === 'vacation') toast.success('Colaborador marcado em fÃ©rias!');
+            if (newStatus === 'present') toast.success('Registo de presença efetuado com sucesso!');
+            else if (newStatus === 'vacation') toast.success('Colaborador marcado em férias!');
             else toast.success('Registo removido!');
 
         } else {
@@ -103,8 +103,8 @@ export default function EmployeeAttendance() {
                 status: type,
                 checkIn: type === 'present' ? format(new Date(), 'HH:mm') : undefined,
             });
-            if (type === 'present') toast.success('Registo de presenÃ§a efetuado com sucesso!');
-            else toast.success('Colaborador marcado em fÃ©rias!');
+            if (type === 'present') toast.success('Registo de presença efetuado com sucesso!');
+            else toast.success('Colaborador marcado em férias!');
         }
     };
 
@@ -156,7 +156,7 @@ export default function EmployeeAttendance() {
             const record = getEmployeeAttendance(emp.id, selectedDate);
             let statusLabel = 'Ausente';
             if (status === 'present') statusLabel = 'Presente';
-            if (status === 'vacation') statusLabel = 'FÃ©rias';
+            if (status === 'vacation') statusLabel = 'Férias';
 
             return {
                 Nome: emp.name,
@@ -168,7 +168,7 @@ export default function EmployeeAttendance() {
         });
 
         exportToCSV(exportData, `presenca-${dateStr}`);
-        toast.success('RelatÃ³rio exportado!');
+        toast.success('Relatório exportado!');
     };
 
     // Calendar Generation
@@ -233,7 +233,7 @@ export default function EmployeeAttendance() {
                                 )}
                             >
                                 <HiOutlineListBullet className="w-4 h-4" />
-                                DiÃ¡rio
+                                Diário
                             </Button>
                             <Button
                                 variant="ghost"
@@ -302,7 +302,7 @@ export default function EmployeeAttendance() {
                                     <p className="text-3xl font-bold text-orange-600">
                                         {currentSummary.vacation}
                                     </p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Em FÃ©rias</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Em Férias</p>
                                 </div>
                                 <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                                     <HiOutlineCalendar className="w-6 h-6 text-orange-500" />
@@ -340,7 +340,7 @@ export default function EmployeeAttendance() {
                             variant="ghost" size="sm"
                             onClick={() => setListFilter('vacation')}
                             className={cn("px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap", listFilter === 'vacation' ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400" : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300")}
-                        >Em FÃ©rias</Button>
+                        >Em Férias</Button>
                         <Button
                             variant="ghost" size="sm"
                             onClick={() => setListFilter('absent')}
@@ -352,7 +352,7 @@ export default function EmployeeAttendance() {
                         <div className="divide-y divide-gray-200 dark:divide-dark-700 max-h-[600px] overflow-y-auto">
                             {paginatedEmployees.length === 0 ? (
                                 <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                                    Nenhum funcionÃ¡rio encontrado
+                                    Nenhum funcionário encontrado
                                 </div>
                             ) : (
                                 paginatedEmployees.map((employee) => {
@@ -399,9 +399,9 @@ export default function EmployeeAttendance() {
                                                             ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 ring-2 ring-orange-500 ring-offset-2 dark:ring-offset-dark-800'
                                                             : 'bg-gray-100 text-gray-600 hover:bg-orange-50 hover:text-orange-600 dark:bg-dark-700 dark:text-gray-400 dark:hover:bg-dark-600'
                                                     )}
-                                                    title={status === 'vacation' ? 'Remover FÃ©rias' : 'Marcar FÃ©rias'}
+                                                    title={status === 'vacation' ? 'Remover Férias' : 'Marcar Férias'}
                                                 >
-                                                    FÃ©rias
+                                                    Férias
                                                 </Button>
 
                                                 {/* Presence Toggle */}
@@ -413,7 +413,7 @@ export default function EmployeeAttendance() {
                                                             ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
                                                             : 'bg-gray-100 dark:bg-dark-700 text-gray-400 hover:bg-green-100 hover:text-green-500 dark:hover:bg-green-900/20'
                                                     )}
-                                                    title={status === 'present' ? 'Remover PresenÃ§a' : 'Marcar PresenÃ§a'}
+                                                    title={status === 'present' ? 'Remover Presença' : 'Marcar Presença'}
                                                 >
                                                     {status === 'present' ? <HiOutlineCheck className="w-7 h-7" /> : <HiOutlineCheck className="w-7 h-7 opacity-20" />}
                                                 </Button>
@@ -439,7 +439,7 @@ export default function EmployeeAttendance() {
                 /* Calendar Mode Content */
                 <Card padding="md">
                     <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-dark-600 rounded-lg overflow-hidden border border-gray-200 dark:border-dark-600">
-                        {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'SÃ¡b'].map(day => (
+                        {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
                             <div key={day} className="bg-gray-50 dark:bg-dark-700 p-2 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
                                 {day}
                             </div>

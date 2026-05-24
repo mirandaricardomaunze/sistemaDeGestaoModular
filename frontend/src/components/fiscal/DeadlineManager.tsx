@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
     HiOutlineCalendar,
     HiOutlinePlus,
@@ -65,7 +65,7 @@ export default function DeadlineManager() {
         e.preventDefault();
 
         if (!formData.title.trim() || !formData.dueDate) {
-            toast.error('Preencha todos os campos obrigatÃ³rios');
+            toast.error('Preencha todos os campos obrigatórios');
             return;
         }
 
@@ -93,7 +93,7 @@ export default function DeadlineManager() {
 
     const handleComplete = (id: string) => {
         completeDeadline(id, user?.id ?? 'anonymous');
-        toast.success('Prazo marcado como concluÃ­do!');
+        toast.success('Prazo marcado como concluído!');
     };
 
     const handleDelete = (id: string) => {
@@ -121,8 +121,8 @@ export default function DeadlineManager() {
         const standardDeadlines: Omit<FiscalDeadline, 'id' | 'createdAt' | 'updatedAt'>[] = [
             {
                 type: 'iva',
-                title: 'DeclaraÃ§Ã£o Mensal IVA',
-                description: `SubmissÃ£o da declaraÃ§Ã£o de IVA de ${formatPeriod(currentPeriod)}`,
+                title: 'Declaração Mensal IVA',
+                description: `Submissão da declaração de IVA de ${formatPeriod(currentPeriod)}`,
                 dueDate,
                 reminderDays: [7, 3, 1],
                 status: 'pending',
@@ -131,8 +131,8 @@ export default function DeadlineManager() {
             },
             {
                 type: 'inss',
-                title: 'DeclaraÃ§Ã£o INSS',
-                description: `SubmissÃ£o da folha de contribuiÃ§Ãµes INSS de ${formatPeriod(currentPeriod)}`,
+                title: 'Declaração INSS',
+                description: `Submissão da folha de contribuições INSS de ${formatPeriod(currentPeriod)}`,
                 dueDate,
                 reminderDays: [7, 3, 1],
                 status: 'pending',
@@ -141,8 +141,8 @@ export default function DeadlineManager() {
             },
             {
                 type: 'irt',
-                title: 'Pagamento RetenÃ§Ãµes IRPS',
-                description: `Pagamento das retenÃ§Ãµes IRPS de ${formatPeriod(currentPeriod)}`,
+                title: 'Pagamento Retenções IRPS',
+                description: `Pagamento das retenções IRPS de ${formatPeriod(currentPeriod)}`,
                 dueDate,
                 reminderDays: [7, 3, 1],
                 status: 'pending',
@@ -160,7 +160,7 @@ export default function DeadlineManager() {
             });
         });
 
-        toast.success('Prazos padrÃ£o criados com sucesso!');
+        toast.success('Prazos padrão criados com sucesso!');
     };
 
     const getStatusBadge = (deadline: FiscalDeadline) => {
@@ -172,7 +172,7 @@ export default function DeadlineManager() {
         const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
         if (deadline.status === 'completed') {
-            return <Badge variant="success">ConcluÃ­do</Badge>;
+            return <Badge variant="success">Concluído</Badge>;
         }
         if (deadline.status === 'cancelled') {
             return <Badge variant="gray">Cancelado</Badge>;
@@ -213,13 +213,13 @@ export default function DeadlineManager() {
                         Prazos e Obrigaces Fiscais
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Gerencie os prazos de submissÃ£o de declaraÃ§Ãµes fiscais
+                        Gerencie os prazos de submissão de declarações fiscais
                     </p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={generateStandardDeadlines}>
                         <HiOutlineBell className="w-5 h-5 mr-2" />
-                        Gerar Prazos PadrÃ£o
+                        Gerar Prazos Padrão
                     </Button>
                     <Button onClick={() => setShowModal(true)}>
                         <HiOutlinePlus className="w-5 h-5 mr-2" />
@@ -237,10 +237,10 @@ export default function DeadlineManager() {
                         </div>
                         <div>
                             <p className="font-semibold text-red-800 dark:text-red-300">
-                                AtenÃ§Ã£o: Prazos PrÃ³ximos
+                                Atenção: Prazos Próximos
                             </p>
                             <p className="text-sm text-red-700 dark:text-red-400">
-                                Existem obrigaÃ§Ãµes fiscais a vencer nos prÃ³ximos 7 dias. Verifique a lista abaixo.
+                                Existem obrigações fiscais a vencer nos próximos 7 dias. Verifique a lista abaixo.
                             </p>
                         </div>
                     </div>
@@ -254,11 +254,11 @@ export default function DeadlineManager() {
                         <thead className="bg-gray-50 dark:bg-dark-800">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">DescriÃ§Ã£o</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Data Limite</th>
                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Recorrente</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">AÃ§Ãµes</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
@@ -268,7 +268,7 @@ export default function DeadlineManager() {
                                         <HiOutlineCalendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
                                         <p>Nenhum prazo configurado</p>
                                         <p className="text-sm mt-1">
-                                            Clique em "Gerar Prazos PadrÃ£o" para criar os prazos mensais automÃ¡ticos
+                                            Clique em "Gerar Prazos Padrão" para criar os prazos mensais automáticos
                                         </p>
                                     </td>
                                 </tr>
@@ -311,7 +311,7 @@ export default function DeadlineManager() {
                                                     {deadline.recurringPattern === 'annual' && 'Anual'}
                                                 </Badge>
                                             ) : (
-                                                <Badge variant="gray" size="sm">Ãšnico</Badge>
+                                                <Badge variant="gray" size="sm">Único</Badge>
                                             )}
                                         </td>
                                         <td className="px-6 py-4">
@@ -320,7 +320,7 @@ export default function DeadlineManager() {
                                                     <Button variant="ghost"
                                                         onClick={() => handleComplete(deadline.id)}
                                                         className="p-2 text-gray-400 hover:text-green-600 transition-colors"
-                                                        title="Marcar como concluÃ­do"
+                                                        title="Marcar como concluído"
                                                     >
                                                         <HiOutlineCheck className="w-5 h-5" />
                                                     </Button>
@@ -361,25 +361,25 @@ export default function DeadlineManager() {
             >
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <Select
-                        label="Tipo de ObrigaÃ§Ã£o"
+                        label="Tipo de Obrigação"
                         options={typeOptions}
                         value={formData.type}
                         onChange={(e) => setFormData({ ...formData, type: e.target.value as DeadlineType })}
                     />
 
                     <Input
-                        label="TÃ­tulo"
+                        label="Título"
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                         required
-                        placeholder="Ex: DeclaraÃ§Ã£o Mensal IVA"
+                        placeholder="Ex: Declaração Mensal IVA"
                     />
 
                     <Input
-                        label="DescriÃ§Ã£o"
+                        label="Descrição"
                         value={formData.description}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        placeholder="DescriÃ§Ã£o detalhada da obrigaÃ§Ã£o"
+                        placeholder="Descrição detalhada da obrigação"
                     />
 
                     <Input
@@ -430,8 +430,8 @@ export default function DeadlineManager() {
                 isOpen={!!showDeleteConfirm}
                 onClose={() => setShowDeleteConfirm(null)}
                 onConfirm={() => { if (showDeleteConfirm) handleDelete(showDeleteConfirm); }}
-                title="Confirmar EliminaÃ§Ã£o"
-                message="Tem certeza que deseja eliminar este prazo? Esta aÃ§Ã£o nÃ£o pode ser desfeita."
+                title="Confirmar Eliminação"
+                message="Tem certeza que deseja eliminar este prazo? Esta ação não pode ser desfeita."
                 confirmText="Eliminar"
                 cancelText="Cancelar"
                 variant="danger"

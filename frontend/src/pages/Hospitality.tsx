@@ -1,4 +1,4 @@
-﻿import { logger } from '../utils/logger';
+import { logger } from '../utils/logger';
 import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -92,11 +92,11 @@ export default function Hospitality() {
 
     const tabs: { id: MainTab; label: string; icon: (isActive: boolean) => React.ReactNode }[] = [
         { id: 'rooms', label: 'Quartos', icon: (active) => <HiOutlineHome className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
-        { id: 'calendar', label: 'CalendÃ¡rio', icon: (active) => <HiOutlineCalendar className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
+        { id: 'calendar', label: 'Calendário', icon: (active) => <HiOutlineCalendar className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
         { id: 'housekeeping', label: 'Limpeza', icon: (active) => <HiOutlineSparkles className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
-        { id: 'history', label: 'HistÃ³rico', icon: (active) => <HiOutlineClipboardDocumentList className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
-        { id: 'management', label: 'ConfiguraÃ§Ã£o', icon: (active) => <HiOutlineCog className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
-        { id: 'dashboard', label: 'EstatÃ­sticas', icon: (active) => <HiOutlineChartBar className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
+        { id: 'history', label: 'Histórico', icon: (active) => <HiOutlineClipboardDocumentList className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
+        { id: 'management', label: 'Configuração', icon: (active) => <HiOutlineCog className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
+        { id: 'dashboard', label: 'Estatísticas', icon: (active) => <HiOutlineChartBar className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
     ];
 
     useTranslation();
@@ -142,7 +142,7 @@ export default function Hospitality() {
 
     const [, setCheckInData] = useState({
         customerName: '', guestCount: '1', guestDocumentType: 'BI',
-        guestDocumentNumber: '', guestNationality: 'MoÃ§ambicana', guestPhone: '',
+        guestDocumentNumber: '', guestNationality: 'Moçambicana', guestPhone: '',
         checkOutDate: '', totalPrice: '', mealPlan: 'none' as 'none' | 'breakfast' | 'half_board' | 'full_board', notes: ''
     });
 
@@ -193,7 +193,7 @@ export default function Hospitality() {
                 guestCount: '1',
                 guestDocumentType: 'BI',
                 guestDocumentNumber: '',
-                guestNationality: 'MoÃ§ambicana',
+                guestNationality: 'Moçambicana',
                 guestPhone: '',
                 checkOutDate: '',
                 totalPrice: '',
@@ -221,7 +221,7 @@ export default function Hospitality() {
             toast.success(
                 (t) => (
                     <div className="flex flex-col gap-2">
-                        <span>Check-out concluÃ­do na perfeiÃ§Ã£o!</span>
+                        <span>Check-out concluído na perfeição!</span>
                         <Button variant="ghost"
                             onClick={() => {
                                 const companyInfo = {
@@ -244,7 +244,7 @@ export default function Hospitality() {
                 { duration: 6000 }
             );
         } else {
-            toast.success('Check-out concluÃ­do com sucesso!');
+            toast.success('Check-out concluído com sucesso!');
         }
     };
 
@@ -305,7 +305,7 @@ export default function Hospitality() {
             case 'available': return 'LIVRE';
             case 'occupied': return 'OCUPADO';
             case 'dirty': return 'LIMPEZA';
-            case 'maintenance': return 'MANUTENÃ‡ÃƒO';
+            case 'maintenance': return 'MANUTENÇÃO';
             default: return status.toUpperCase();
         }
     };
@@ -387,7 +387,7 @@ export default function Hospitality() {
                                     <HiOutlineUsers className="w-4 h-4" />
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-500 font-medium">HÃ³spede</p>
+                                    <p className="text-xs text-gray-500 font-medium">Hóspede</p>
                                     <p className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[120px] capitalize">{activeBooking.customerName}</p>
                                 </div>
                             </div>
@@ -423,7 +423,7 @@ export default function Hospitality() {
                     ) : room.status === 'dirty' ? (
                         <Button variant="outline" size="sm" fullWidth leftIcon={<HiOutlineSparkles />} onClick={() => onClean(room.id)} className="border-amber-500 text-amber-600 hover:bg-amber-50">Limpar Quarto</Button>
                     ) : room.status === 'maintenance' ? (
-                        <Button variant="outline" size="sm" fullWidth onClick={() => onClean(room.id)}>Finalizar ManutenÃ§Ã£o</Button>
+                        <Button variant="outline" size="sm" fullWidth onClick={() => onClean(room.id)}>Finalizar Manutenção</Button>
                     ) : (
                         <Button variant="primary" size="sm" fullWidth leftIcon={<HiOutlinePlus />} onClick={() => onCheckIn(room)}>Fazer Check-in</Button>
                     )}
@@ -436,7 +436,7 @@ export default function Hospitality() {
         <div className="space-y-6 px-2 pt-6 pb-6 md:px-6">
             <PageHeader 
                 title="Hospedagem & Hotelaria"
-                subtitle="Controle de OcupaÃ§Ã£o, Reservas e Consumos"
+                subtitle="Controle de Ocupação, Reservas e Consumos"
                 icon={<HiOutlineBuildingOffice2 className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <>
@@ -504,7 +504,7 @@ export default function Hospitality() {
                             className="font-black text-[10px] uppercase tracking-widest"
                             onClick={() => setFilter('available')}
                         >
-                            DisponÃ­veis ({metrics.available})
+                            Disponíveis ({metrics.available})
                         </Button>
                         <Button
                             variant={filter === 'occupied' ? 'primary' : 'ghost'}
@@ -568,7 +568,7 @@ export default function Hospitality() {
                                             </div>
                                             <div>
                                                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">Conselheiro Inteligente</h2>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">PrevisÃµes de demanda e ocupaÃ§Ã£o hoteleira</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">Previsões de demanda e ocupação hoteleira</p>
                                             </div>
                                         </div>
                                         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden">
@@ -712,7 +712,7 @@ export default function Hospitality() {
                 onClose={() => setDeleteRoomConfirmOpen(false)}
                 onConfirm={performDeleteRoom}
                 title="Excluir Quarto"
-                message="Tem certeza que deseja excluir este quarto? Esta aÃ§Ã£o nÃ£o pode ser desfeita."
+                message="Tem certeza que deseja excluir este quarto? Esta ação não pode ser desfeita."
                 variant="danger"
             />
         </div>

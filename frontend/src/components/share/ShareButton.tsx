@@ -1,4 +1,4 @@
-﻿import {
+import {
     HiOutlineShare,
     HiOutlineEnvelope,
     HiOutlineDocumentArrowDown,
@@ -44,7 +44,7 @@ export default function ShareButton({
             toast.success('DF baixado! Agora pode partilhar.');
             setStep('share');
         } else {
-            toast.error('FunÃ§Ã£o de gerar PDF nÃ£o disponÃ­vel');
+            toast.error('Função de gerar PDF não disponível');
         }
     };
 
@@ -55,11 +55,11 @@ export default function ShareButton({
             toast.success('xcel baixado! Agora pode partilhar.');
             setStep('share');
         } else {
-            toast.error('FunÃ§Ã£o de gerar Excel nÃ£o disponÃ­vel');
+            toast.error('Função de gerar Excel não disponível');
         }
     };
 
-    const shareMessage = `${title}*\n\n${description}\n\nocumento: ${fileName}.pdf\n\nâœ… Gerado por ${companyName}`;
+    const shareMessage = `${title}*\n\n${description}\n\nocumento: ${fileName}.pdf\n\n✅ Gerado por ${companyName}`;
     const emailSubject = `${title} - ${companyName}`;
     const emailBody = `Ol,\n\nSegue em anexo o documento: ${title}\n\n${description}\n\nPor favor, veja o ficheiro anexo.\n\nAtenciosamente,\n${companyName}`;
 
@@ -192,7 +192,7 @@ export default function ShareButton({
                                 onClick={() => setStep('share')}
                                 className="w-full text-sm text-primary-600 hover:underline"
                             >
-                                J tenho o ficheiro â†’ Ir para partilha
+                                J tenho o ficheiro → Ir para partilha
                             </Button>
                         </>
                     )}
@@ -262,7 +262,7 @@ export default function ShareButton({
                                 onClick={() => setStep('download')}
                                 className="w-full text-sm text-gray-500 hover:text-gray-700"
                             >
-                                â† Voltar para baixar ficheiro
+                                ← Voltar para baixar ficheiro
                             </Button>
                         </>
                     )}

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { commercialService } from '../services/commercialService';
+import { commercialDecisionSuggestionsService } from '../services/commercial/decisionSuggestions.service';
 import { invalidateCommercialCache } from '../services/commercial/shared';
 import { cashSessionService } from '../services/cashSessionService';
 import { predictiveService } from '../services/predictiveService';
@@ -96,6 +97,13 @@ router.get('/sales-report', authorize(...STAFF_ROLES), async (req: AuthRequest, 
 router.get('/warehouse-distribution', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await commercialService.getWarehouseDistribution(req.companyId));
+});
+
+// GET /api/commercial/ai-suggestions -- Automatic AI decision panel
+router.get('/ai-suggestions', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+    const { warehouseId } = commercialWarehouseQuerySchema.parse(req.query);
+    res.json(await commercialDecisionSuggestionsService.getSuggestions(req.companyId, warehouseId));
 });
 
 // GET /api/commercial/predictive/forecast

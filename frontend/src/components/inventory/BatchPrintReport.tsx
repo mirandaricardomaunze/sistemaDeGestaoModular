@@ -1,4 +1,4 @@
-﻿import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import { useStore } from '../../stores/useStore';
 import { useBatches } from '../../hooks/useBatches';
 import { Button, Modal } from '../ui';
@@ -67,7 +67,7 @@ export default function BatchPrintReport({ isOpen, onClose, productId, status, s
                 companySettings?.address,
                 companySettings?.city,
                 companySettings?.province
-            ].filter(Boolean).join(' - ') || 'EndereÃ§o nÃ£o configurado',
+            ].filter(Boolean).join(' - ') || 'Endereço não configurado',
             phone: companySettings?.phone || '',
             email: companySettings?.email || '',
             taxId: companySettings?.taxId || '',
@@ -90,7 +90,7 @@ export default function BatchPrintReport({ isOpen, onClose, productId, status, s
             <!DOCTYPE html>
             <html>
             <head>
-                <title>RelatÃ³rio de Lotes - ${reportData.company.name}</title>
+                <title>Relatório de Lotes - ${reportData.company.name}</title>
                 <meta charset="utf-8">
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -155,7 +155,7 @@ export default function BatchPrintReport({ isOpen, onClose, productId, status, s
                         <p>NUIT: ${reportData.company.taxId}</p>
                     </div>
                     <div class="document-info">
-                        <div class="title">RELATÃ“RIO DE LOTES</div>
+                        <div class="title">RELATÓRIO DE LOTES</div>
                         <p style="font-size: 10px; color: #64748b; font-weight: 700; margin-top: 5px;">EMITIDO EM: ${reportData.generatedAt}</p>
                     </div>
                 </div>
@@ -167,7 +167,7 @@ export default function BatchPrintReport({ isOpen, onClose, productId, status, s
                             <th style="text-align: right;">Qtd</th>
                             <th>Entrada</th>
                             <th>Validade</th>
-                            <th>ArmazÃ©m</th>
+                            <th>Armazém</th>
                             <th>Estado</th>
                         </tr>
                     </thead>
@@ -191,7 +191,7 @@ export default function BatchPrintReport({ isOpen, onClose, productId, status, s
                     <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Total de Lotes Listados: ${reportData.totalBatches}</span>
                     <span style="font-size: 14px; font-weight: 900; color: #0f172a;">Qtd. Total: ${reportData.totalQuantity} unidades</span>
                 </div>
-                <div class="footer">Este documento Ã© um relatÃ³rio oficial de controlo de validade e lotes â€¢ Multicore ERP</div>
+                <div class="footer">Este documento é um relatório oficial de controlo de validade e lotes • Multicore ERP</div>
             </body>
             </html>
         `);
@@ -199,7 +199,7 @@ export default function BatchPrintReport({ isOpen, onClose, productId, status, s
     };
 
     const handleExportExcel = () => {
-        const headers = ['Lote', 'Produto', 'Quantidade', 'Data Entrada', 'Validade', 'ArmazÃ©m', 'Estado'];
+        const headers = ['Lote', 'Produto', 'Quantidade', 'Data Entrada', 'Validade', 'Armazém', 'Estado'];
         const rows = reportData.batches.map(b => [
             b.batchNumber,
             b.product?.name || '',
@@ -227,12 +227,12 @@ export default function BatchPrintReport({ isOpen, onClose, productId, status, s
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="ImpressÃ£o de Lotes & Validades" size="xl" isLight>
+        <Modal isOpen={isOpen} onClose={onClose} title="Impressão de Lotes & Validades" size="xl" isLight>
             <div className="space-y-6">
                 <div className="flex justify-between items-center border-b border-slate-100 pb-4">
                     <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Documento Profissional</p>
-                        <h3 className="text-lg font-black text-slate-900">RelatÃ³rio de Rastreabilidade</h3>
+                        <h3 className="text-lg font-black text-slate-900">Relatório de Rastreabilidade</h3>
                     </div>
                     <div className="flex gap-2">
                         <Button 
@@ -290,7 +290,7 @@ export default function BatchPrintReport({ isOpen, onClose, productId, status, s
                                         <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mt-1">Controlo de Lotes e Validades</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase">EmissÃ£o</p>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase">Emissão</p>
                                         <p className="text-xs font-bold text-slate-900">{reportData.generatedAt}</p>
                                     </div>
                                 </div>

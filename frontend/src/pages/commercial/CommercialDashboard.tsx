@@ -29,10 +29,11 @@ import {
 import { formatCurrency, cn } from '../../utils/helpers';
 import { commercialAPI, salesAPI } from '../../services/api';
 import { useWarehouses } from '../../hooks/useData';
-import { useCommercialAnalytics, useMarginAnalysis, useSalesReport } from '../../hooks/useCommercial';
+import { useAIDecisionSuggestions, useCommercialAnalytics, useMarginAnalysis, useSalesReport } from '../../hooks/useCommercial';
 import { useDerivedCommercialAnalytics } from '../../hooks/useCommercialAnalytics';
 import { useSalesHeatmap } from '../../hooks/useSalesHeatmap';
 import { ABCClassificationChart } from '../../components/commercial/analytics/ABCClassificationChart';
+import { AISuggestionsPanel } from '../../components/commercial/analytics/AISuggestionsPanel';
 import { CategoryRevenueChart } from '../../components/commercial/analytics/CategoryRevenueChart';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { QuickActionCard } from '../../components/common/QuickActionCard';
@@ -73,6 +74,7 @@ export default function CommercialDashboard() {
     const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
     const { warehouses } = useWarehouses();
     const { data: analytics, isLoading: analyticsLoading, error: analyticsError, refetch: refetchAnalytics } = useCommercialAnalytics(selectedWarehouseId);
+    const { refetch: refetchAISuggestions } = useAIDecisionSuggestions(selectedWarehouseId);
     const { data: marginData, isLoading: marginLoading, refetch: refetchMargins } = useMarginAnalysis(selectedDays, selectedWarehouseId);
     const { data: salesReport, isLoading: salesReportLoading, refetch: refetchSalesReport } = useSalesReport(selectedDays, selectedWarehouseId);
     const {
@@ -124,9 +126,9 @@ export default function CommercialDashboard() {
         setRefreshing(true);
         // Invalida primeiro o cache server-side para garantir dados frescos
         await commercialAPI.invalidateCache().catch(() => {});
-        await Promise.all([refetchAnalytics(), refetchMargins(), refetchSalesReport(), refetchHeatmap(), fetchRecentSales()]);
+        await Promise.all([refetchAnalytics(), refetchMargins(), refetchSalesReport(), refetchHeatmap(), refetchAISuggestions(), fetchRecentSales()]);
         setRefreshing(false);
-    }, [fetchRecentSales, refetchAnalytics, refetchMargins, refetchSalesReport, refetchHeatmap]);
+    }, [fetchRecentSales, refetchAISuggestions, refetchAnalytics, refetchMargins, refetchSalesReport, refetchHeatmap]);
 
     const isLoading = marginLoading || advancedLoading || analyticsLoading || heatmapLoading || salesReportLoading || recentSalesLoading;
 
@@ -290,6 +292,8 @@ export default function CommercialDashboard() {
                     />
                 ))}
             </div>
+
+            <AISuggestionsPanel warehouseId={selectedWarehouseId} />
 
             {/* 2. Main Performance KPIs - Hero Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

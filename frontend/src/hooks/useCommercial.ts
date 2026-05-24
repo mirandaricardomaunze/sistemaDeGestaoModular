@@ -17,6 +17,7 @@ import type {
     CreateSupplierInvoicePayload,
     AddSupplierInvoicePaymentPayload,
     Quotation,
+    AIDecisionSuggestion,
 } from '../services/api/commercial.api';
 import { logger } from '../utils/logger';
 
@@ -38,6 +39,22 @@ export function useCommercialAnalytics(warehouseId?: string) {
 }
 
 // ── Margin Analysis Hook ─────────────────────────────────────────────────────
+
+export function useAIDecisionSuggestions(warehouseId?: string) {
+    const query = useQuery<AIDecisionSuggestion[]>({
+        queryKey: ['commercial', 'ai-suggestions', warehouseId ?? 'all'],
+        queryFn: () => commercialAPI.getAIDecisionSuggestions(warehouseId),
+        staleTime: 5 * 60_000,
+        refetchInterval: 10 * 60_000,
+    });
+
+    return {
+        data: query.data ?? [],
+        isLoading: query.isLoading,
+        error: query.error ? 'Erro ao carregar sugestões da IA' : null,
+        refetch: query.refetch,
+    };
+}
 
 export function useMarginAnalysis(period: number = 30, warehouseId?: string) {
     const [data, setData] = useState<MarginAnalysis | null>(null);

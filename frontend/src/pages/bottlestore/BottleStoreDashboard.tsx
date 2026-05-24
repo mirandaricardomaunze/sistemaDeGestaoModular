@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, Button, Skeleton, Badge, PageHeader } from '../../components/ui';
 import {
@@ -46,17 +46,31 @@ import { formatCurrency, cn } from '../../utils';
 
 type TimeRange = '1M' | '2M' | '3M' | '6M' | '1Y';
 
-const GlassmorphicTooltip = ({ active, payload, label, formatter }: any) => {
+type ChartTooltipItem = {
+    color?: string;
+    fill?: string;
+    name?: ReactNode;
+    value?: unknown;
+};
+
+type GlassmorphicTooltipProps = {
+    active?: boolean;
+    payload?: ChartTooltipItem[];
+    label?: ReactNode;
+    formatter?: (value: unknown) => ReactNode;
+};
+
+const GlassmorphicTooltip = ({ active, payload, label, formatter }: GlassmorphicTooltipProps) => {
     if (active && payload && payload.length) {
         return (
             <div className="backdrop-blur-md bg-white/95 dark:bg-dark-900/95 border border-slate-200/90 dark:border-white/10 p-3 rounded-xl shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] z-50">
                 {label && <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">{label}</p>}
-                {payload.map((item: any, index: number) => (
+                {payload.map((item, index) => (
                     <div key={index} className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color || item.fill }} />
                         <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{item.name}:</span>
                         <span className="text-xs font-black text-slate-900 dark:text-white tabular-nums">
-                            {formatter ? formatter(item.value) : item.value}
+                            {formatter ? formatter(item.value) : String(item.value ?? '')}
                         </span>
                     </div>
                 ))}
@@ -332,7 +346,7 @@ export default function BottleStoreDashboard() {
                                 <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200/50 dark:stroke-white/5" vertical={false} />
                                 <XAxis dataKey="date" className="text-[10px]" stroke="#94a3b8" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
                                 <YAxis className="text-[10px]" stroke="#94a3b8" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(value) => formatCurrency(value).replace(',00', '')} />
-                                <Tooltip content={<GlassmorphicTooltip formatter={formatCurrency} />} />
+                                <Tooltip content={<GlassmorphicTooltip formatter={(v) => formatCurrency(Number(v))} />} />
                                 <Area type="monotone" dataKey="amount" name="Vendas" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
                             </AreaChart>
                         </ResponsiveContainer>

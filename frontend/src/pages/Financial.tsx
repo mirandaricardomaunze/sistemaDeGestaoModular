@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,7 +27,7 @@ type TransactionFormData = z.infer<typeof transactionSchema>;
 // Time period options
 type TimePeriod = '1m' | '3m' | '6m' | '1y';
 const periodOptions: { value: TimePeriod; label: string }[] = [
-    { value: '1m', label: '1 MÃªs' },
+    { value: '1m', label: '1 Mês' },
     { value: '3m', label: '3 Meses' },
     { value: '6m', label: '6 Meses' },
     { value: '1y', label: '1 Ano' },
@@ -36,10 +36,10 @@ const periodOptions: { value: TimePeriod; label: string }[] = [
 // Validation Schema
 const transactionSchema = z.object({
     type: z.enum(['income', 'expense']),
-    category: z.string().min(1, 'Categoria Ã© obrigatÃ³ria'),
-    description: z.string().min(2, 'DescriÃ§Ã£o Ã© obrigatÃ³ria'),
+    category: z.string().min(1, 'Categoria é obrigatória'),
+    description: z.string().min(2, 'Descrição é obrigatória'),
     amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
-    date: z.string().min(1, 'Data Ã© obrigatÃ³ria'),
+    date: z.string().min(1, 'Data é obrigatória'),
     dueDate: z.string().optional(),
     reference: z.string().optional(),
     notes: z.string().optional(),
@@ -73,7 +73,7 @@ export default function Financial() {
             id: '3',
             type: 'income',
             category: 'servicos',
-            description: 'ServiÃ§o de consultoria',
+            description: 'Serviço de consultoria',
             amount: 3500.00,
             date: '2024-12-18',
             status: 'completed',
@@ -286,7 +286,7 @@ export default function Financial() {
             notes: data.notes || undefined,
         };
         setTransactions((prev) => [newTransaction, ...prev]);
-        toast.success('TransaÃ§Ã£o registrada com sucesso!');
+        toast.success('Transação registrada com sucesso!');
         setShowFormModal(false);
         reset();
     };
@@ -295,13 +295,13 @@ export default function Financial() {
         setTransactions((prev) =>
             prev.map((t) => (t.id === id ? { ...t, status: 'completed' as const } : t))
         );
-        toast.success('TransaÃ§Ã£o concluÃ­da!');
+        toast.success('Transação concluída!');
     };
 
     const handleDelete = () => {
         if (transactionToDelete) {
             setTransactions((prev) => prev.filter((t) => t.id !== transactionToDelete.id));
-            toast.success('TransaÃ§Ã£o excluÃ­da!');
+            toast.success('Transação excluída!');
             setDeleteModalOpen(false);
             setTransactionToDelete(null);
         }
@@ -309,16 +309,16 @@ export default function Financial() {
 
     const incomeCategories = [
         { value: 'vendas', label: 'Vendas' },
-        { value: 'servicos', label: 'ServiÃ§os' },
-        { value: 'comissoes', label: 'ComissÃµes' },
+        { value: 'servicos', label: 'Serviços' },
+        { value: 'comissoes', label: 'Comissões' },
         { value: 'outros_receitas', label: 'Outros' },
     ];
 
     const expenseCategories = [
         { value: 'fornecedores', label: 'Fornecedores' },
         { value: 'aluguel', label: 'Aluguel' },
-        { value: 'salarios', label: 'SalÃ¡rios' },
-        { value: 'agua_luz', label: 'Ãgua/Luz' },
+        { value: 'salarios', label: 'Salários' },
+        { value: 'agua_luz', label: 'Água/Luz' },
         { value: 'internet', label: 'Internet/Telefone' },
         { value: 'impostos', label: 'Impostos' },
         { value: 'outros_despesas', label: 'Outros' },
@@ -332,19 +332,19 @@ export default function Financial() {
 
     const statusOptions = [
         { value: 'all', label: 'Todos' },
-        { value: 'completed', label: 'ConcluÃ­do' },
+        { value: 'completed', label: 'Concluído' },
         { value: 'pending', label: 'Pendente' },
     ];
 
     const tabs = [
-        { id: 'transactions' as const, label: 'LanÃ§amentos', icon: <HiOutlineArrowTrendingUp className="w-5 h-5" /> },
-        { id: 'settings' as const, label: 'ConfiguraÃ§Ã£o', icon: <HiOutlineCog className="w-5 h-5" /> },
+        { id: 'transactions' as const, label: 'Lançamentos', icon: <HiOutlineArrowTrendingUp className="w-5 h-5" /> },
+        { id: 'settings' as const, label: 'Configuração', icon: <HiOutlineCog className="w-5 h-5" /> },
     ];
 
     return (
         <div className="space-y-6">
             <PageHeader 
-                title="GestÃ£o Financeira"
+                title="Gestão Financeira"
                 subtitle="Controle de Fluxo de Caixa, Contas a Pagar e Receber"
                 icon={<HiOutlineCurrencyDollar className="w-6 h-6 text-primary-600 dark:text-primary-400" />}
                 actions={
@@ -363,7 +363,7 @@ export default function Financial() {
                             leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />} 
                             onClick={() => setShowFormModal(true)}
                         >
-                            Novo LanÃ§amento
+                            Novo Lançamento
                         </Button>
                     </>
                 }
@@ -451,7 +451,7 @@ export default function Financial() {
                             <div className="flex flex-col lg:flex-row gap-4">
                                 <div className="flex-1">
                                     <Input
-                                        placeholder="Buscar transaÃ§Ãµes..."
+                                        placeholder="Buscar transações..."
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
                                         leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
@@ -499,8 +499,8 @@ export default function Financial() {
                 {activeTab === 'settings' && (
                     <Card padding="lg" className="flex flex-col items-center justify-center py-20">
                         <HiOutlineCog className="w-16 h-16 text-primary-600/30 dark:text-primary-400/30 mb-4" />
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-tight">ConfiguraÃ§Ãµes Financeiras</h3>
-                        <p className="text-gray-500 text-center max-w-md">Configure categorias, contas bancÃ¡rias e automaces.</p>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-tight">Configurações Financeiras</h3>
+                        <p className="text-gray-500 text-center max-w-md">Configure categorias, contas bancárias e automaces.</p>
                     </Card>
                 )}
             </div>
@@ -512,7 +512,7 @@ export default function Financial() {
                     setShowFormModal(false);
                     reset();
                 }}
-                title="Nova TransaÃ§Ã£o"
+                title="Nova Transação"
                 size="lg"
             >
                 <form onSubmit={handleSubmit(onSubmit as never)} className="space-y-6">
@@ -578,10 +578,10 @@ export default function Financial() {
                     </div>
 
                     <Input
-                        label="DescriÃ§Ã£o *"
+                        label="Descrição *"
                         {...register('description')}
                         error={errors.description?.message}
-                        placeholder="DescriÃ§Ã£o da transaÃ§Ã£o"
+                        placeholder="Descrição da transação"
                     />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -600,12 +600,12 @@ export default function Financial() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input
-                            label="ReferÃªncia"
+                            label="Referência"
                             {...register('reference')}
-                            placeholder="NÂº nota, pedido, etc."
+                            placeholder="Nº nota, pedido, etc."
                         />
                         <Input
-                            label="ObservaÃ§Ãµes"
+                            label="Observações"
                             {...register('notes')}
                             placeholder="Notas adicionais"
                         />
@@ -619,7 +619,7 @@ export default function Financial() {
                             Cancelar
                         </Button>
                         <Button type="submit">
-                            Registrar TransaÃ§Ã£o
+                            Registrar Transação
                         </Button>
                     </div>
                 </form>
@@ -629,12 +629,12 @@ export default function Financial() {
             <Modal
                 isOpen={deleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
-                title="Confirmar ExclusÃ£o"
+                title="Confirmar Exclusão"
                 size="sm"
             >
                 <div className="space-y-4">
                     <p className="text-gray-600 dark:text-gray-300">
-                        Tem certeza que deseja excluir esta transaÃ§Ã£o?
+                        Tem certeza que deseja excluir esta transação?
                     </p>
                     <div className="flex gap-3 justify-end">
                         <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>

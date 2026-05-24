@@ -1,40 +1,42 @@
 # syntax=docker/dockerfile:1
-FROM node:20-alpine AS base
+#
+# Frontend (React/Vite) — monorepo workspace build.
+# IMPORTANT: build context must be the repo root (see docker-compose.yml).
+#   docker build -f frontend/Dockerfile -t sistema-frontend .
 
-# Install dependencies only when needed
-FROM base AS deps
+FROM node:20-alpine AS base
 WORKDIR /app
 
-COPY package*.json ./
+# ---------- deps ----------
+# Install all workspace deps using the single root lockfile.
+FROM base AS deps
+COPY package.json package-lock.json ./
+COPY frontend/package.json ./frontend/
+COPY backend/package.json ./backend/
 RUN npm ci
 
-# Rebuild the source code only when needed
+# ---------- builder ----------
 FROM base AS builder
-WORKDIR /app
-
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY package.json package-lock.json ./
+COPY frontend ./frontend
 
 # Build-time API URL. Override via:
-#   docker build --build-arg VITE_API_URL=https://api.exemplo.co.mz/api
-# Or rely on .env.production (auto-loaded by Vite when mode=production).
+#   docker build --build-arg VITE_API_URL=https://api.exemplo.co.mz/api -f frontend/Dockerfile .
+# Otherwise frontend/.env.production is auto-loaded by Vite (mode=production).
 ARG VITE_API_URL
 ENV VITE_API_URL=${VITE_API_URL}
-RUN npm run build
 
-# Production image with nginx
+RUN npm run build -w frontend
+
+# ---------- runner ----------
 FROM nginx:alpine AS runner
 
-# Copy nginx config
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY frontend/nginx.conf /etc/nginx/nginx.conf
+COPY --from=builder /app/frontend/dist /usr/share/nginx/html
 
-# Copy built application
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Expose port
 EXPOSE 80
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s \
     CMD wget --quiet --tries=1 --spider http://localhost/ || exit 1
 

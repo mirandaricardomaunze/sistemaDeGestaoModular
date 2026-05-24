@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,10 +23,10 @@ import { logger } from '../../utils/logger';
 // Validation Schema
 const transactionSchema = z.object({
     type: z.enum(['income', 'expense']),
-    category: z.string().min(1, 'Categoria Ã© obrigatÃ³ria'),
-    description: z.string().min(2, 'DescriÃ§Ã£o Ã© obrigatÃ³ria'),
+    category: z.string().min(1, 'Categoria é obrigatória'),
+    description: z.string().min(2, 'Descrição é obrigatória'),
     amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
-    date: z.string().min(1, 'Data Ã© obrigatÃ³ria'),
+    date: z.string().min(1, 'Data é obrigatória'),
     dueDate: z.string().optional().nullable(),
     paymentMethod: z.string().optional().nullable(),
     reference: z.string().optional().nullable(),
@@ -37,7 +37,7 @@ type TransactionFormData = z.infer<typeof transactionSchema>;
 
 type TimePeriod = '1m' | '3m' | '6m' | '1y';
 const periodOptions: { value: TimePeriod; label: string }[] = [
-    { value: '1m', label: '1 MÃªs' },
+    { value: '1m', label: '1 Mês' },
     { value: '3m', label: '3 Meses' },
     { value: '6m', label: '6 Meses' },
     { value: '1y', label: '1 Ano' },
@@ -178,7 +178,7 @@ export default function BottleStoreFinance() {
         { value: 'Sales', label: 'Vendas de Retalho (POS)' },
         { value: 'Wholesale', label: 'Vendas por Atacado' },
         { value: 'Crate_Rental', label: 'Aluguer de Engradados / Vasilhames' },
-        { value: 'Commission', label: 'ComissÃµes de Fornecedores' },
+        { value: 'Commission', label: 'Comissões de Fornecedores' },
         { value: 'Other_Income', label: 'Outros Proveitos' },
     ];
 
@@ -186,26 +186,26 @@ export default function BottleStoreFinance() {
         { value: 'Beverage_Stock', label: 'Compra de Bebidas / Stock' },
         { value: 'Bottles_Crates', label: 'Vasilhames / Engradados' },
         { value: 'Rent', label: 'Aluguer da Loja' },
-        { value: 'Electricity', label: 'Electricidade (FrigorÃ­ficos)' },
-        { value: 'Salary', label: 'SalÃ¡rios e Pessoal' },
-        { value: 'Licensing', label: 'LicenÃ§as e Alvars' },
+        { value: 'Electricity', label: 'Electricidade (Frigoríficos)' },
+        { value: 'Salary', label: 'Salários e Pessoal' },
+        { value: 'Licensing', label: 'Licenças e Alvars' },
         { value: 'Losses', label: 'Quebras / Perdas / Roubos' },
         { value: 'Other_Expense', label: 'Outras Custas' },
     ];
 
     const paymentMethods = [
-        { value: 'cash', label: 'NumerÃ¡rio' },
-        { value: 'card', label: 'CartÃ£o (TPA)' },
+        { value: 'cash', label: 'Numerário' },
+        { value: 'card', label: 'Cartão (TPA)' },
         { value: 'mpesa', label: 'M-Pesa' },
         { value: 'emola', label: 'E-Mola' },
-        { value: 'transfer', label: 'TransferÃªncia' },
+        { value: 'transfer', label: 'Transferência' },
     ];
 
     return (
         <div className="space-y-6">
             <PageHeader 
-                title="GestÃ£o Financeira Bottle Store"
-                subtitle="Controle de vendas, compra de stock e gestÃ£o de custos de refrigeraÃ§Ã£o"
+                title="Gestão Financeira Bottle Store"
+                subtitle="Controle de vendas, compra de stock e gestão de custos de refrigeração"
                 icon={<HiOutlineCurrencyDollar className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <>
@@ -334,10 +334,10 @@ export default function BottleStoreFinance() {
                             <tr className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] italic">
                                 <th className="px-6 py-4 text-left">Canal</th>
                                 <th className="px-6 py-4 text-left">Data</th>
-                                <th className="px-6 py-4 text-left">DescriÃ§Ã£o</th>
+                                <th className="px-6 py-4 text-left">Descrição</th>
                                 <th className="px-6 py-4 text-left">Categoria</th>
                                 <th className="px-6 py-4 text-right">Valor</th>
-                                <th className="px-6 py-4 text-center">AÃ§Ãµes</th>
+                                <th className="px-6 py-4 text-center">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-dark-800 divide-y divide-gray-100 dark:divide-dark-700">
@@ -350,7 +350,7 @@ export default function BottleStoreFinance() {
                             ) : transactions.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-20 text-center text-gray-400 italic font-medium">
-                                        NÃ£o foram encontrados registos financeiros para este perÃ­odo.
+                                        Não foram encontrados registos financeiros para este período.
                                     </td>
                                 </tr>
                             ) : (
@@ -358,7 +358,7 @@ export default function BottleStoreFinance() {
                                     <tr key={t.id} className="hover:bg-gray-50/50 dark:hover:bg-dark-700 transition-colors group">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <Badge variant={t.type === 'income' ? 'success' : 'danger'} className="uppercase font-black text-[9px] tracking-widest px-2.5 py-0.5 rounded-full">
-                                                {t.type === 'income' ? 'Entrada' : 'SaÃ­da'}
+                                                {t.type === 'income' ? 'Entrada' : 'Saída'}
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -494,7 +494,7 @@ export default function BottleStoreFinance() {
                     </div>
 
                     <Input
-                        label="DescriÃ§Ã£o da TransaÃ§Ã£o *"
+                        label="Descrição da Transação *"
                         {...register('description')}
                         error={errors.description?.message}
                         placeholder="Ex: Pagamento de fornecedor de cerveja"
@@ -516,19 +516,19 @@ export default function BottleStoreFinance() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Select
-                            label="MÃ©todo de Pagamento"
+                            label="Método de Pagamento"
                             options={paymentMethods}
                             {...register('paymentMethod')}
                         />
                         <Input
-                            label="NÂº da Fatura / ReferÃªncia"
+                            label="Nº da Fatura / Referência"
                             {...register('reference')}
                             placeholder="Ex: #BOTTLE-2024-001"
                         />
                     </div>
 
                     <Input
-                        label="ObservaÃ§Ãµes"
+                        label="Observações"
                         {...register('notes')}
                         placeholder="Detalhes adicionais..."
                     />
@@ -544,7 +544,7 @@ export default function BottleStoreFinance() {
                 </form>
             </Modal>
 
-            {/* Modal de EliminaÃ§Ã£o */}
+            {/* Modal de Eliminação */}
             <Modal
                 isOpen={deleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
@@ -553,7 +553,7 @@ export default function BottleStoreFinance() {
             >
                 <div className="space-y-4 py-2">
                     <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                        Deseja realmente eliminar este registo permanente? Esta acÃ§Ã£o impactar os saldos mensais.
+                        Deseja realmente eliminar este registo permanente? Esta acção impactar os saldos mensais.
                     </p>
                     <div className="flex gap-3 justify-end pt-4">
                         <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
     AreaChart,
@@ -48,19 +48,38 @@ const dayNames: Record<string, string> = {
     '0': 'Dom', '1': 'Seg', '2': 'Ter', '3': 'Qua', '4': 'Qui', '5': 'Sex', '6': 'Sab'
 };
 
-const GlassmorphicTooltip = ({ active, payload, label, formatter }: any) => {
+type ChartTooltipItem = {
+    color?: string;
+    fill?: string;
+    name?: ReactNode;
+    value?: unknown;
+};
+
+type GlassmorphicTooltipProps = {
+    active?: boolean;
+    payload?: ChartTooltipItem[];
+    label?: ReactNode;
+    formatter?: (value: unknown) => ReactNode;
+};
+
+type ChartLegendItem = {
+    color?: string;
+    value?: ReactNode;
+};
+
+const GlassmorphicTooltip = ({ active, payload, label, formatter }: GlassmorphicTooltipProps) => {
     if (active && payload && payload.length) {
         return (
             <div className="backdrop-blur-md bg-white/95 dark:bg-dark-900/95 border border-slate-200/90 dark:border-white/10 p-3 rounded-xl shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] z-50">
                 {label && <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">{label}</p>}
-                {payload.map((item: any, index: number) => (
+                {payload.map((item, index) => (
                     <div key={index} className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color || item.fill }} />
                         <span className="text-xs font-semibold text-slate-700 dark:text-slate-350">
                             {item.name}:
                         </span>
                         <span className="text-xs font-black text-slate-900 dark:text-white tabular-nums">
-                            {formatter ? formatter(item.value) : item.value}
+                            {formatter ? formatter(item.value) : String(item.value ?? '')}
                         </span>
                     </div>
                 ))}
@@ -70,10 +89,10 @@ const GlassmorphicTooltip = ({ active, payload, label, formatter }: any) => {
     return null;
 };
 
-const CustomLegend = ({ payload }: any) => {
+const CustomLegend = ({ payload }: { payload?: ChartLegendItem[] }) => {
     return (
         <div className="flex items-center justify-end gap-4 mt-2">
-            {payload.map((entry: any, index: number) => (
+            {payload?.map((entry, index) => (
                 <div key={`item-${index}`} className="flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-550 dark:text-slate-400">
@@ -319,7 +338,7 @@ export default function PharmacyDashboard() {
                                     <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-slate-200/50 dark:stroke-white/5" />
                                     <XAxis tickLine={false} axisLine={false} dataKey="name" className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500" stroke="currentColor" />
                                     <YAxis tickLine={false} axisLine={false} className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500" stroke="currentColor" tickFormatter={(val) => formatCurrency(val).replace(',00', '')} />
-                                    <Tooltip content={<GlassmorphicTooltip formatter={formatCurrency} />} />
+                                    <Tooltip content={<GlassmorphicTooltip formatter={(v) => formatCurrency(Number(v))} />} />
                                     <Legend content={<CustomLegend />} />
                                     <Area
                                         type="monotone"

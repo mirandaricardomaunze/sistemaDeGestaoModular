@@ -1,4 +1,4 @@
-﻿import { logger } from '../utils/logger';
+import { logger } from '../utils/logger';
 import { useState, useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useForm } from 'react-hook-form';
@@ -29,11 +29,11 @@ import { PAGE_SIZE } from '../utils/constants';
 
 // Validation Schema
 const supplierSchema = z.object({
-    name: z.string().min(2, 'Nome Ã© obrigatÃ³rio'),
+    name: z.string().min(2, 'Nome é obrigatório'),
     tradeName: z.string().optional(),
     nuit: z.string().optional(),
-    email: z.string().email('Email invÃ¡lido').optional().or(z.literal('')),
-    phone: z.string().min(9, 'Telefone invÃ¡lido'),
+    email: z.string().email('Email inválido').optional().or(z.literal('')),
+    phone: z.string().min(9, 'Telefone inválido'),
     phone2: z.string().optional(),
     address: z.string().optional(),
     city: z.string().optional(),
@@ -47,13 +47,13 @@ type SupplierFormData = z.infer<typeof supplierSchema>;
 
 const provinceOptions = [
     { value: 'Maputo Cidade', label: 'Maputo Cidade' },
-    { value: 'Maputo ProvÃ­ncia', label: 'Maputo ProvÃ­ncia' },
+    { value: 'Maputo Província', label: 'Maputo Província' },
     { value: 'Gaza', label: 'Gaza' },
     { value: 'Inhambane', label: 'Inhambane' },
     { value: 'Sofala', label: 'Sofala' },
     { value: 'Manica', label: 'Manica' },
     { value: 'Tete', label: 'Tete' },
-    { value: 'ZambÃ©zia', label: 'ZambÃ©zia' },
+    { value: 'Zambézia', label: 'Zambézia' },
     { value: 'Nampula', label: 'Nampula' },
     { value: 'Niassa', label: 'Niassa' },
     { value: 'Cabo Delgado', label: 'Cabo Delgado' },
@@ -217,7 +217,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
     };
 
     // Module name for labels
-    const moduleName = originModule === 'pharmacy' ? 'FarmÃ¡cia' : '';
+    const moduleName = originModule === 'pharmacy' ? 'Farmácia' : '';
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const columns = useMemo<ColumnDef<Supplier, any>[]>(() => [
@@ -234,7 +234,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
                         <div>
                             <p className="font-medium text-gray-900 dark:text-white">{supplier.name}</p>
                             <p className="text-xs text-gray-500">
-                                {supplier.code} {supplier.nuit && `â€¢ NUIT: ${supplier.nuit}`}
+                                {supplier.code} {supplier.nuit && `• NUIT: ${supplier.nuit}`}
                             </p>
                         </div>
                     </div>
@@ -305,7 +305,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
         },
         {
             id: 'actions',
-            header: 'AÃ§Ãµes',
+            header: 'Ações',
             cell: ({ row }) => (
                 <div className="flex justify-center gap-2">
                     <Button
@@ -340,7 +340,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
             {!hideHeader && (
                 <PageHeader 
                     title={`Fornecedores ${moduleName}`}
-                    subtitle={`GestÃ£o de Entidades ${moduleName ? 'da ' + moduleName : ''} e Encomendas de Compra`}
+                    subtitle={`Gestão de Entidades ${moduleName ? 'da ' + moduleName : ''} e Encomendas de Compra`}
                     icon={<HiOutlineTruck className="text-primary-600 dark:text-primary-400" />}
                     actions={
                         <>
@@ -371,7 +371,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
                     tabs={
                         <nav className="flex gap-1">
                             {[
-                                { id: 'directory', label: 'DiretÃ³rio', icon: <HiOutlineTruck className="w-5 h-5" /> },
+                                { id: 'directory', label: 'Diretório', icon: <HiOutlineTruck className="w-5 h-5" /> },
                                 { id: 'orders', label: 'Encomendas', icon: <HiOutlineCurrencyDollar className="w-5 h-5" /> }
                             ].map((tab) => (
                                 <Button variant="ghost"
@@ -443,9 +443,9 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
                         }}
                         exportConfig={{
                             filename: `fornecedores_${originModule || 'geral'}`,
-                            title: `RelatÃ³rio de Fornecedores - ${originModule ? (originModule === 'pharmacy' ? 'FarmÃ¡cia' : originModule) : 'Geral'}`,
+                            title: `Relatório de Fornecedores - ${originModule ? (originModule === 'pharmacy' ? 'Farmácia' : originModule) : 'Geral'}`,
                             columns: [
-                                { key: 'code', header: 'CÃ³digo', width: 10 },
+                                { key: 'code', header: 'Código', width: 10 },
                                 { key: 'name', header: 'Fornecedor', width: 30 },
                                 { key: 'nuit', header: 'NUIT', width: 15 },
                                 { key: 'phone', header: 'Telefone', width: 15 },
@@ -491,12 +491,12 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
                         <Input
                             label="NUIT"
                             {...register('nuit')}
-                            placeholder="NÃºmero de IdentificaÃ§Ã£o TributÃ¡ria"
+                            placeholder="Número de Identificação Tributária"
                         />
                         <Input
                             label="Pessoa de Contacto"
                             {...register('contactPerson')}
-                            placeholder="Nome do responsÃ¡vel"
+                            placeholder="Nome do responsável"
                         />
                     </div>
 
@@ -508,7 +508,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
                             placeholder="+258 21 000 000"
                         />
                         <Input
-                            label="Telefone SecundÃ¡rio"
+                            label="Telefone Secundário"
                             {...register('phone2')}
                             placeholder="+258 84 000 0000"
                         />
@@ -523,15 +523,15 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
                     />
 
                     <Input
-                        label="EndereÃ§o"
+                        label="Endereço"
                         {...register('address')}
-                        placeholder="Rua, nÃºmero, bairro"
+                        placeholder="Rua, número, bairro"
                     />
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Input label="Cidade" {...register('city')} placeholder="Cidade" />
                         <Select
-                            label="ProvÃ­ncia"
+                            label="Província"
                             options={[{ value: '', label: 'Selecione...' }, ...provinceOptions]}
                             {...register('province')}
                         />
@@ -542,7 +542,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
                         />
                     </div>
 
-                    <Input label="ObservaÃ§Ãµes" {...register('notes')} placeholder="Notas adicionais" />
+                    <Input label="Observações" {...register('notes')} placeholder="Notas adicionais" />
 
                     <div className="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-dark-700">
                         <Button
@@ -569,7 +569,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
             <Modal
                 isOpen={deleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
-                title="Confirmar ExclusÃ£o"
+                title="Confirmar Exclusão"
                 size="sm"
             >
                 <div className="space-y-4">

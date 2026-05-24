@@ -30,6 +30,7 @@ export const createInvoiceSchema = z.object({
     customerAddress: z.string().max(500, 'Endereço muito longo').optional().nullable(),
     orderId: z.string().uuid('ID do pedido inválido').optional().nullable(),
     orderNumber: z.string().max(50, 'Número do pedido muito longo').optional().nullable(),
+    warehouseId: z.string().uuid('ID do armazém inválido').optional().nullable(),
     items: z.array(invoiceItemSchema)
         .min(1, 'Fatura deve ter pelo menos um item')
         .max(100, 'Fatura não pode ter mais de 100 itens'),

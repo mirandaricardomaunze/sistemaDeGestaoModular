@@ -115,7 +115,7 @@ export default function ChatWidget({ initiallyOpen = false, onClose }: ChatWidge
             }
 
             if (response.pdfUrl) {
-                toast.success('ðŸ’¾ Relatório PDF gerado!');
+                toast.success('💾 Relatório PDF gerado!');
             }
         } catch (error) {
             logger.error('Chat error:', error);

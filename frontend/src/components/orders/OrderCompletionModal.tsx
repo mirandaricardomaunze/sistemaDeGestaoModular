@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
     HiOutlineCheck,
     HiOutlineExclamationTriangle,
@@ -100,7 +100,7 @@ export default function OrderCompletionModal({
                             </div>
                             <div>
                                 <p className="font-semibold text-gray-900 dark:text-white">
-                                    VerificaÃ§Ã£o de Itens
+                                    Verificação de Itens
                                 </p>
                                 <p className="text-sm text-gray-500">
                                     Marque cada item conforme for conferido
@@ -153,8 +153,8 @@ export default function OrderCompletionModal({
                                             {item.product.name}
                                         </p>
                                         <p className="text-sm text-gray-500">
-                                            CÃ³digo: {item.product.code}
-                                            {item.product.location && ` â€¢ Local: ${item.product.location}`}
+                                            Código: {item.product.code}
+                                            {item.product.location && ` • Local: ${item.product.location}`}
                                         </p>
                                     </div>
 
@@ -192,13 +192,13 @@ export default function OrderCompletionModal({
                     {/* Notes */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                            ObservaÃ§Ãµes Finais
+                            Observações Finais
                         </label>
                         <textarea
                             className="input min-h-[80px]"
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
-                            placeholder="Adicione observaÃ§Ãµes sobre a separaÃ§Ã£o..."
+                            placeholder="Adicione observações sobre a separação..."
                         />
                     </div>
 
@@ -212,7 +212,7 @@ export default function OrderCompletionModal({
                             onClick={handlePrepareFinalization}
                             disabled={!allItemsChecked}
                         >
-                            Preparar FinalizaÃ§Ã£o
+                            Preparar Finalização
                         </Button>
                     </div>
                 </div>
@@ -227,11 +227,11 @@ export default function OrderCompletionModal({
                             <HiOutlineExclamationTriangle className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
                             <div>
                                 <p className="font-semibold text-blue-800 dark:text-blue-400">
-                                    ConfirmaÃ§Ã£o de FinalizaÃ§Ã£o
+                                    Confirmação de Finalização
                                 </p>
                                 <p className="text-sm text-blue-700 dark:text-blue-500 mt-1">
-                                    O estoque foi <strong>reservado</strong> no momento da criaÃ§Ã£o da encomenda.
-                                    A deduÃ§Ã£o efetiva do estoque ocorrer apenas na facturaÃ§Ã£o.
+                                    O estoque foi <strong>reservado</strong> no momento da criação da encomenda.
+                                    A dedução efetiva do estoque ocorrer apenas na facturação.
                                 </p>
                             </div>
                         </div>
@@ -244,7 +244,7 @@ export default function OrderCompletionModal({
                         </h3>
                         <div className="space-y-3">
                             <div className="flex justify-between">
-                                <span className="text-gray-500">NÃºmero:</span>
+                                <span className="text-gray-500">Número:</span>
                                 <span className="font-bold text-gray-900 dark:text-white">
                                     #{orderNumber}
                                 </span>
@@ -263,7 +263,7 @@ export default function OrderCompletionModal({
                             </div>
                             {notes && (
                                 <div className="pt-3 border-t border-gray-200 dark:border-dark-700">
-                                    <span className="text-gray-500 text-sm block mb-1">ObservaÃ§Ãµes:</span>
+                                    <span className="text-gray-500 text-sm block mb-1">Observações:</span>
                                     <p className="text-gray-900 dark:text-white text-sm italic">
                                         "{notes}"
                                     </p>
@@ -304,7 +304,7 @@ export default function OrderCompletionModal({
                             onClick={handleConfirmFinalization}
                         >
                             <HiOutlineShieldCheck className="w-5 h-5 mr-2" />
-                            Confirmar FinalizaÃ§Ã£o
+                            Confirmar Finalização
                         </Button>
                     </div>
                 </div>

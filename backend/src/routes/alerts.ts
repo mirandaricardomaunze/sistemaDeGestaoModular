@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { ApiError } from '../middleware/error.middleware';
 import { alertsService } from '../services/alertService';
+import { auditAlertsService } from '../services/auditAlertsService';
 import { emitToCompany } from '../lib/socket';
 import { prisma } from '../lib/prisma';
 
@@ -54,6 +55,14 @@ const MODULE_ROUTE_MAP: Record<string, string> = {
 router.post('/generate/:module', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const { module } = req.params;
+
+    // Audit module has its own dedicated scanner (see [[audit-alerts]] skill).
+    // Available to any authenticated user — managers/admins typically trigger it
+    // after a bulk change to refresh the bell badge immediately.
+    if (module === 'audit') {
+        const result = await auditAlertsService.scanAll(req.companyId);
+        return res.json(result);
+    }
 
     const requiredModule = MODULE_ROUTE_MAP[module.toLowerCase()];
     if (requiredModule) {

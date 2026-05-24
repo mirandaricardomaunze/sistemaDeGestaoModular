@@ -22,6 +22,11 @@ type IncomingOrderItem = {
     total?: number;
 };
 
+// Tolerance for matching frontend-sent prices against DB prices.
+// Mirrors salesService: accept unit price, box price, or any lower (discount).
+const PRICE_MATCH_ABS = 0.01;
+const PRICE_MATCH_REL = 0.001;
+
 const OPEN_INVOICE_STATUSES: Prisma.InvoiceWhereInput['status'] = { in: ['draft', 'sent', 'partial', 'overdue'] };
 
 const ORDER_FIELD_ALLOWLIST = [
@@ -115,48 +120,76 @@ export class OrdersService {
             // Fetch real prices from DB and recalculate total.
             // Never trust frontend-provided total.
             // ====================================================================
+            // Transaction config moved to the trailing options below — Supabase
+            // latency + per-item reservation loop + credit aggregation overruns
+            // Prisma's default 5s timeout. Mirrors salesService.create.
             const productIds = items.map(i => i.productId).filter(Boolean) as string[];
-            const productPriceMap = new Map<string, { name: string; price: number }>();
+            const productMap = new Map<string, { name: string; price: number; packSize: number }>();
 
             if (productIds.length > 0) {
                 const products = await tx.product.findMany({
                     where: { id: { in: productIds }, companyId },
-                    select: { id: true, name: true, price: true }
+                    select: { id: true, name: true, price: true, packSize: true }
                 });
                 for (const p of products) {
-                    productPriceMap.set(p.id, { name: p.name, price: Number(p.price) });
+                    productMap.set(p.id, {
+                        name: p.name,
+                        price: Number(p.price),
+                        packSize: Number(p.packSize) || 1,
+                    });
                 }
             }
 
-            // Verify and recalculate each item
+            // Verify and recalculate each item.
+            // product.price = preço de venda DA CAIXA; OrderItem é persistido em UNIDADES
+            // com unitPrice por unidade. Aceitamos preço unitário, preço por caixa
+            // (cliente legado) ou qualquer preço inferior ao unitário oficial (desconto).
+            // Mirrors salesService:280-343.
             const verifiedItems = (items as IncomingOrderItem[]).map((item) => {
-                const product = productPriceMap.get(item.productId);
-                const unitPrice = item.price || item.unitPrice || 0;
+                const product = productMap.get(item.productId);
+                const sentPrice = Number(item.price ?? item.unitPrice ?? 0);
 
-                if (product && product.price > 0 && Math.abs(product.price - unitPrice) > 0.01) {
-                    logger.warn('Order price mismatch detected', {
-                        productId: item.productId,
-                        productName: product.name,
-                        frontendPrice: unitPrice,
-                        dbPrice: product.price,
-                        companyId
-                    });
-                    // Use DB price as authoritative
+                if (!product || product.price <= 0) {
                     return {
                         ...item,
-                        price: product.price,
-                        unitPrice: product.price,
-                        productName: item.productName || product.name,
-                        total: Math.round(product.price * item.quantity * 100) / 100
+                        price: sentPrice,
+                        unitPrice: sentPrice,
+                        productName: item.productName || product?.name || '',
+                        total: Math.round(sentPrice * item.quantity * 100) / 100,
                     };
                 }
 
+                const packSize = product.packSize;
+                const dbBoxPrice = product.price;
+                const dbUnitPrice = dbBoxPrice / packSize;
+
+                const matchesUnit = Math.abs(dbUnitPrice - sentPrice) <= Math.max(PRICE_MATCH_ABS, dbUnitPrice * PRICE_MATCH_REL);
+                const matchesBox = packSize > 1 && Math.abs(dbBoxPrice - sentPrice) <= PRICE_MATCH_ABS;
+                const isBelow = sentPrice <= dbUnitPrice + PRICE_MATCH_ABS;
+
+                let normalizedUnitPrice = sentPrice;
+                if (matchesBox) {
+                    normalizedUnitPrice = dbUnitPrice;
+                } else if (!matchesUnit && !isBelow) {
+                    logger.warn('Order price mismatch detected', {
+                        productId: item.productId,
+                        productName: product.name,
+                        frontendPrice: sentPrice,
+                        dbUnitPrice,
+                        dbBoxPrice,
+                        packSize,
+                        companyId,
+                    });
+                    normalizedUnitPrice = dbUnitPrice;
+                }
+
+                normalizedUnitPrice = Math.round(normalizedUnitPrice * 10000) / 10000;
                 return {
                     ...item,
-                    price: unitPrice,
-                    unitPrice,
-                    productName: item.productName || product?.name || '',
-                    total: Math.round(unitPrice * item.quantity * 100) / 100
+                    price: normalizedUnitPrice,
+                    unitPrice: normalizedUnitPrice,
+                    productName: item.productName || product.name,
+                    total: Math.round(normalizedUnitPrice * item.quantity * 100) / 100,
                 };
             });
 
@@ -249,7 +282,7 @@ export class OrdersService {
             });
 
             return order;
-        });
+        }, { timeout: 30000, maxWait: 10000 });
     }
 
     async updateStatus(id: string, data: UpdateOrderStatusInput, companyId: string) {
@@ -315,7 +348,7 @@ export class OrdersService {
             }
 
             return this.getById(id, companyId);
-        });
+        }, { timeout: 15000, maxWait: 10000 });
     }
 
     async update(id: string, data: UpdateOrderInput, companyId: string) {
@@ -358,7 +391,7 @@ export class OrdersService {
             }
 
             await tx.customerOrder.delete({ where: { id } });
-        });
+        }, { timeout: 15000, maxWait: 10000 });
         return true;
     }
 

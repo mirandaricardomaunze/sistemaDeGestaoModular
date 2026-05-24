@@ -1,4 +1,4 @@
-﻿import { logger } from '../../utils/logger';
+import { logger } from '../../utils/logger';
 import { useEffect, useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
@@ -303,7 +303,7 @@ export default function SupplierOrderManager() {
                 }}
                 onConfirm={performCancelOrder}
                 title="Cancelar Encomenda?"
-                message={`Tem certeza que deseja cancelar a encomenda ${orderToCancel?.orderNumber}? Esta aÃ§Ã£o nÃ£o pode ser desfeita.`}
+                message={`Tem certeza que deseja cancelar a encomenda ${orderToCancel?.orderNumber}? Esta ação não pode ser desfeita.`}
                 confirmText="Sim, Cancelar"
                 cancelText="Nao Cancelar"
                 variant="danger"

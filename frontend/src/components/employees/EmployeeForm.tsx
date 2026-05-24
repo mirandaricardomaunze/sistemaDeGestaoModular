@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,13 +9,13 @@ import { roleLabels } from '../../utils/constants';
 import type { Employee, EmployeeRole, AcademicQualification } from '../../types';
 import toast from 'react-hot-toast';
 
-// Esquema para QualificaÃ§Ãµes AcadÃªmicas
+// Esquema para Qualificações Acadêmicas
 const qualificationSchema = z.object({
     id: z.string().optional(),
-    level: z.string().min(1, 'NÃ­vel Ã© obrigatÃ³rio'),
-    courseName: z.string().min(1, 'Curso Ã© obrigatÃ³rio'),
-    institution: z.string().min(1, 'InstituiÃ§Ã£o Ã© obrigatÃ³ria'),
-    startYear: z.coerce.number().min(1900, 'Ano invÃ¡lido'),
+    level: z.string().min(1, 'Nível é obrigatório'),
+    courseName: z.string().min(1, 'Curso é obrigatório'),
+    institution: z.string().min(1, 'Instituição é obrigatória'),
+    startYear: z.coerce.number().min(1900, 'Ano inválido'),
     endYear: z.coerce.number().optional().or(z.literal('')),
     isCompleted: z.boolean().default(false),
     certificateNumber: z.string().optional(),
@@ -23,20 +23,20 @@ const qualificationSchema = z.object({
 
 // Validation Schema
 const employeeSchema = z.object({
-    code: z.string().min(1, 'CÃ³digo Ã© obrigatÃ³rio'),
+    code: z.string().min(1, 'Código é obrigatório'),
     name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
-    email: z.string().email('Email invÃ¡lido'),
-    phone: z.string().min(9, 'Telefone invÃ¡lido'),
-    role: z.string().min(1, 'Cargo Ã© obrigatÃ³rio'),
-    department: z.string().min(1, 'Departamento Ã© obrigatÃ³rio'),
-    hireDate: z.string().min(1, 'Data de admissÃ£o Ã© obrigatÃ³ria'),
-    baseSalary: z.coerce.number().min(0, 'SalÃ¡rio nÃ£o pode ser negativo'),
+    email: z.string().email('Email inválido'),
+    phone: z.string().min(9, 'Telefone inválido'),
+    role: z.string().min(1, 'Cargo é obrigatório'),
+    department: z.string().min(1, 'Departamento é obrigatório'),
+    hireDate: z.string().min(1, 'Data de admissão é obrigatória'),
+    baseSalary: z.coerce.number().min(0, 'Salário não pode ser negativo'),
     address: z.string().optional(),
     documentNumber: z.string().optional(), // BI
     emergencyContact: z.string().optional(),
     // Contract
-    socialSecurityNumber: z.string().length(9, 'INSS deve ter 9 dÃ­gitos').regex(/^\d+$/, 'Apenas nÃºmeros').optional().or(z.literal('')),
-    nuit: z.string().length(9, 'NUIT deve ter 9 dÃ­gitos').regex(/^\d+$/, 'Apenas nÃºmeros').optional().or(z.literal('')),
+    socialSecurityNumber: z.string().length(9, 'INSS deve ter 9 dígitos').regex(/^\d+$/, 'Apenas números').optional().or(z.literal('')),
+    nuit: z.string().length(9, 'NUIT deve ter 9 dígitos').regex(/^\d+$/, 'Apenas números').optional().or(z.literal('')),
     subsidyTransport: z.coerce.number().optional(),
     subsidyFood: z.coerce.number().optional(),
     // Bank (Flattened to match backend)
@@ -65,15 +65,15 @@ interface EmployeeFormProps {
 
 const educationLevelOptions = [
     { value: 'ensino_fundamental', label: 'Ensino Fundamental' },
-    { value: 'ensino_medio', label: 'Ensino MÃ©dio' },
-    { value: 'tecnico', label: 'TÃ©cnico' },
-    { value: 'graduacao', label: 'GraduaÃ§Ã£o' },
-    { value: 'pos_graduacao', label: 'PÃ³s-GraduaÃ§Ã£o' },
+    { value: 'ensino_medio', label: 'Ensino Médio' },
+    { value: 'tecnico', label: 'Técnico' },
+    { value: 'graduacao', label: 'Graduação' },
+    { value: 'pos_graduacao', label: 'Pós-Graduação' },
     { value: 'mestrado', label: 'Mestrado' },
     { value: 'doutorado', label: 'Doutorado' },
 ];
 
-/* â”€â”€ Section Header â”€â”€ */
+/* ── Section Header ── */
 function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
     return (
         <div className="flex items-center gap-2.5 pt-2 pb-1">
@@ -209,10 +209,10 @@ export default function EmployeeForm({ isOpen, onClose, employee }: EmployeeForm
 
             if (isEditing && employee) {
                 await updateEmployee(employee.id, payload);
-                toast.success('FuncionÃ¡rio atualizado com sucesso!');
+                toast.success('Funcionário atualizado com sucesso!');
             } else {
                 await addEmployee(payload as Parameters<typeof addEmployee>[0]);
-                toast.success('FuncionÃ¡rio cadastrado com sucesso!');
+                toast.success('Funcionário cadastrado com sucesso!');
             }
             onClose();
         } catch (error) {
@@ -221,9 +221,9 @@ export default function EmployeeForm({ isOpen, onClose, employee }: EmployeeForm
             if (apiErr.response?.data) {
                 console.error('Backend validation details:', apiErr.response.data);
                 const backendMsg = apiErr.response.data.message || apiErr.response.data.error;
-                toast.error(`Erro do servidor: ${backendMsg || 'Dados invÃ¡lidos'}`);
+                toast.error(`Erro do servidor: ${backendMsg || 'Dados inválidos'}`);
             } else {
-                toast.error('Erro ao salvar colaborador. Verifique a sua conexÃ£o.');
+                toast.error('Erro ao salvar colaborador. Verifique a sua conexão.');
             }
         }
     };
@@ -257,14 +257,14 @@ export default function EmployeeForm({ isOpen, onClose, employee }: EmployeeForm
                 const firstError = Object.entries(validationErrors)[0];
                 if (firstError) {
                     const [field, error] = firstError;
-                    toast.error(`Campo "${field}": ${(error as { message?: string })?.message || 'invÃ¡lido'}`);
+                    toast.error(`Campo "${field}": ${(error as { message?: string })?.message || 'inválido'}`);
                 }
             })} className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
 
-                {/* â•â•â• 1. DADOS PESSOAIS â•â•â• */}
+                {/* ═══ 1. DADOS PESSOAIS ═══ */}
                 <SectionHeader icon={HiOutlineUser} title="Dados Pessoais" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input label="CÃ³digo *" {...register('code')} error={errors.code?.message} placeholder="EMP-001" />
+                    <Input label="Código *" {...register('code')} error={errors.code?.message} placeholder="EMP-001" />
                     <Input label="Nome Completo *" {...register('name')} error={errors.name?.message} placeholder="Nome do Colaborador" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -273,61 +273,61 @@ export default function EmployeeForm({ isOpen, onClose, employee }: EmployeeForm
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input label="Data de Nascimento" type="date" {...register('birthDate')} />
-                    <Input label="NÂº Documento (BI)" {...register('documentNumber')} placeholder="Bilhete de Identidade" />
+                    <Input label="Nº Documento (BI)" {...register('documentNumber')} placeholder="Bilhete de Identidade" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input label="NUIT" {...register('nuit')} placeholder="NÂº Ãšnico de IdentificaÃ§Ã£o TributÃ¡ria" />
-                    <Input label="Contato de EmergÃªncia" {...register('emergencyContact')} placeholder="Nome e telefone" />
+                    <Input label="NUIT" {...register('nuit')} placeholder="Nº Único de Identificação Tributária" />
+                    <Input label="Contato de Emergência" {...register('emergencyContact')} placeholder="Nome e telefone" />
                 </div>
-                <Input label="EndereÃ§o Residencial" {...register('address')} placeholder="EndereÃ§o completo" />
+                <Input label="Endereço Residencial" {...register('address')} placeholder="Endereço completo" />
 
-                {/* â•â•â• 2. CONTRATO & REMUNERAÃ‡ÃƒO â•â•â• */}
-                <SectionHeader icon={HiOutlineDocumentText} title="Contrato & RemuneraÃ§Ã£o" />
+                {/* ═══ 2. CONTRATO & REMUNERAÇÃO ═══ */}
+                <SectionHeader icon={HiOutlineDocumentText} title="Contrato & Remuneração" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Select label="FunÃ§Ã£o / Cargo *" options={roleOptions} {...register('role')} error={errors.role?.message} />
+                    <Select label="Função / Cargo *" options={roleOptions} {...register('role')} error={errors.role?.message} />
                     <Select label="Departamento *" options={departmentOptions} {...register('department')} error={errors.department?.message} />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input label="Data de AdmissÃ£o *" type="date" {...register('hireDate')} error={errors.hireDate?.message} />
+                    <Input label="Data de Admissão *" type="date" {...register('hireDate')} error={errors.hireDate?.message} />
                     <Input label="Vencimento Base Mensal *" type="number" step="0.01" {...register('baseSalary')} error={errors.baseSalary?.message} leftIcon={<span className="text-gray-500 text-sm">MT</span>} />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Select label="Tipo de Contrato" options={[{ value: 'indefinite', label: 'Indeterminado' }, { value: 'fixed_term', label: 'Prazo Determinado' }]} {...register('contractType')} />
-                    <Input label="Data de ExpiraÃ§Ã£o" type="date" {...register('contractExpiry')} disabled={control._formValues.contractType !== 'fixed_term'} />
+                    <Input label="Data de Expiração" type="date" {...register('contractExpiry')} disabled={control._formValues.contractType !== 'fixed_term'} />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Input label="INSS" {...register('socialSecurityNumber')} placeholder="NÂº BeneficiÃ¡rio" />
-                    <Input label="SubsÃ­dio de Transporte" type="number" step="0.01" {...register('subsidyTransport')} />
-                    <Input label="SubsÃ­dio de AlimentaÃ§Ã£o" type="number" step="0.01" {...register('subsidyFood')} />
+                    <Input label="INSS" {...register('socialSecurityNumber')} placeholder="Nº Beneficiário" />
+                    <Input label="Subsídio de Transporte" type="number" step="0.01" {...register('subsidyTransport')} />
+                    <Input label="Subsídio de Alimentação" type="number" step="0.01" {...register('subsidyFood')} />
                 </div>
 
-                {/* â•â•â• 3. DADOS BANCÃRIOS â•â•â• */}
-                <SectionHeader icon={HiOutlineCreditCard} title="Dados BancÃ¡rios" />
+                {/* ═══ 3. DADOS BANCÁRIOS ═══ */}
+                <SectionHeader icon={HiOutlineCreditCard} title="Dados Bancários" />
                 <Input label="Nome do Banco" {...register('bankName')} placeholder="Ex: Millennium BIM" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input label="NÃºmero da Conta" {...register('bankAccountNumber')} placeholder="000000000" />
+                    <Input label="Número da Conta" {...register('bankAccountNumber')} placeholder="000000000" />
                     <Input label="NIB" {...register('bankNib')} placeholder="0000 0000 0000 0000 0000 0" />
                 </div>
 
-                {/* â•â•â• 4. PROFISSIONAL â•â•â• */}
+                {/* ═══ 4. PROFISSIONAL ═══ */}
                 <SectionHeader icon={HiOutlineBriefcase} title="Profissional" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input label="Taxa de ComissÃ£o Base (%)" type="number" step="0.1" {...register('commissionRate')} placeholder="0.0" rightIcon={<span className="text-gray-400">%</span>} />
+                    <Input label="Taxa de Comissão Base (%)" type="number" step="0.1" {...register('commissionRate')} placeholder="0.0" rightIcon={<span className="text-gray-400">%</span>} />
                     <Input label="ID do Superior (Opcional)" {...register('reportsToId')} placeholder="ID do Gerente" />
                 </div>
 
-                {/* â•â•â• 5. QUALIFICAÃ‡Ã•ES ACADÃŠMICAS â•â•â• */}
-                <SectionHeader icon={HiOutlineAcademicCap} title="QualificaÃ§Ãµes AcadÃªmicas" />
+                {/* ═══ 5. QUALIFICAÇÕES ACADÊMICAS ═══ */}
+                <SectionHeader icon={HiOutlineAcademicCap} title="Qualificações Acadêmicas" />
                 <div className="flex justify-end">
                     <Button type="button" variant="outline" size="sm" onClick={addQualification}>
-                        <HiOutlinePlus className="mr-1" /> Adicionar QualificaÃ§Ã£o
+                        <HiOutlinePlus className="mr-1" /> Adicionar Qualificação
                     </Button>
                 </div>
 
                 {fields.length === 0 ? (
                     <Card padding="lg" variant="glass" className="text-center text-gray-500">
                         <HiOutlineAcademicCap className="w-10 h-10 mx-auto mb-2 opacity-20" />
-                        <p className="text-sm">Nenhuma qualificaÃ§Ã£o adicionada</p>
+                        <p className="text-sm">Nenhuma qualificação adicionada</p>
                     </Card>
                 ) : (
                     <div className="space-y-4">
@@ -337,36 +337,36 @@ export default function EmployeeForm({ isOpen, onClose, employee }: EmployeeForm
                                     <HiOutlineTrash />
                                 </Button>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <Select label="NÃ­vel" options={educationLevelOptions} {...register(`qualifications.${index}.level`)} />
+                                    <Select label="Nível" options={educationLevelOptions} {...register(`qualifications.${index}.level`)} />
                                     <Input label="Curso" {...register(`qualifications.${index}.courseName`)} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 mt-3">
-                                    <Input label="InstituiÃ§Ã£o" {...register(`qualifications.${index}.institution`)} />
+                                    <Input label="Instituição" {...register(`qualifications.${index}.institution`)} />
                                     <div className="grid grid-cols-2 gap-2">
-                                        <Input label="Ano InÃ­cio" type="number" {...register(`qualifications.${index}.startYear`)} />
+                                        <Input label="Ano Início" type="number" {...register(`qualifications.${index}.startYear`)} />
                                         <Input label="Ano Fim" type="number" {...register(`qualifications.${index}.endYear`)} />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 mt-3">
                                     <div className="flex items-center gap-2 mt-6">
                                         <input type="checkbox" {...register(`qualifications.${index}.isCompleted`)} className="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500" />
-                                        <label className="text-xs text-gray-700 dark:text-gray-300">ConcluÃ­do</label>
+                                        <label className="text-xs text-gray-700 dark:text-gray-300">Concluído</label>
                                     </div>
-                                    <Input label="NÂº Certificado" {...register(`qualifications.${index}.certificateNumber`)} />
+                                    <Input label="Nº Certificado" {...register(`qualifications.${index}.certificateNumber`)} />
                                 </div>
                             </Card>
                         ))}
                     </div>
                 )}
 
-                {/* â•â•â• 6. COMPETÃŠNCIAS & SKILLS â•â•â• */}
-                <SectionHeader icon={HiOutlinePlus} title="CompetÃªncias & Skills" />
+                {/* ═══ 6. COMPETÊNCIAS & SKILLS ═══ */}
+                <SectionHeader icon={HiOutlinePlus} title="Competências & Skills" />
                 <div className="space-y-2">
-                    <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2">Adicione competÃªncias tÃ©cnicas e soft skills</p>
+                    <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2">Adicione competências técnicas e soft skills</p>
                     <div className="flex flex-wrap gap-2 p-3 bg-gray-50 dark:bg-dark-900/50 rounded-xl border border-dashed border-gray-300 dark:border-dark-700">
                         {/* Simple skills implementation using a textarea for now, or we can use a more complex component if needed. Let's use a dynamic list of strings. */}
                         <Input 
-                            placeholder="Ex: React, Vendas, GestÃ£o de Equipa (Pressione Enter para adicionar)" 
+                            placeholder="Ex: React, Vendas, Gestão de Equipa (Pressione Enter para adicionar)"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     e.preventDefault();
@@ -401,13 +401,13 @@ export default function EmployeeForm({ isOpen, onClose, employee }: EmployeeForm
                     </div>
                 </div>
 
-                {/* â•â•â• ACTIONS â•â•â• */}
+                {/* ═══ ACTIONS ═══ */}
                 <div className="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-dark-700 sticky bottom-0 bg-white dark:bg-dark-800 pb-1">
                     <Button type="button" variant="ghost" onClick={handleClose}>
                         Cancelar
                     </Button>
                     <Button type="submit" isLoading={isSubmitting}>
-                        {isEditing ? 'Salvar AlteraÃ§Ãµes' : 'Cadastrar Colaborador'}
+                        {isEditing ? 'Salvar Alterações' : 'Cadastrar Colaborador'}
                     </Button>
                 </div>
             </form>

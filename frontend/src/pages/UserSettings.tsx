@@ -40,7 +40,7 @@ const companySchema = z.object({
     companyName: z.string().min(2, 'Nome é obrigatório'),
     tradeName: z.string().optional(),
     taxId: z.string().min(9, 'NUIT inválido'),
-    phone: z.string().min(10, 'Telefone inválido'),
+    phone: z.string().min(9, 'Telefone inválido'),
     email: z.string().email('Email inválido'),
     address: z.string().min(5, 'Endereço é obrigatório'),
     city: z.string().min(2, 'Cidade é obrigatória'),

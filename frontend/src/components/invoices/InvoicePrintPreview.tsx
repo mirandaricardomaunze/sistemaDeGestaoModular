@@ -113,6 +113,22 @@ export function InvoicePrintPreview({ invoice, isOpen, onClose, isCopy = false }
         }, 250);
     };
 
+    // Read the backend error message (JSON {error|message} or text) so the toast
+    // surfaces the real cause instead of a generic "Erro ao...".
+    const readError = async (response: Response, fallback: string): Promise<string> => {
+        try {
+            const ct = response.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+                const body = await response.json();
+                return body?.error || body?.message || fallback;
+            }
+            const text = await response.text();
+            return text?.slice(0, 200) || fallback;
+        } catch {
+            return fallback;
+        }
+    };
+
     const handleDownloadPDF = async () => {
         setIsExporting(true);
         try {
@@ -122,7 +138,9 @@ export function InvoicePrintPreview({ invoice, isOpen, onClose, isCopy = false }
                     'Authorization': 'Bearer ' + token
                 }
             });
-            if (!response.ok) throw new Error('Falha ao gerar PDF');
+            if (!response.ok) {
+                throw new Error(await readError(response, 'Falha ao gerar PDF'));
+            }
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -134,7 +152,8 @@ export function InvoicePrintPreview({ invoice, isOpen, onClose, isCopy = false }
             document.body.removeChild(a);
             toast.success('PDF gerado com sucesso');
         } catch (error) {
-            toast.error('Erro ao baixar PDF');
+            const msg = error instanceof Error ? error.message : 'Erro ao baixar PDF';
+            toast.error(msg);
             logger.error('PDF export failed:', error);
         } finally {
             setIsExporting(false);
@@ -142,19 +161,28 @@ export function InvoicePrintPreview({ invoice, isOpen, onClose, isCopy = false }
     };
 
     const handleSendEmail = async () => {
+        if (!invoice.customerEmail) {
+            toast.error('O cliente não tem e-mail registado. Edite a fatura ou o cadastro do cliente para adicionar um.');
+            return;
+        }
         setIsExporting(true);
         try {
             const token = localStorage.getItem('auth_token');
-            const response = await fetch('/api/invoices/' + invoice.id + '/email', {
+            const response = await fetch('/api/invoices/' + invoice.id + '/send-email', {
                 method: 'POST',
                 headers: {
-                    'Authorization': 'Bearer ' + token
-                }
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email: invoice.customerEmail }),
             });
-            if (!response.ok) throw new Error('Falha ao enviar e-mail');
-            toast.success('E-mail enviado com sucesso');
+            if (!response.ok) {
+                throw new Error(await readError(response, 'Falha ao enviar e-mail'));
+            }
+            toast.success(`E-mail enviado para ${invoice.customerEmail}`);
         } catch (error) {
-            toast.error('Erro ao enviar e-mail');
+            const msg = error instanceof Error ? error.message : 'Erro ao enviar e-mail';
+            toast.error(msg);
             logger.error('Email send failed:', error);
         } finally {
             setIsExporting(false);

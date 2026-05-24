@@ -458,7 +458,7 @@ const MOVEMENT_CONFIG: Record<MovementType, {
     iconBg: string;
     iconColor: string;
     qtyColor: string;
-    sign: '+' | '-';
+    sign: '+' | '-' | '±';
 }> = {
     purchase:   { label: 'Compra',        icon: HiOutlineArrowDown,             iconBg: 'bg-emerald-500/10 border border-emerald-500/20',   iconColor: 'text-emerald-600 dark:text-emerald-400',  qtyColor: 'text-emerald-650 dark:text-emerald-400',  sign: '+' },
     sale:       { label: 'Venda',          icon: HiOutlineArrowUp,               iconBg: 'bg-rose-500/10 border border-rose-500/20',       iconColor: 'text-rose-600 dark:text-rose-450',      qtyColor: 'text-rose-650 dark:text-rose-450',      sign: '-' },
@@ -466,7 +466,7 @@ const MOVEMENT_CONFIG: Record<MovementType, {
     return_out: { label: 'Devolução Out',  icon: HiOutlineReceiptRefund,         iconBg: 'bg-amber-500/10 border border-amber-500/20', iconColor: 'text-amber-600 dark:text-amber-450',qtyColor: 'text-amber-655 dark:text-amber-450',sign: '-' },
     adjustment: { label: 'Ajuste',         icon: HiOutlineAdjustmentsHorizontal, iconBg: 'bg-purple-500/10 border border-purple-500/20', iconColor: 'text-purple-600 dark:text-purple-400',qtyColor: 'text-purple-655 dark:text-purple-400',sign: '+' },
     expired:    { label: 'Expirado',       icon: HiOutlineTrash,                 iconBg: 'bg-rose-500/10 border border-rose-500/20',       iconColor: 'text-rose-600 dark:text-rose-450',      qtyColor: 'text-rose-655 dark:text-rose-450',      sign: '-' },
-    transfer:   { label: 'Transferência',  icon: HiOutlineArrowsRightLeft,       iconBg: 'bg-cyan-500/10 border border-cyan-500/20',     iconColor: 'text-cyan-600 dark:text-cyan-400',    qtyColor: 'text-cyan-655 dark:text-cyan-400',    sign: '±' as any },
+    transfer:   { label: 'Transferência',  icon: HiOutlineArrowsRightLeft,       iconBg: 'bg-cyan-500/10 border border-cyan-500/20',     iconColor: 'text-cyan-600 dark:text-cyan-400',    qtyColor: 'text-cyan-655 dark:text-cyan-400',    sign: '±' },
     loss:       { label: 'Perda',          icon: HiOutlineTrash,                 iconBg: 'bg-slate-500/10 border border-slate-500/20',        iconColor: 'text-slate-500 dark:text-slate-400',    qtyColor: 'text-slate-550 dark:text-slate-400',    sign: '-' },
 };
 

@@ -207,7 +207,7 @@ export default function CheckInModal({
                                 type="tel"
                                 value={data.guestPhone}
                                 onChange={(e) => setData({ ...data, guestPhone: e.target.value })}
-                                placeholder="+258 84 123 4567"
+                                placeholder="+258 84 000 0000"
                             />
 
                             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-dark-700">

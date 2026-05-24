@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { format, getYear, differenceInDays } from 'date-fns';
 import {
@@ -166,7 +166,7 @@ export default function VacationManager() {
         e.preventDefault();
 
         if (!selectedEmployee || !startDate || !endDate) {
-            toast.error('Preencha os campos obrigatÃ³rios');
+            toast.error('Preencha os campos obrigatórios');
             return;
         }
 
@@ -175,7 +175,7 @@ export default function VacationManager() {
         const days = differenceInDays(end, start) + 1;
 
         if (days <= 0) {
-            toast.error('Data de fim deve ser apÃ³s data de inÃ­cio');
+            toast.error('Data de fim deve ser após data de início');
             return;
         }
 
@@ -205,7 +205,7 @@ export default function VacationManager() {
 
         // Note: Employee vacation balance is handled by backend
 
-        toast.success('FÃ©rias agendadas com sucesso!');
+        toast.success('Férias agendadas com sucesso!');
         setShowRequestModal(false);
         resetForm();
     };
@@ -219,11 +219,11 @@ export default function VacationManager() {
         if (!vacationToCancel) return;
         try {
             await updateVacation(vacationToCancel.id, { status: 'rejected' });
-            toast.success('FÃ©rias canceladas. O saldo foi devolvido.');
+            toast.success('Férias canceladas. O saldo foi devolvido.');
             setCancelConfirmOpen(false);
             setVacationToCancel(null);
         } catch {
-            toast.error('Erro ao cancelar fÃ©rias');
+            toast.error('Erro ao cancelar férias');
         }
     };
 
@@ -241,7 +241,7 @@ export default function VacationManager() {
                 <Card padding="md" className="bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">FÃ©rias Agendadas ({selectedYear})</p>
+                            <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Férias Agendadas ({selectedYear})</p>
                             <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                                 {activeVacations.length}
                             </p>
@@ -254,7 +254,7 @@ export default function VacationManager() {
                 <Card padding="md" className="bg-green-50 dark:bg-green-900/10 border-green-100 dark:border-green-800">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-green-600 dark:text-green-400 font-medium">Colaboradores em FÃ©rias Hoje</p>
+                            <p className="text-sm text-green-600 dark:text-green-400 font-medium">Colaboradores em Férias Hoje</p>
                             <p className="text-2xl font-bold text-green-700 dark:text-green-300">
                                 {vacationsTodayCount}
                             </p>
@@ -282,9 +282,9 @@ export default function VacationManager() {
             {/* Actions */}
             <Card padding="md">
                 <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">Mapa de FÃ©rias</h3>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">Mapa de Férias</h3>
                     <Button onClick={() => setShowRequestModal(true)} leftIcon={<HiOutlinePlus className="w-5 h-5" />}>
-                        Agendar FÃ©rias
+                        Agendar Férias
                     </Button>
                 </div>
             </Card>
@@ -306,7 +306,7 @@ export default function VacationManager() {
             />
             {/* Recent Vacations List */}
             <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white px-1">HistÃ³rico de Agendamentos</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white px-1">Histórico de Agendamentos</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {paginatedVacations.length === 0 && (
                         <p className="col-span-full text-center text-gray-500 py-8">Nenhum agendamento encontrado para este ano.</p>
@@ -334,7 +334,7 @@ export default function VacationManager() {
                                 </div>
                                 <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
                                     <div className="flex justify-between">
-                                        <span>InÃ­cio:</span>
+                                        <span>Início:</span>
                                         <span className="font-medium text-gray-900 dark:text-white">{format(new Date(vacation.startDate), 'dd/MM/yyyy')}</span>
                                     </div>
                                     <div className="flex justify-between">
@@ -369,7 +369,7 @@ export default function VacationManager() {
                     setShowRequestModal(false);
                     resetForm();
                 }}
-                title="Agendar FÃ©rias"
+                title="Agendar Férias"
                 size="md"
             >
                 <form onSubmit={handleCreateRequest} className="space-y-4">
@@ -383,7 +383,7 @@ export default function VacationManager() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <Input
-                            label="Data InÃ­cio"
+                            label="Data Início"
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
@@ -399,7 +399,7 @@ export default function VacationManager() {
                     </div>
 
                     <Input
-                        label="ObservaÃ§Ãµes"
+                        label="Observações"
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         placeholder="Ex: Viagem familiar"
@@ -424,10 +424,10 @@ export default function VacationManager() {
                     setVacationToCancel(null);
                 }}
                 onConfirm={performCancelVacation}
-                title="Cancelar FÃ©rias?"
-                message="Tem certeza que deseja cancelar estas fÃ©rias? O saldo de dias serÃ¡ devolvido ao colaborador."
-                confirmText="Sim, Cancelar FÃ©rias"
-                cancelText="NÃ£o Cancelar"
+                title="Cancelar Férias?"
+                message="Tem certeza que deseja cancelar estas férias? O saldo de dias será devolvido ao colaborador."
+                confirmText="Sim, Cancelar Férias"
+                cancelText="Não Cancelar"
                 variant="warning"
             />
         </div>

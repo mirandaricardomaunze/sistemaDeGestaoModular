@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -37,18 +37,31 @@ import { ModulePeriodFilter } from '../../components/common/ModulePeriodFilter';
 import { QuickActionCard } from '../../components/common/QuickActionCard';
 import type { TimePeriod } from '../../components/common/ModulePeriodFilter';
 
+type ChartTooltipItem = {
+    color?: string;
+    fill?: string;
+    name?: ReactNode;
+    value?: unknown;
+};
 
-const GlassmorphicTooltip = ({ active, payload, label, formatter }: any) => {
+type GlassmorphicTooltipProps = {
+    active?: boolean;
+    payload?: ChartTooltipItem[];
+    label?: ReactNode;
+    formatter?: (value: unknown) => ReactNode;
+};
+
+const GlassmorphicTooltip = ({ active, payload, label, formatter }: GlassmorphicTooltipProps) => {
     if (active && payload && payload.length) {
         return (
             <div className="backdrop-blur-md bg-white/95 dark:bg-dark-900/95 border border-slate-200/90 dark:border-white/10 p-3 rounded-xl shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] z-50">
                 {label && <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">{label}</p>}
-                {payload.map((item: any, index: number) => (
+                {payload.map((item, index) => (
                     <div key={index} className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color || item.fill }} />
                         <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{item.name}:</span>
                         <span className="text-xs font-black text-slate-900 dark:text-white tabular-nums">
-                            {formatter ? formatter(item.value) : item.value}
+                            {formatter ? formatter(item.value) : String(item.value ?? '')}
                         </span>
                     </div>
                 ))}
@@ -236,7 +249,7 @@ export default function HotelDashboard() {
                                 <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-slate-200/50 dark:stroke-white/5" />
                                 <XAxis tickLine={false} axisLine={false} dataKey="name" className="text-[10px] font-black uppercase tracking-wider" stroke="#94a3b8" />
                                 <YAxis tickLine={false} axisLine={false} stroke="#94a3b8" tickFormatter={(v) => formatCurrency(v).replace(',00', '')} />
-                                <Tooltip content={<GlassmorphicTooltip formatter={formatCurrency} />} />
+                                <Tooltip content={<GlassmorphicTooltip formatter={(v) => formatCurrency(Number(v))} />} />
                                 <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }} />
                                 <Area
                                     type="monotone"
@@ -316,7 +329,7 @@ export default function HotelDashboard() {
                                 <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-slate-200/50 dark:stroke-white/5" />
                                 <XAxis tickLine={false} axisLine={false} dataKey="name" stroke="#94a3b8" fontSize={10} />
                                 <YAxis tickLine={false} axisLine={false} stroke="#94a3b8" fontSize={10} tickFormatter={(v) => `${v / 1000}k`} />
-                                <Tooltip content={<GlassmorphicTooltip formatter={formatCurrency} />} />
+                                <Tooltip content={<GlassmorphicTooltip formatter={(v) => formatCurrency(Number(v))} />} />
                                 <Bar dataKey="value" fill="url(#hotelBarGrad)" radius={[6, 6, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>

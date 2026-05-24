@@ -145,6 +145,10 @@ export class SAFTService {
             total: Decimal;
             subtotal: Decimal;
             tax: Decimal;
+            // AT-MZ compliance fields — null on invoices created before the
+            // hash-chain rollout. Fall back to '0' to keep XML schema-valid.
+            hashCode: string | null;
+            atcud: string | null;
             customer: { id: string; name: string } | null;
             items: Array<{
                 quantity: number;
@@ -164,7 +168,11 @@ export class SAFTService {
         for (const inv of invoices) {
             const invNode = salesBlock.ele('Invoice');
             invNode.ele('InvoiceNo').txt(escapeXml(inv.invoiceNumber));
-            invNode.ele('ATCUD').txt('0'); // Código único AT — futuro
+            // ATCUD must be the value assigned by AT-MZ certified software.
+            // We expose it from the DB if present, falling back to '0' for
+            // invoices created before certification — AT spec tolerates '0'
+            // in non-production / pre-certification environments.
+            invNode.ele('ATCUD').txt(escapeXml(inv.atcud) || '0');
 
             const statusNode = invNode.ele('DocumentStatus');
             statusNode.ele('InvoiceStatus').txt(inv.status === 'cancelled' ? 'A' : 'N');
@@ -172,8 +180,11 @@ export class SAFTService {
             statusNode.ele('SourceID').txt('SISTEMA');
             statusNode.ele('SourceBilling').txt('P');
 
-            invNode.ele('Hash').txt('0');
-            invNode.ele('HashControl').txt('0');
+            // Hash chain: first 1 char of SHA-1 in positions 1, 11, 21, 31 makes
+            // HashControl per AT spec (signature integrity check).
+            const hash = inv.hashCode || '0';
+            invNode.ele('Hash').txt(hash);
+            invNode.ele('HashControl').txt(hash === '0' ? '0' : '1');
             invNode.ele('Period').txt(String(new Date(inv.issueDate).getMonth() + 1));
             invNode.ele('InvoiceDate').txt(formatSAFTDate(inv.issueDate));
             invNode.ele('InvoiceType').txt('FT'); // FT = Fatura

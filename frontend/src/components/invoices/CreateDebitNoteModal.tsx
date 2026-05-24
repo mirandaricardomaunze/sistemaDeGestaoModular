@@ -1,4 +1,4 @@
-﻿import { logger } from '../../utils/logger';
+import { logger } from '../../utils/logger';
 import { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,21 +21,21 @@ const REASON_PRESETS = [
     'Juros de mora',
     'Multa contratual',
     'Despesas de transporte',
-    'CorrecÃ§Ã£o de preÃ§o',
+    'Correcção de preço',
     'Acerto cambial',
     'Outros encargos',
 ];
 
 const debitNoteFormSchema = z.object({
     invoiceId: z.string().min(1, 'Selecione uma fatura'),
-    reason: z.string().min(3, 'Motivo obrigatÃ³rio (mÃ­nimo 3 caracteres)').max(500),
+    reason: z.string().min(3, 'Motivo obrigatório (mínimo 3 caracteres)').max(500),
     notes: z.string().max(500).optional(),
     items: z
         .array(
             z.object({
-                description: z.string().min(1, 'DescriÃ§Ã£o obrigatÃ³ria'),
+                description: z.string().min(1, 'Descrição obrigatória'),
                 quantity: z.number().positive('Qtd > 0'),
-                unitPrice: z.number().positive('PreÃ§o > 0'),
+                unitPrice: z.number().positive('Preço > 0'),
             }),
         )
         .min(1, 'Adicione pelo menos uma linha'),
@@ -115,11 +115,11 @@ export default function CreateDebitNoteModal({
                 notes: data.notes || undefined,
             });
             onCreate(result);
-            toast.success('Nota de DÃ©bito emitida com sucesso!');
+            toast.success('Nota de Débito emitida com sucesso!');
             handleClose();
         } catch (error) {
             logger.error('Error creating debit note:', error);
-            toast.error('Erro ao emitir nota de dÃ©bito');
+            toast.error('Erro ao emitir nota de débito');
         } finally {
             setSubmitting(false);
         }
@@ -133,7 +133,7 @@ export default function CreateDebitNoteModal({
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} title="Emitir Nota de DÃ©bito" size="lg">
+        <Modal isOpen={isOpen} onClose={handleClose} title="Emitir Nota de Débito" size="lg">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 {/* Invoice selector */}
                 <div className="space-y-2">
@@ -143,7 +143,7 @@ export default function CreateDebitNoteModal({
                     {!selectedInvoice ? (
                         <div className="space-y-2">
                             <Input
-                                placeholder="Buscar por nÃºmero ou cliente..."
+                                placeholder="Buscar por número ou cliente..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
@@ -189,7 +189,7 @@ export default function CreateDebitNoteModal({
                                     {selectedInvoice.invoiceNumber}
                                 </p>
                                 <p className="text-sm text-amber-700 dark:text-amber-300">
-                                    {selectedInvoice.customerName} â€” {formatCurrency(selectedInvoice.total)}
+                                    {selectedInvoice.customerName} — {formatCurrency(selectedInvoice.total)}
                                 </p>
                             </div>
                             <Button size="sm" variant="ghost" onClick={clearInvoice}>
@@ -204,7 +204,7 @@ export default function CreateDebitNoteModal({
                         {/* Reason */}
                         <div className="space-y-2">
                             <Input
-                                label="Motivo do DÃ©bito"
+                                label="Motivo do Débito"
                                 {...register('reason')}
                                 placeholder="Ex: Juros de mora 30 dias"
                                 error={errors.reason?.message}
@@ -243,9 +243,9 @@ export default function CreateDebitNoteModal({
                                 <table className="w-full text-sm">
                                     <thead className="bg-gray-50 dark:bg-dark-800 text-gray-500 uppercase text-xs">
                                         <tr>
-                                            <th className="px-3 py-2 text-left">DescriÃ§Ã£o</th>
+                                            <th className="px-3 py-2 text-left">Descrição</th>
                                             <th className="px-3 py-2 text-right w-20">Qtd</th>
-                                            <th className="px-3 py-2 text-right w-32">PreÃ§o Unit.</th>
+                                            <th className="px-3 py-2 text-right w-32">Preço Unit.</th>
                                             <th className="px-3 py-2 text-right w-32">Total</th>
                                             <th className="px-3 py-2 w-10"></th>
                                         </tr>
@@ -260,7 +260,7 @@ export default function CreateDebitNoteModal({
                                                     <td className="px-3 py-2">
                                                         <input
                                                             {...register(`items.${index}.description` as const)}
-                                                            placeholder="DescriÃ§Ã£o do encargo"
+                                                            placeholder="Descrição do encargo"
                                                             className="w-full bg-transparent border border-gray-200 dark:border-dark-600 rounded px-2 py-1 text-sm"
                                                         />
                                                     </td>
@@ -316,7 +316,7 @@ export default function CreateDebitNoteModal({
                         {/* Notes */}
                         <div>
                             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                ObservaÃ§Ãµes (opcional)
+                                Observações (opcional)
                             </label>
                             <textarea
                                 {...register('notes')}
@@ -334,7 +334,7 @@ export default function CreateDebitNoteModal({
                                     +{formatCurrency(total)}
                                 </p>
                                 <p className="text-xs text-gray-500 mt-1">
-                                    IVA serÃ¡ aplicado conforme a fatura original
+                                    IVA será aplicado conforme a fatura original
                                 </p>
                             </div>
                         </div>
@@ -344,7 +344,7 @@ export default function CreateDebitNoteModal({
                                 Cancelar
                             </Button>
                             <Button type="submit" className="flex-1" disabled={submitting}>
-                                {submitting ? 'A emitir...' : 'Gerar Nota de DÃ©bito'}
+                                {submitting ? 'A emitir...' : 'Gerar Nota de Débito'}
                             </Button>
                         </div>
                     </>

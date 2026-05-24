@@ -82,6 +82,7 @@ const Orders = lazy(() => import('./pages/Orders'));
 const Alerts = lazy(() => import('./pages/Alerts'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Settings = lazy(() => import('./pages/UserSettings'));
+const NotificationSettings = lazy(() => import('./pages/NotificationSettings'));
 const Customers = lazy(() => import('./pages/Customers'));
 const Suppliers = lazy(() => import('./pages/Suppliers'));
 const Categories = lazy(() => import('./pages/Categories'));
@@ -174,7 +175,7 @@ const BottleStoreFinance = lazy(() => import('./pages/bottlestore/BottleStoreFin
 const HRHub = lazy(() => import('./pages/hr/HRHub'));
 const RestaurantEmployees = lazy(() => import('./pages/restaurant/RestaurantEmployees'));
 const BottleStoreEmployees = lazy(() => import('./pages/bottlestore/BottleStoreEmployees'));
-const CalendarPage = lazy(() => import('./pages/Calendar'));
+const CalendarPage = lazy(() => import('./pages/calendar'));
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -332,6 +333,7 @@ createRoot(document.getElementById('root')!).render(
                     <Route path="super-admin" element={<SuperAdminDashboard />} />
                     <Route path="help" element={<Help />} />
                     <Route path="settings" element={<Settings />} />
+                    <Route path="settings/notifications" element={<NotificationSettings />} />
                   </Route>
                 </Routes>
               </Suspense>

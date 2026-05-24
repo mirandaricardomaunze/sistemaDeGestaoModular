@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { pharmacyAPI } from '../../services/api';
 import { Card, Button, Input, Select } from '../../components/ui';
 import { HiOutlinePlus, HiOutlineTrash, HiOutlineExclamationCircle, HiOutlineMagnifyingGlass } from 'react-icons/hi2';

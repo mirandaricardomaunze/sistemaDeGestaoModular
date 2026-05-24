@@ -421,7 +421,7 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                                     type="tel"
                                     value={reservationForm.guestPhone}
                                     onChange={(e) => setReservationForm({ ...reservationForm, guestPhone: e.target.value })}
-                                    placeholder="84 123 4567"
+                                    placeholder="+258 84 000 0000"
                                     className="flex-1 px-3 py-2 rounded-r-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-sm focus:ring-2 focus:ring-primary-500"
                                 />
                             </div>

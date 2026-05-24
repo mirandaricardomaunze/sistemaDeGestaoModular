@@ -1,5 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 
+if (process.env.DATABASE_URL) {
+    process.env.DATABASE_URL = process.env.DATABASE_URL.replace(/connection_limit=\d+/, 'connection_limit=1');
+}
 const prisma = new PrismaClient();
 const SAFETY_FLOOR = 100;
 

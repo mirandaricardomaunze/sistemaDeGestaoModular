@@ -85,7 +85,9 @@ interface SmartTableProps<TData> {
     tableInstance?: TanStackTable<TData>;
     
     /** Callback para botão de refresh manual */
-    onRefresh?: () => void;
+    onRefresh?: () => void | Promise<unknown>;
+    /** Label para o botão de refresh manual */
+    refreshLabel?: string;
     
     /** Se deve esconder a barra de filtros/pesquisa */
     hideToolbar?: boolean;
@@ -130,6 +132,7 @@ export function SmartTable<TData extends { id?: string | number }>({
     className,
     tableInstance,
     onRefresh,
+    refreshLabel = 'Atualizar',
     hideToolbar = false,
     expandedRowRender,
     expandedId,
@@ -198,14 +201,17 @@ export function SmartTable<TData extends { id?: string | number }>({
                             
                             {onRefresh && (
                                 <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
                                     onClick={onRefresh}
                                     isLoading={isLoading}
-                                    title="Actualizar dados"
-                                    className="bg-white dark:bg-dark-800 border border-slate-300 dark:border-dark-700 shadow-sm"
+                                    loadingText="Atualizando..."
+                                    title="Atualizar dados"
+                                    aria-label="Atualizar dados"
+                                    leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
+                                    className="h-10 bg-white dark:bg-dark-800 shadow-sm"
                                 >
-                                    <HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                                    {refreshLabel}
                                 </Button>
                             )}
 

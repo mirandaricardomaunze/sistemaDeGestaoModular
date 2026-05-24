@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
     HiOutlineClipboardDocumentList as HiOutlineClipboardDocumentList,
     HiOutlineClock,
@@ -13,6 +13,7 @@ import {
     HiOutlineDocumentText,
     HiOutlineCheckCircle,
     HiOutlineXCircle,
+    HiOutlineArrowPath,
 } from 'react-icons/hi2';
 import {
     PieChart,
@@ -80,6 +81,7 @@ interface OrdersDashboardProps {
     onCancelOrder: (order: Order) => void;
     onApproveCancellation?: (order: Order) => void;
     onRejectCancellation?: (order: Order) => void;
+    onRefresh?: () => void | Promise<unknown>;
     isLoading?: boolean;
     isAdmin?: boolean;
 }
@@ -106,7 +108,7 @@ const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#f97316', '#22c55e', '#ef4444'];
 // Time period options
 type TimePeriod = '1m' | '3m' | '6m' | '1y';
 const periodOptions: { value: TimePeriod; label: string }[] = [
-    { value: '1m', label: '1 MÃªs' },
+    { value: '1m', label: '1 Mês' },
     { value: '3m', label: '3 Meses' },
     { value: '6m', label: '6 Meses' },
     { value: '1y', label: '1 Ano' },
@@ -130,6 +132,7 @@ export default function OrdersDashboard({
     onCancelOrder,
     onApproveCancellation,
     onRejectCancellation,
+    onRefresh,
     isLoading,
     isAdmin,
 }: OrdersDashboardProps) {
@@ -242,7 +245,7 @@ export default function OrdersDashboard({
     const dateOptions = [
         { value: 'all', label: 'Todas as Datas' },
         { value: 'today', label: 'Hoje' },
-        { value: 'week', label: 'Ãšltimos 7 dias' },
+        { value: 'week', label: 'Últimos 7 dias' },
     ];
 
     return (
@@ -250,7 +253,7 @@ export default function OrdersDashboard({
             {/* Header */}
             <PageHeader
                 title="Dashboard de Encomendas"
-                subtitle="VisÃ£o geral e gerenciamento de pedidos"
+                subtitle="Visão geral e gerenciamento de pedidos"
                 icon={<HiOutlineClipboardDocumentList className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <div className="flex flex-wrap items-center gap-3">
@@ -279,6 +282,21 @@ export default function OrdersDashboard({
                         >
                             Nova Encomenda
                         </Button>
+                        {onRefresh && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-10 bg-white dark:bg-dark-800 font-bold shadow-sm"
+                                onClick={onRefresh}
+                                isLoading={isLoading}
+                                loadingText="Atualizando..."
+                                title="Atualizar encomendas"
+                                aria-label="Atualizar encomendas"
+                                leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
+                            >
+                                Atualizar
+                            </Button>
+                        )}
                     </div>
                 }
             />
@@ -304,7 +322,7 @@ export default function OrdersDashboard({
                     icon={<HiOutlineExclamationTriangle className="w-5 h-5" />}
                     badge={metrics.urgent > 0 ? (
                         <div className="flex items-center gap-1.5">
-                            <span className="text-[8px] font-black text-red-500 dark:text-red-400 uppercase tracking-tighter animate-pulse">CrÃ­tico</span>
+                            <span className="text-[8px] font-black text-red-500 dark:text-red-400 uppercase tracking-tighter animate-pulse">Crítico</span>
                             <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
                         </div>
                     ) : undefined}
@@ -323,7 +341,7 @@ export default function OrdersDashboard({
                 {/* Status Distribution */}
                 <Card padding="md">
                     <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-                        DistribuiÃ§Ã£o por Status
+                        Distribuição por Status
                     </h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height={256}>
@@ -378,7 +396,7 @@ export default function OrdersDashboard({
                     <div className="flex flex-col sm:flex-row gap-4">
                         <div className="flex-1">
                             <Input
-                                placeholder="Buscar por nÃºmero ou cliente..."
+                                placeholder="Buscar por número ou cliente..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 leftIcon={<HiOutlineFilter className="w-5 h-5" />}
@@ -414,7 +432,7 @@ export default function OrdersDashboard({
                             <thead className="bg-gray-50 dark:bg-dark-700">
                                 <tr>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        NÃºmero
+                                        Número
                                     </th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">
                                         Cliente
@@ -432,7 +450,7 @@ export default function OrdersDashboard({
                                         Valor
                                     </th>
                                     <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        AÃ§Ãµes
+                                        Ações
                                     </th>
                                 </tr>
                             </thead>

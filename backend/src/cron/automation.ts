@@ -1,6 +1,8 @@
 import cron from 'node-cron';
 import { prisma } from '../lib/prisma';
 import { alertsService, checkExpiringBatches } from '../services/alertService';
+import { auditAlertsService } from '../services/auditAlertsService';
+import { auditDigestService } from '../services/auditDigestService';
 import { commercialService } from '../services/commercialService';
 import { backupService } from '../services/backupService';
 import { logger } from '../utils/logger';
@@ -269,5 +271,24 @@ export const startCronJobs = () => {
         }
     });
 
-    logger.info('Cron jobs scheduled: midnight daily | 6h refresh | 1min reservations | 08:00 fiscal | 03:00 backup cleanup | 1min calendar reminders');
+    // Hourly — audit risk scan (unpaid invoices, pending approvals, stuck orders, etc.)
+    // See [[audit-alerts]] skill. Auto-resolves alerts whose source is fixed.
+    cron.schedule('0 * * * *', async () => {
+        try {
+            await auditAlertsService.scanAllCompanies();
+        } catch (err) {
+            logger.error('Error in audit alerts scan:', err);
+        }
+    });
+
+    // Daily at 07:00 — audit email digest (skips if no SMTP, no prefs, or no alerts).
+    cron.schedule('0 7 * * *', async () => {
+        try {
+            await auditDigestService.sendDailyDigest();
+        } catch (err) {
+            logger.error('Error in audit email digest:', err);
+        }
+    });
+
+    logger.info('Cron jobs scheduled: midnight daily | 6h refresh | 1min reservations | 08:00 fiscal | 03:00 backup cleanup | 1min calendar reminders | hourly audit scan | 07:00 audit digest');
 };

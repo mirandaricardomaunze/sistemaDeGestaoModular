@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, Button } from '../../components/ui';
 import {
     AreaChart,
@@ -139,7 +139,7 @@ export default function BottleStoreReports() {
                 value: formatCurrency(p.revenue)
             })),
             { name: '', info: '', value: '' },
-            { name: '--- ÃšLTIMAS VENDAS ---', info: '', value: '' },
+            { name: '--- ÚLTIMAS VENDAS ---', info: '', value: '' },
             ...salesList.map((s) => ({
                 name: s.saleNumber || '#' + s.id?.slice(-6),
                 info: format(parseISO(s.createdAt), 'dd/MM HH:mm'),
@@ -149,14 +149,14 @@ export default function BottleStoreReports() {
 
         await exportAPI.export({
             type,
-            title: 'GARRAFEIRA: RelatÃ³rio de Vendas',
-            subtitle: `PerÃ­odo: ${periodLabel} | Total: ${formatCurrency(metrics.totalSales)}`,
+            title: 'GARRAFEIRA: Relatório de Vendas',
+            subtitle: `Período: ${periodLabel} | Total: ${formatCurrency(metrics.totalSales)}`,
             columns,
             data: dataRows,
             filename: `Relatorio_Garrafeira_${new Date().getTime()}`
         });
 
-        toast.success(`RelatÃ³rio ${type.toUpperCase()} gerado com sucesso!`);
+        toast.success(`Relatório ${type.toUpperCase()} gerado com sucesso!`);
     };
 
     const handleExportPDF = () => handleExport('pdf');
@@ -165,7 +165,7 @@ export default function BottleStoreReports() {
     const periodOptions = [
         { value: 'today', label: 'Hoje' },
         { value: 'week', label: 'Semana' },
-        { value: 'month', label: 'MÃªs' },
+        { value: 'month', label: 'Mês' },
         { value: 'year', label: 'Ano' },
         { value: 'custom', label: 'Personalizado' },
     ];
@@ -182,8 +182,8 @@ export default function BottleStoreReports() {
         <div className="flex flex-col gap-6 p-4 pb-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold dark:text-white">RelatÃ³rios</h2>
-                    <p className="text-gray-500">AnÃ¡lise de vendas e produtos</p>
+                    <h2 className="text-2xl font-bold dark:text-white">Relatórios</h2>
+                    <p className="text-gray-500">Análise de vendas e produtos</p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={handleExportExcel} leftIcon={<HiOutlineDocumentArrowDown className="w-4 h-4 text-primary-600 dark:text-primary-400" />}>Gerar XLSX</Button>
@@ -220,18 +220,18 @@ export default function BottleStoreReports() {
                     <p className="text-2xl font-black text-emerald-900 dark:text-white leading-none mt-2">{formatCurrency(metrics.totalTax)}</p>
                 </Card>
                 <Card className="bg-purple-100/40 dark:bg-purple-900/20 border border-purple-200/50 dark:border-purple-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group p-4">
-                    <p className="text-[10px] uppercase font-black tracking-widest text-purple-600/70 dark:text-purple-400/60">TransaÃ§Ãµes</p>
+                    <p className="text-[10px] uppercase font-black tracking-widest text-purple-600/70 dark:text-purple-400/60">Transações</p>
                     <p className="text-2xl font-black text-purple-900 dark:text-white leading-none mt-2">{metrics.transactionCount}</p>
                 </Card>
                 <Card className="bg-amber-100/40 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group p-4">
-                    <p className="text-[10px] uppercase font-black tracking-widest text-amber-600/70 dark:text-amber-400/60">Ticket MÃ©dio</p>
+                    <p className="text-[10px] uppercase font-black tracking-widest text-amber-600/70 dark:text-amber-400/60">Ticket Médio</p>
                     <p className="text-2xl font-black text-amber-900 dark:text-white leading-none mt-2">{formatCurrency(metrics.avgTicket)}</p>
                 </Card>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card padding="md">
-                    <h3 className="text-lg font-bold mb-4">EvoluÃ§Ã£o de Vendas</h3>
+                    <h3 className="text-lg font-bold mb-4">Evolução de Vendas</h3>
                     <div className="h-72">
                         <ResponsiveContainer width="100%" height={288}>
                             <AreaChart data={dailySalesData}>
@@ -274,14 +274,14 @@ export default function BottleStoreReports() {
                 <div className="p-4 border-b border-gray-100 dark:border-dark-700 flex items-center justify-between">
                     <h3 className="text-lg font-bold">Listagem de Vendas</h3>
                     <div className="text-xs text-gray-500">
-                        {totalSalesItems} transaÃ§Ãµes encontradas
+                        {totalSalesItems} transações encontradas
                     </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="bg-gray-50 dark:bg-dark-900/50 uppercase text-xs font-bold text-gray-500 dark:text-gray-400">
                             <tr>
-                                <th className="px-6 py-4">NÂº Venda</th>
+                                <th className="px-6 py-4">Nº Venda</th>
                                 <th className="px-6 py-4">Data/Hora</th>
                                 <th className="px-6 py-4">Cliente</th>
                                 <th className="px-6 py-4 text-right">IVA (16%)</th>
@@ -292,7 +292,7 @@ export default function BottleStoreReports() {
                             {salesList.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                                        Nenhuma venda registada no perÃ­odo selecionado.
+                                        Nenhuma venda registada no período selecionado.
                                     </td>
                                 </tr>
                             ) : (

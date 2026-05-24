@@ -6,7 +6,8 @@ import { logger } from '../../utils/logger';
  * Can be easily integrated into any page with tabular data
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { HiOutlineArrowDownTray, HiOutlineDocumentText, HiOutlineTableCells } from 'react-icons/hi2';
 import { Button } from '../ui/Button';
 import type { ExportOptions, ExportFormat } from '../../utils/exportUtils';
@@ -61,19 +62,44 @@ export function ExportButton({
 }: ExportButtonProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLDivElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
 
-    // Close dropdown when clicking outside
+    // Close dropdown when clicking outside (covers both trigger area and portaled menu).
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
+            const target = event.target as Node;
+            if (wrapperRef.current?.contains(target)) return;
+            if (menuRef.current?.contains(target)) return;
+            setIsOpen(false);
         };
-
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Position the portaled menu under the trigger and keep it pinned on
+    // scroll/resize. Uses fixed positioning so it escapes overflow-hidden ancestors.
+    useLayoutEffect(() => {
+        if (!isOpen) return;
+        const MENU_WIDTH = 192; // matches w-48
+        const updatePos = () => {
+            const rect = triggerRef.current?.getBoundingClientRect();
+            if (!rect) return;
+            setMenuPos({
+                top: rect.bottom + 8,
+                left: Math.max(8, rect.right - MENU_WIDTH),
+            });
+        };
+        updatePos();
+        window.addEventListener('scroll', updatePos, true);
+        window.addEventListener('resize', updatePos);
+        return () => {
+            window.removeEventListener('scroll', updatePos, true);
+            window.removeEventListener('resize', updatePos);
+        };
+    }, [isOpen]);
 
     const handleExport = async (format: ExportFormat) => {
         setIsExporting(true);
@@ -103,20 +129,27 @@ export function ExportButton({
     };
 
     return (
-        <div className={`relative inline-block ${className}`} ref={dropdownRef}>
-            <Button
-                variant={variant}
-                size={size}
-                onClick={() => setIsOpen(!isOpen)}
-                disabled={disabled || isExporting || !options.data?.length}
-                leftIcon={showIcon ? <HiOutlineArrowDownTray className="w-4 h-4" /> : undefined}
-            >
-                {isExporting ? 'Exportando...' : buttonText}
-            </Button>
+        <div className={`relative inline-block ${className}`} ref={wrapperRef}>
+            <div ref={triggerRef}>
+                <Button
+                    variant={variant}
+                    size={size}
+                    onClick={() => setIsOpen(!isOpen)}
+                    disabled={disabled || isExporting || !options.data?.length}
+                    leftIcon={showIcon ? <HiOutlineArrowDownTray className="w-4 h-4" /> : undefined}
+                >
+                    {isExporting ? 'Exportando...' : buttonText}
+                </Button>
+            </div>
 
-            {/* Dropdown Menu */}
-            {isOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-dark-800 rounded-xl shadow-card-hover border border-slate-300/70 dark:border-dark-700 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* Dropdown Menu — portaled to body with fixed positioning so it
+                escapes any `overflow-hidden` ancestor (e.g. PageHeader). */}
+            {isOpen && menuPos && createPortal(
+                <div
+                    ref={menuRef}
+                    style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, width: 192 }}
+                    className="bg-white dark:bg-dark-800 rounded-xl shadow-card-hover border border-slate-300/70 dark:border-dark-700 overflow-hidden z-[9999] animate-in fade-in slide-in-from-top-2 duration-200"
+                >
                     <div className="py-1">
                         {/* Excel Option */}
                         <Button variant="ghost"
@@ -149,7 +182,8 @@ export function ExportButton({
                             {options.data?.length || 0} registos a exportar
                         </p>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

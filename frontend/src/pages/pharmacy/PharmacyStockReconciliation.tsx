@@ -66,7 +66,7 @@ export default function PharmacyStockReconciliation() {
 
     const handleSubmit = async () => {
         if (variances.length === 0) {
-            toast('Nenhuma variação detectada - contagem igual ao sistema.', { icon: 'â„¹ï¸' });
+            toast('Nenhuma variação detectada - contagem igual ao sistema.', { icon: 'ℹï¸' });
             return;
         }
         setShowConfirmSubmit(true);

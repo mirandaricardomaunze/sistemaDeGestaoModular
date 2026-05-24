@@ -53,7 +53,7 @@ describe('Sales Route', () => {
         await prisma.product.deleteMany({ where: { companyId: 'test-company-id' } }).catch(() => {});
         await prisma.customer.deleteMany({ where: { companyId: 'test-company-id' } }).catch(() => {});
         await prisma.user.deleteMany({ where: { companyId: 'test-company-id' } }).catch(() => {});
-        await prisma.documentSeries.deleteMany({ where: { prefix: 'FR' } }).catch(() => {});
+        await prisma.documentSeries.deleteMany({ where: { companyId: 'test-company-id', prefix: 'FR' } }).catch(() => {});
         await prisma.company.deleteMany({ where: { id: 'test-company-id' } }).catch(() => {});
         // Also remove any company that may have the same test nuit
         await prisma.company.deleteMany({ where: { nuit: 'TEST-NUIT-001' } }).catch(() => {});
@@ -142,7 +142,7 @@ describe('Sales Route', () => {
         await prisma.product.deleteMany({ where: { companyId: 'test-company-id' } }).catch(() => {});
         await prisma.customer.deleteMany({ where: { companyId: 'test-company-id' } }).catch(() => {});
         await prisma.user.deleteMany({ where: { companyId: 'test-company-id' } }).catch(() => {});
-        await prisma.documentSeries.deleteMany({ where: { prefix: 'FR' } }).catch(() => {});
+        await prisma.documentSeries.deleteMany({ where: { companyId: 'test-company-id', prefix: 'FR' } }).catch(() => {});
         await prisma.company.deleteMany({ where: { id: 'test-company-id' } }).catch(() => {});
         await prisma.$disconnect();
     });

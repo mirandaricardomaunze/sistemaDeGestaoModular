@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { HotelRoom as HotelRoomBase } from '../../types/hotel';
 

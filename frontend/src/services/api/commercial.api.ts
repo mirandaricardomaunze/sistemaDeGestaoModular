@@ -168,6 +168,20 @@ export interface InventoryForecast {
     [key: string]: unknown;
 }
 
+export interface AIDecisionSuggestion {
+    id: string;
+    title: string;
+    summary: string;
+    reasoning: string;
+    priority: 'critical' | 'high' | 'medium' | 'low';
+    category: 'stock' | 'sales' | 'finance' | 'operations' | 'customers' | 'suppliers';
+    impact: string;
+    confidence: number;
+    actionLabel: string;
+    actionUrl: string;
+    source: 'ai' | 'rules';
+}
+
 // ── Accounts Receivable ───────────────────────────────────────────────────────
 
 export interface ReceivableInvoice {
@@ -469,6 +483,12 @@ export const commercialAPI = {
 
     getWarehouseDistribution: async (): Promise<WarehouseDistribution[]> => {
         const res = await api.get('/commercial/warehouse-distribution');
+        return res.data;
+    },
+
+    getAIDecisionSuggestions: async (warehouseId?: string): Promise<AIDecisionSuggestion[]> => {
+        const id = commercialAPI._normalizeWarehouseId(warehouseId);
+        const res = await api.get('/commercial/ai-suggestions', { params: { warehouseId: id } });
         return res.data;
     },
 

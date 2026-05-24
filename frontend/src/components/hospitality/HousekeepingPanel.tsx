@@ -1,4 +1,4 @@
-﻿import { logger } from '../../utils/logger';
+import { logger } from '../../utils/logger';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, Button, Badge, LoadingSpinner, EmptyState, ConfirmationModal } from '../ui';
@@ -165,7 +165,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                             {t('hotel_module.housekeeping.title')}
                         </h3>
                         <p className="text-[10px] text-gray-500 font-medium">
-                            {pendingTasks.length} {t('hotel_module.housekeeping.status.pending')} â€¢ {inProgressTasks.length} {t('hotel_module.housekeeping.status.in_progress')} â€¢ {completedTasks.length} {t('hotel_module.housekeeping.status.completed')}
+                            {pendingTasks.length} {t('hotel_module.housekeeping.status.pending')} • {inProgressTasks.length} {t('hotel_module.housekeeping.status.in_progress')} • {completedTasks.length} {t('hotel_module.housekeeping.status.completed')}
                         </p>
                     </div>
                 </div>
@@ -299,7 +299,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                                 )}
                                 {task.status === 'completed' && (
                                     <div className="flex-1 text-center text-xs text-green-600 font-bold py-2">
-                                        âœ… {t('common.finished')} {formatTime(task.completedAt)}
+                                        ✅ {t('common.finished')} {formatTime(task.completedAt)}
                                     </div>
                                 )}
                             </div>
