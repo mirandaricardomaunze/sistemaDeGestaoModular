@@ -8,7 +8,10 @@
 *.db-journal
 backend/.env
 backend/.env.production
-.claude/settings.local.json
+# Ignore the entire local Claude state (settings.local.json, history, etc.)
+# Only .claude/settings.json is committed (shared team settings).
+.claude/*
+!.claude/settings.json
 # NOTE: backend/.env.example is intentionally NOT ignored — it must stay in git
 
 # Local listing/scratch outputs at root
