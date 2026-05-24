@@ -1,4 +1,17 @@
+// ── BOOT DIAGNOSTICS (Railway debug) ─────────────────────────────────────────
+// Print before anything else so we can see if dist/index.js is even being
+// executed and which env vars are visible. Remove after the deploy is stable.
+console.log('[BOOT] node', process.version, 'cwd:', process.cwd());
+console.log('[BOOT] PORT=' + process.env.PORT, 'NODE_ENV=' + process.env.NODE_ENV);
+console.log('[BOOT] DATABASE_URL set:', !!process.env.DATABASE_URL);
+console.log('[BOOT] JWT_SECRET set:', !!process.env.JWT_SECRET, 'len:', (process.env.JWT_SECRET || '').length);
+console.log('[BOOT] ALLOWED_ORIGINS:', process.env.ALLOWED_ORIGINS);
+console.log('[BOOT] REDIS_URL set:', !!process.env.REDIS_URL);
+process.on('uncaughtException', (e) => console.error('[BOOT] uncaughtException:', e));
+process.on('unhandledRejection', (e) => console.error('[BOOT] unhandledRejection:', e));
+
 import 'dotenv/config';
+console.log('[BOOT] dotenv loaded');
 import 'express-async-errors';
 import express, { type RequestHandler } from 'express';
 import cors from 'cors';
@@ -248,16 +261,25 @@ let emailWorker: ReturnType<typeof createEmailWorker> = null;
 
 const start = async () => {
     try {
+        console.log('[BOOT] start() entered');
+        console.log('[BOOT] connecting Prisma...');
         await prisma.$connect();
+        console.log('[BOOT] Prisma connected');
 
         // Initialize Redis (probes port first — no noise if Redis is down)
+        console.log('[BOOT] initializing Redis...');
         await initRedis();
+        console.log('[BOOT] Redis init done');
 
         // Start background tasks
+        console.log('[BOOT] starting cron jobs...');
         startCronJobs();
+        console.log('[BOOT] cron jobs started');
 
         // Automatic DB backups (cron + Drive upload)
+        console.log('[BOOT] initializing backup service...');
         await backupService.initialize();
+        console.log('[BOOT] backup service ready');
 
         // BullMQ email worker (only when Redis is available)
         emailWorker = createEmailWorker();
@@ -275,14 +297,17 @@ const start = async () => {
             logger.warn('Audit worker disabled — fallback to direct writes (Redis not available)');
         }
 
+        console.log('[BOOT] calling httpServer.listen on PORT=' + PORT);
         httpServer.listen(PORT, () => console.log(`🚀 MultiCore ERP running on port ${PORT} (with WebSockets)`));
     } catch (error) {
-        console.error('Fatal Error:', error);
+        console.error('[BOOT] Fatal Error in start():', error);
         process.exit(1);
     }
 };
 
+console.log('[BOOT] env validated, NODE_ENV=' + env.NODE_ENV + ', PORT=' + env.PORT);
 if (env.NODE_ENV !== 'test') {
+    console.log('[BOOT] calling start()');
     start();
 }
 
