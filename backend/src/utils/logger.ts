@@ -10,12 +10,25 @@ const logFormat = winston.format.combine(
     winston.format.json()
 );
 
+// Console transport is ALWAYS attached: on PaaS hosts (Railway/Fly/Render/etc.)
+// the filesystem is ephemeral and the platform only ingests stdout/stderr —
+// without this transport startup logs are invisible and crashes look silent.
+const consoleTransport = new winston.transports.Console({
+    format: process.env.NODE_ENV === 'production'
+        ? logFormat
+        : winston.format.combine(
+            winston.format.colorize(),
+            winston.format.simple()
+        ),
+});
+
 // Create the logger
 export const logger = winston.createLogger({
     level: logLevel,
     format: logFormat,
     defaultMeta: { service: 'sistema-backend' },
     transports: [
+        consoleTransport,
         // Write all logs with level 'error' and below to error.log
         new winston.transports.File({
             filename: 'logs/error.log',
@@ -31,16 +44,6 @@ export const logger = winston.createLogger({
         }),
     ],
 });
-
-// If we're not in production, log to the console with simple format
-if (process.env.NODE_ENV !== 'production') {
-    logger.add(new winston.transports.Console({
-        format: winston.format.combine(
-            winston.format.colorize(),
-            winston.format.simple()
-        ),
-    }));
-}
 
 // Create a stream object for Morgan HTTP logger
 export const loggerStream = {
