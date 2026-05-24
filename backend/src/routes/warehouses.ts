@@ -31,19 +31,19 @@ router.post('/transfers', authenticate, async (req: AuthRequest, res) => {
 
 router.post('/transfers/:id/submit', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const result = await warehousesService.submitTransfer(req.companyId, req.params.id, req.userId!);
+    const result = await warehousesService.submitTransfer(req.companyId, req.params.id, req.userId!, req.userName);
     res.json(result);
 });
 
 router.post('/transfers/:id/approve', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const result = await warehousesService.approveTransfer(req.companyId, req.params.id, req.userId!);
+    const result = await warehousesService.approveTransfer(req.companyId, req.params.id, req.userId!, req.userName);
     res.json(result);
 });
 
 router.post('/transfers/:id/reject', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const result = await warehousesService.rejectTransfer(req.companyId, req.params.id, req.userId!, req.body.reason);
+    const result = await warehousesService.rejectTransfer(req.companyId, req.params.id, req.userId!, req.userName, req.body.reason);
     res.json(result);
 });
 

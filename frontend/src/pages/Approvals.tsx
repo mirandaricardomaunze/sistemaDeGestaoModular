@@ -53,6 +53,10 @@ function safeFormatDate(value: string | null): string {
     }
 }
 
+// Types whose decision has side-effects beyond the ApprovalRequest row
+// (e.g. stock reservation) and must be acted on from the owning module's UI.
+const DECIDE_EXTERNALLY: ReadonlySet<ApprovalRequestType> = new Set(['warehouse_transfer']);
+
 function ApprovalRow({ item, canDecide }: { item: ApprovalRequest; canDecide: boolean }) {
     const { approve, reject } = useApprovalActions();
     const [decisionNotes, setDecisionNotes] = useState('');
@@ -65,6 +69,7 @@ function ApprovalRow({ item, canDecide }: { item: ApprovalRequest; canDecide: bo
     };
 
     const isPending = item.status === 'pending';
+    const decideExternally = DECIDE_EXTERNALLY.has(item.requestType);
     const busy = approve.isPending || reject.isPending;
 
     return (
@@ -98,7 +103,13 @@ function ApprovalRow({ item, canDecide }: { item: ApprovalRequest; canDecide: bo
                 </div>
             )}
 
-            {isPending && canDecide && (
+            {isPending && canDecide && decideExternally && (
+                <div className="text-xs italic text-amber-600 dark:text-amber-400 border-t border-gray-100 dark:border-dark-700 pt-2">
+                    Decida em Logística → Transferências (a aprovação reserva stock no armazém de origem).
+                </div>
+            )}
+
+            {isPending && canDecide && !decideExternally && (
                 <div className="space-y-2">
                     {showNotes && (
                         <Textarea
