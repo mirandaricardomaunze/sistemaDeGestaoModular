@@ -12,6 +12,13 @@ Frontend e backend são **packages independentes** em [frontend/](frontend/) e [
 - **Backend** ([backend/](backend/)): Node.js + Express + TypeScript, Prisma 6 (PostgreSQL/Supabase), Socket.IO, BullMQ + Redis, Winston
 - **Pacotes-chave**: jsPDF (PDFs), Dexie (IndexedDB offline), Leaflet (mapas), Recharts (charts)
 
+## Regras de Git e Seguranca do Agente
+
+- O agente NUNCA deve fazer `git add`, `git commit` ou `git push` de dados sensiveis: `.env`, `.env.production`, credenciais, tokens, JWT secrets, DATABASE_URL, chaves Supabase/OpenAI/Gemini, dumps de BD, logs com PII ou ficheiros gerados com dados reais.
+- O agente NUNCA deve fazer commit ou push de skills/instrucoes do agente (`.agent/skills/`, `.agents/skills/`, `.claude/`, `CLAUDE.md` ou ficheiros equivalentes) sem pedido explicito do dono do projecto para versionar essas regras.
+- Antes de qualquer commit/push autorizado, o agente deve executar `git status --short`, rever o diff preparado e confirmar que nenhum segredo, dado real de cliente ou skill/instrucao privada esta incluido.
+- Se encontrar segredo ja rastreado pelo Git, o agente deve parar, avisar o dono do projecto e propor remocao/rotacao; nao deve mascarar nem publicar o segredo.
+
 ## Comandos (sempre do root)
 
 | Acção | Comando |

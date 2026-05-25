@@ -9,6 +9,13 @@ description: "Enterprise-grade security, authentication, authorization, and data
 
 This skill ensures the Multicore system remains secure against external and internal threats, protecting tenant data and system integrity.
 
+## 0. Git, Secrets & Agent Skills
+
+- The agent MUST NEVER stage, commit, or push real secrets or sensitive data, including `.env`, `.env.production`, credentials, API keys, JWT secrets, DATABASE_URL, Supabase/OpenAI/Gemini keys, database dumps, logs with PII, or generated files containing real customer/company data.
+- The agent MUST NEVER stage, commit, or push agent skills/instructions (`.agent/skills/`, `.agents/skills/`, `.claude/`, `CLAUDE.md`, or equivalent rule files) unless the project owner explicitly asks to version those rule changes.
+- Before any authorized commit or push, the agent MUST inspect `git status --short` and the staged diff to confirm no secrets, real tenant data, or private agent instructions are included.
+- If a secret is already tracked by Git, the agent MUST stop, report the risk, and recommend removal plus credential rotation. Do not hide, normalize, or push the secret.
+
 ## 1. Authentication (Login & Identity)
 
 - **Passwords & Secrets**: 

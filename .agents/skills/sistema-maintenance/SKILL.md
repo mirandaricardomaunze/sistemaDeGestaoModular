@@ -16,6 +16,13 @@ Work as the project maintainer for this local React/Vite + Express/Prisma system
 3. Keep changes scoped. Avoid broad rewrites unless the user explicitly asks to clean the whole system.
 4. Reply in Portuguese unless the user switches language.
 
+## Git, Secrets, and Skills Safety
+
+- Never stage, commit, or push sensitive data: `.env`, `.env.production`, credentials, API keys, JWT secrets, DATABASE_URL, Supabase/OpenAI/Gemini keys, database dumps, logs with PII, or generated files containing real customer/company data.
+- Never stage, commit, or push agent skills/instructions (`.agent/skills/`, `.agents/skills/`, `.claude/`, `CLAUDE.md`, or equivalent rule files) unless the project owner explicitly asks to version those rule changes.
+- Before any user-authorized commit or push, run `git status --short`, inspect the staged diff, and confirm no secret, real tenant data, or private agent instruction is included.
+- If a secret is already tracked by Git, stop and report it. Propose removal and credential rotation instead of committing or pushing over it.
+
 ## Known Project Commands
 
 Use Windows commands:
