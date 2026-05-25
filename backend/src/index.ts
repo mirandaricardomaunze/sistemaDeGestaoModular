@@ -270,6 +270,8 @@ initSocket(httpServer);
 let emailWorker: ReturnType<typeof createEmailWorker> = null;
 let serverStarted = false;
 
+const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
+
 const listen = () => new Promise<void>((resolve, reject) => {
     if (serverStarted) {
         resolve();
@@ -291,11 +293,23 @@ const start = async () => {
         console.log('[BOOT] start() entered');
         console.log('[BOOT] calling httpServer.listen on PORT=' + PORT);
         await listen();
+    } catch (error) {
+        console.error('[BOOT] Fatal Error while starting HTTP server:', error);
+        process.exit(1);
+    }
 
+    try {
         console.log('[BOOT] connecting Prisma...');
         await prisma.$connect();
         console.log('[BOOT] Prisma connected');
+    } catch (error) {
+        logger.error('Prisma connection failed during startup; HTTP server remains available', {
+            message: getErrorMessage(error)
+        });
+        return;
+    }
 
+    try {
         // Initialize Redis (probes port first — no noise if Redis is down)
         console.log('[BOOT] initializing Redis...');
         await initRedis();
@@ -327,11 +341,13 @@ const start = async () => {
             logger.warn('Audit worker disabled — fallback to direct writes (Redis not available)');
         }
 
-        console.log('[BOOT] startup tasks completed');
     } catch (error) {
-        console.error('[BOOT] Fatal Error in start():', error);
-        process.exit(1);
+        logger.warn('Non-critical startup task failed; HTTP server remains available', {
+            message: getErrorMessage(error)
+        });
     }
+
+    console.log('[BOOT] startup tasks completed');
 };
 
 console.log('[BOOT] env validated, NODE_ENV=' + env.NODE_ENV + ', PORT=' + env.PORT);
