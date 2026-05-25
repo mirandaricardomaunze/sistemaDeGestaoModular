@@ -59,9 +59,9 @@ COPY --from=builder --chown=node:node /app/backend/prisma ./backend/prisma
 
 WORKDIR /app/backend
 
-EXPOSE 3001
+EXPOSE 3001 8080 3000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
     CMD node -e "const port = process.env.PORT || 3001; require('http').get('http://localhost:' + port + '/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(1))"
 
-ENTRYPOINT ["sh", "-c", "npm run start:deploy"]
+ENTRYPOINT ["sh", "-c", "echo '[ENTRYPOINT] running prisma migrations'; npx prisma migrate deploy; echo '[ENTRYPOINT] starting backend'; exec node dist/index.js"]

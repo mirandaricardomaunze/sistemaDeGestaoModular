@@ -272,21 +272,34 @@ let serverStarted = false;
 
 const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
 
-const listen = () => new Promise<void>((resolve, reject) => {
-    if (serverStarted) {
-        resolve();
-        return;
-    }
-
+const listenOnPort = (port: number, server = createServer(app), label = 'fallback') => new Promise<void>((resolve, reject) => {
     const onError = (error: Error) => reject(error);
-    httpServer.once('error', onError);
-    httpServer.listen(PORT, '0.0.0.0', () => {
-        serverStarted = true;
-        httpServer.off('error', onError);
-        console.log(`🚀 MultiCore ERP running on port ${PORT} (with WebSockets)`);
+    server.once('error', onError);
+    server.listen(port, '0.0.0.0', () => {
+        server.off('error', onError);
+        console.log(`[BOOT] ${label} HTTP server listening on port ${port}`);
         resolve();
     });
 });
+
+const listen = async () => {
+    if (serverStarted) return;
+
+    await listenOnPort(PORT, httpServer, 'primary');
+    serverStarted = true;
+
+    const fallbackPorts = [3001, 8080, 3000].filter((port) => port !== PORT);
+    await Promise.all(fallbackPorts.map(async (port) => {
+        try {
+            await listenOnPort(port);
+        } catch (error) {
+            logger.warn('Fallback HTTP port unavailable; continuing startup', {
+                port,
+                message: getErrorMessage(error)
+            });
+        }
+    }));
+};
 
 const start = async () => {
     try {
