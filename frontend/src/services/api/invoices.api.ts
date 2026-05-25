@@ -40,6 +40,7 @@ export const invoicesAPI = {
         customerPhone?: string;
         customerAddress?: string;
         customerNuit?: string;
+        warehouseId?: string;
         items: Array<{
             productId?: string | null;
             description: string;
