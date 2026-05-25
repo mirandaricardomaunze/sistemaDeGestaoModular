@@ -10,6 +10,36 @@ console.log('[BOOT] REDIS_URL set:', !!process.env.REDIS_URL);
 process.on('uncaughtException', (e) => console.error('[BOOT] uncaughtException:', e));
 process.on('unhandledRejection', (e) => console.error('[BOOT] unhandledRejection:', e));
 
+type EarlyServer = import('http').Server;
+
+const earlyHealthServers: EarlyServer[] = [];
+const earlyHealthPorts = Array.from(new Set([
+    Number(process.env.PORT || 3001),
+    3001,
+    8080,
+    3000
+])).filter((port) => Number.isFinite(port) && port > 0);
+
+for (const port of earlyHealthPorts) {
+    const server = require('http').createServer((req: import('http').IncomingMessage, res: import('http').ServerResponse) => {
+        if (req.url === '/api/health' || req.url === '/health' || req.url === '/') {
+            res.writeHead(200, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ status: 'OK', phase: 'bootstrapping', port }));
+            return;
+        }
+        res.writeHead(404, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Not Found' }));
+    });
+
+    server.on('error', (error: NodeJS.ErrnoException) => {
+        console.warn('[BOOT] early health server failed on port', port, error.code || error.message);
+    });
+    server.listen(port, '0.0.0.0', () => {
+        earlyHealthServers.push(server);
+        console.log('[BOOT] early health server listening on port', port);
+    });
+}
+
 import 'dotenv/config';
 console.log('[BOOT] dotenv loaded');
 import 'express-async-errors';
@@ -272,6 +302,13 @@ let serverStarted = false;
 
 const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
 
+const closeEarlyHealthServers = async () => {
+    await Promise.all(earlyHealthServers.map((server) => new Promise<void>((resolve) => {
+        server.close(() => resolve());
+    })));
+    earlyHealthServers.length = 0;
+};
+
 const listenOnPort = (port: number, server = createServer(app), label = 'fallback') => new Promise<void>((resolve, reject) => {
     const onError = (error: Error) => reject(error);
     server.once('error', onError);
@@ -285,6 +322,7 @@ const listenOnPort = (port: number, server = createServer(app), label = 'fallbac
 const listen = async () => {
     if (serverStarted) return;
 
+    await closeEarlyHealthServers();
     await listenOnPort(PORT, httpServer, 'primary');
     serverStarted = true;
 
