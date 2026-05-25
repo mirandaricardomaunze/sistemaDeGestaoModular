@@ -268,10 +268,30 @@ const httpServer = createServer(app);
 initSocket(httpServer);
 
 let emailWorker: ReturnType<typeof createEmailWorker> = null;
+let serverStarted = false;
+
+const listen = () => new Promise<void>((resolve, reject) => {
+    if (serverStarted) {
+        resolve();
+        return;
+    }
+
+    const onError = (error: Error) => reject(error);
+    httpServer.once('error', onError);
+    httpServer.listen(PORT, '0.0.0.0', () => {
+        serverStarted = true;
+        httpServer.off('error', onError);
+        console.log(`🚀 MultiCore ERP running on port ${PORT} (with WebSockets)`);
+        resolve();
+    });
+});
 
 const start = async () => {
     try {
         console.log('[BOOT] start() entered');
+        console.log('[BOOT] calling httpServer.listen on PORT=' + PORT);
+        await listen();
+
         console.log('[BOOT] connecting Prisma...');
         await prisma.$connect();
         console.log('[BOOT] Prisma connected');
@@ -307,8 +327,7 @@ const start = async () => {
             logger.warn('Audit worker disabled — fallback to direct writes (Redis not available)');
         }
 
-        console.log('[BOOT] calling httpServer.listen on PORT=' + PORT);
-        httpServer.listen(PORT, () => console.log(`🚀 MultiCore ERP running on port ${PORT} (with WebSockets)`));
+        console.log('[BOOT] startup tasks completed');
     } catch (error) {
         console.error('[BOOT] Fatal Error in start():', error);
         process.exit(1);
