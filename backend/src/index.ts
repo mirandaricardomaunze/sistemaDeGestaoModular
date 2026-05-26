@@ -86,6 +86,27 @@ import { logger } from './utils/logger';
 // ── App Initialization ──────────────────────────────────────────────────────
 export const app = express();
 
+const allowedOrigins = env.ALLOWED_ORIGINS;
+
+const healthCors: RequestHandler = (req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Idempotency-Key');
+        res.setHeader('Access-Control-Max-Age', '3600');
+        res.setHeader('Vary', 'Origin');
+    }
+    if (req.method === 'OPTIONS') {
+        res.sendStatus(204);
+        return;
+    }
+    next();
+};
+
+app.use(['/api/health', '/api/ready'], healthCors);
+
 app.get('/api/health', (_req, res) => {
     res.json({
         status: 'OK',
@@ -114,8 +135,6 @@ app.use(helmet({
     contentSecurityPolicy: false // Frontend handles its own CSP
 }));
 app.use(cookieParser());
-
-const allowedOrigins = env.ALLOWED_ORIGINS;
 
 app.use(cors({
     origin: (origin, callback) => {
