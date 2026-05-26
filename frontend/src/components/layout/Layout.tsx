@@ -4,7 +4,7 @@ import { useStore } from '../../stores/useStore';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import Footer from './Footer';
-import { useEffect, Suspense, lazy, useMemo, useState } from 'react';
+import { useEffect, Suspense, lazy, useState } from 'react';
 import { LoadingOverlay } from '../ui/Loading';
 import { PageTransitionLoader } from '../ui/PageTransitionLoader';
 import { HiOutlineSparkles } from 'react-icons/hi2';
@@ -16,11 +16,6 @@ const ChatWidget = lazy(() => import('../chat/ChatWidget'));
 
 function ChatWidgetLauncher() {
     const [isLoaded, setIsLoaded] = useState(false);
-    const location = useLocation();
-    const isCommercialInsightsPage = useMemo(
-        () => /^\/commercial\/(dashboard|reports|margins|insights)/.test(location.pathname),
-        [location.pathname]
-    );
 
     if (isLoaded) {
         return (
@@ -29,8 +24,6 @@ function ChatWidgetLauncher() {
             </Suspense>
         );
     }
-
-    if (isCommercialInsightsPage) return null;
 
     return (
         <Button variant="ghost"
