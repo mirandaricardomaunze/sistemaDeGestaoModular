@@ -46,6 +46,8 @@ import {
     HiOutlineBookOpen,
     HiSparkles,
     HiOutlineArrowsRightLeft,
+    HiOutlineBriefcase,
+    HiOutlineNoSymbol,
 } from 'react-icons/hi2';
 
 import { cn } from '../../utils/helpers';
@@ -229,7 +231,7 @@ const menuItems: MenuItem[] = [
     { id: 'commercial_quotes', labelKey: 'Cotações', icon: HiOutlinePencilAlt, path: '/commercial/quotes', module: 'commercial' },
     { id: 'commercial_finance', labelKey: 'Gestão Financeira', icon: HiOutlineCurrencyDollar, path: '/commercial/finance', module: 'commercial' },
     { id: 'commercial_returns', labelKey: 'Devolucoes', icon: HiOutlineArrowPath, path: '/commercial/returns', module: 'commercial' },
-    { id: 'commercial_pending_voids', labelKey: 'Anulações Pendentes', icon: HiOutlineShieldCheck, path: '/commercial/pending-voids', module: 'commercial' },
+    { id: 'commercial_pending_voids', labelKey: 'Anulações Pendentes', icon: HiOutlineNoSymbol, path: '/commercial/pending-voids', module: 'commercial' },
     { id: 'commercial_orders', labelKey: 'Encomendas', icon: HiOutlineDocumentChartBar, path: '/commercial/orders', module: 'commercial' },
     { id: 'commercial_invoices', labelKey: 'Facturas', icon: HiOutlineDocumentText, path: '/commercial/invoices', module: 'commercial' },
     { id: 'commercial_customers', labelKey: 'Clientes', icon: HiOutlineUserGroup, path: '/commercial/customers', module: 'commercial' },
@@ -237,7 +239,7 @@ const menuItems: MenuItem[] = [
     { id: 'commercial_categories', labelKey: 'Categorias', icon: HiOutlineTag, path: '/commercial/categories', module: 'commercial' },
     { id: 'commercial_warehouses', labelKey: 'Armazéns', icon: HiOutlineHomeModern, path: '/warehouses', module: 'commercial' },
     { id: 'commercial_transfers', labelKey: 'nav.transfers', icon: HiOutlineArrowsRightLeft, path: '/transfers', module: 'commercial' },
-    { id: 'commercial_hr', labelKey: 'Recursos Humanos', icon: HiOutlineUsers, path: '/hr', module: 'commercial' },
+    { id: 'commercial_hr', labelKey: 'Recursos Humanos', icon: HiOutlineBriefcase, path: '/hr', module: 'commercial' },
 
     // ============================================================================
     // LOGISTICS Module - Specific pages (only for logistics businesses)
