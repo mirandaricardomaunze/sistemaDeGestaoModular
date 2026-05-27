@@ -12,7 +12,9 @@ import {
     HiOutlineArrowPath as HiOutlineArrowPath,
     HiOutlineExclamationCircle,
     HiOutlineShieldExclamation,
+    HiOutlineBanknotes,
 } from 'react-icons/hi2';
+import { cn, formatCurrency } from '../../utils/helpers';
 import { usePagination } from '../../components/ui/Pagination';
 import { useStore } from '../../stores/useStore';
 import { generatePOSReceipt } from '../../utils/documentGenerator';
@@ -120,6 +122,7 @@ export default function PharmacyPOS() {
     // State
     const [posSearch, setPosSearch] = useState('');
     const [cart, setCart] = useState<CartItem[]>([]);
+    const [mobileView, setMobileView] = useState<'catalog' | 'cart'>('catalog');
     const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
     const [manualCustomerName, setManualCustomerName] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('cash');
@@ -509,9 +512,42 @@ export default function PharmacyPOS() {
                 </div>
             )}
 
+            {/* Mobile tabs (Catalogo/Carrinho) — only < lg */}
+            <div className="lg:hidden flex items-center gap-1 p-1 bg-slate-200/60 dark:bg-dark-800/60 rounded-xl">
+                <button
+                    type="button"
+                    onClick={() => setMobileView('catalog')}
+                    className={cn(
+                        "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98]",
+                        mobileView === 'catalog'
+                            ? 'bg-white dark:bg-dark-700 text-teal-600 dark:text-teal-400 shadow-sm'
+                            : 'text-slate-600 dark:text-gray-400'
+                    )}
+                >
+                    Catálogo
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setMobileView('cart')}
+                    className={cn(
+                        "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98] relative",
+                        mobileView === 'cart'
+                            ? 'bg-white dark:bg-dark-700 text-teal-600 dark:text-teal-400 shadow-sm'
+                            : 'text-slate-600 dark:text-gray-400'
+                    )}
+                >
+                    Carrinho
+                    {cart.length > 0 && (
+                        <span className="absolute top-1 right-2 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center text-[10px] font-black text-white bg-red-500 rounded-full">
+                            {cart.length > 9 ? '9+' : cart.length}
+                        </span>
+                    )}
+                </button>
+            </div>
+
             {/* POS Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start relative z-10">
-                <div className="lg:col-span-3">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 lg:gap-6 items-start relative z-10 pb-24 lg:pb-0">
+                <div className={cn("lg:col-span-3", mobileView === 'catalog' ? 'block' : 'hidden lg:block')}>
                     <POSProductGrid
                         posSearch={posSearch}
                         setPosSearch={setPosSearch}
@@ -520,7 +556,7 @@ export default function PharmacyPOS() {
                         addToCart={addToCart as (med: import('../../components/pharmacy/pos/POSProductGrid').POSMedication) => void}
                     />
                 </div>
-                <div className="lg:col-span-2">
+                <div className={cn("lg:col-span-2", mobileView === 'cart' ? 'block' : 'hidden lg:block')}>
                     <POSCartPanel
                         cart={cart}
                         setCart={setCart}
@@ -552,6 +588,37 @@ export default function PharmacyPOS() {
                     />
                 </div>
             </div>
+
+            {/* Mobile bottom bar — total + Pagar */}
+            {cart.length > 0 && (
+                <div
+                    className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-dark-800 border-t border-slate-200 dark:border-dark-700 shadow-[0_-4px_20px_rgba(15,23,42,0.08)]"
+                    style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+                >
+                    <div className="flex items-center justify-between gap-3 px-3 py-2">
+                        <div
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => setMobileView('cart')}
+                        >
+                            <p className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                                {cart.length} {cart.length === 1 ? 'item' : 'itens'}
+                            </p>
+                            <p className="text-lg font-black text-slate-900 dark:text-white tabular-nums leading-tight truncate">
+                                {formatCurrency(cartTotal)}
+                            </p>
+                        </div>
+                        <Button
+                            variant="success"
+                            size="md"
+                            onClick={handleCheckout}
+                            className="h-12 px-5"
+                            leftIcon={<HiOutlineBanknotes className="w-5 h-5" />}
+                        >
+                            Pagar
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             <POSPatientHistoryModal
                 isOpen={isHistoryModalOpen}

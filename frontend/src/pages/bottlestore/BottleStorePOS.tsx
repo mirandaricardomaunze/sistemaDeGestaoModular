@@ -16,13 +16,14 @@ import {
     HiOutlineArrowPath,
     HiOutlinePlus,
     HiOutlineMinus,
-    HiOutlineScale
+    HiOutlineScale,
+    HiOutlineBanknotes
 } from 'react-icons/hi2';
 import { salesAPI } from '../../services/api';
 import { bottleStoreAPI } from '../../services/api/bottle-store.api';
 import { useScale } from '../../hooks/useScale';
 import { PrinterService } from '../../services/printer.service';
-import { formatCurrency } from '../../utils/helpers';
+import { cn, formatCurrency } from '../../utils/helpers';
 import type { Sale } from '../../types';
 
 type BottleProduct = {
@@ -86,6 +87,7 @@ export default function BottleStorePOS() {
 
     // POS State
     const [cart, setCart] = useState<CartLine[]>([]);
+    const [mobileView, setMobileView] = useState<'catalog' | 'cart'>('catalog');
     const [customerMoney, setCustomerMoney] = useState('');
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
     const [processingSale, setProcessingSale] = useState(false);
@@ -367,9 +369,42 @@ export default function BottleStorePOS() {
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-6 flex-1 min-h-0">
+            {/* Mobile tabs (Catalogo/Carrinho) — only < md */}
+            <div className="md:hidden flex items-center gap-1 p-1 bg-slate-200/60 dark:bg-dark-800/60 rounded-xl">
+                <button
+                    type="button"
+                    onClick={() => setMobileView('catalog')}
+                    className={cn(
+                        "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98]",
+                        mobileView === 'catalog'
+                            ? 'bg-white dark:bg-dark-700 text-orange-600 dark:text-orange-400 shadow-sm'
+                            : 'text-slate-600 dark:text-gray-400'
+                    )}
+                >
+                    Catálogo
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setMobileView('cart')}
+                    className={cn(
+                        "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98] relative",
+                        mobileView === 'cart'
+                            ? 'bg-white dark:bg-dark-700 text-orange-600 dark:text-orange-400 shadow-sm'
+                            : 'text-slate-600 dark:text-gray-400'
+                    )}
+                >
+                    Carrinho
+                    {cart.length > 0 && (
+                        <span className="absolute top-1 right-2 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center text-[10px] font-black text-white bg-red-500 rounded-full">
+                            {cart.length > 9 ? '9+' : cart.length}
+                        </span>
+                    )}
+                </button>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-3 md:gap-6 flex-1 min-h-0 pb-24 md:pb-0">
                 {/* Left Panel: Product Selection */}
-                <div className="flex-1 flex flex-col gap-4 min-h-0">
+                <div className={cn("flex-1 flex flex-col gap-4 min-h-0", mobileView === 'catalog' ? 'flex' : 'hidden md:flex')}>
                     <Card padding="md" className="flex-shrink-0">
                         <Input
                             ref={productSearchRef}
@@ -408,7 +443,7 @@ export default function BottleStorePOS() {
                 </div>
 
                 {/* Right Panel: Cart Sidebar */}
-                <div className="w-full md:w-[400px] flex flex-col gap-4">
+                <div className={cn("w-full md:w-[400px] flex flex-col gap-4", mobileView === 'cart' ? 'flex' : 'hidden md:flex')}>
                     <Card padding="none" className="flex flex-col h-full overflow-hidden">
                         <div className="p-4 border-b border-gray-200 dark:border-dark-700">
                             <div className="flex items-center justify-between">
@@ -555,6 +590,38 @@ export default function BottleStorePOS() {
 
             {processingSale && (
                 <LoadingOverlay message="A processar a venda... Por favor, aguarde." fullScreen />
+            )}
+
+            {/* Mobile bottom bar — total + Pagar */}
+            {cart.length > 0 && (
+                <div
+                    className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-dark-800 border-t border-slate-200 dark:border-dark-700 shadow-[0_-4px_20px_rgba(15,23,42,0.08)]"
+                    style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+                >
+                    <div className="flex items-center justify-between gap-3 px-3 py-2">
+                        <div
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => setMobileView('cart')}
+                        >
+                            <p className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                                {cart.length} {cart.length === 1 ? 'item' : 'itens'}
+                            </p>
+                            <p className="text-lg font-black text-slate-900 dark:text-white tabular-nums leading-tight truncate">
+                                {formatCurrency(totalWithTax)}
+                            </p>
+                        </div>
+                        <Button
+                            variant="success"
+                            size="md"
+                            onClick={() => setIsCheckoutModalOpen(true)}
+                            disabled={processingSale}
+                            className="h-12 px-5"
+                            leftIcon={<HiOutlineBanknotes className="w-5 h-5" />}
+                        >
+                            Pagar
+                        </Button>
+                    </div>
+                </div>
             )}
         </div>
     );

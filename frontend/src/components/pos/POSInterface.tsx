@@ -59,6 +59,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
     const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>('cash');
     const [amountPaid, setAmountPaid] = useState('');
     const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+    const [mobileView, setMobileView] = useState<'catalog' | 'cart'>('catalog');
     const [receiptModalOpen, setReceiptModalOpen] = useState(false);
     const [lastSale, setLastSale] = useState<Sale | null>(null);
     const [thermalPreviewOpen, setThermalPreviewOpen] = useState(false);
@@ -732,7 +733,40 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
 
     return (
         <div className="flex-1 flex flex-col min-h-0">
-            <div className="flex-1 flex gap-4 min-h-0 px-1 pb-16">
+            {/* Mobile tabs (Catalogo/Carrinho) — only < md */}
+            <div className="md:hidden flex items-center gap-1 p-1 mx-1 mb-2 bg-slate-200/60 dark:bg-dark-800/60 rounded-xl">
+                <button
+                    type="button"
+                    onClick={() => setMobileView('catalog')}
+                    className={cn(
+                        "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98]",
+                        mobileView === 'catalog'
+                            ? 'bg-white dark:bg-dark-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                            : 'text-slate-600 dark:text-gray-400'
+                    )}
+                >
+                    Catálogo
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setMobileView('cart')}
+                    className={cn(
+                        "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98] relative",
+                        mobileView === 'cart'
+                            ? 'bg-white dark:bg-dark-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                            : 'text-slate-600 dark:text-gray-400'
+                    )}
+                >
+                    Carrinho
+                    {cart.length > 0 && (
+                        <span className="absolute top-1 right-2 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center text-[10px] font-black text-white bg-red-500 rounded-full">
+                            {cart.length > 9 ? '9+' : cart.length}
+                        </span>
+                    )}
+                </button>
+            </div>
+
+            <div className="flex-1 flex flex-col md:flex-row gap-3 md:gap-4 min-h-0 px-1 pb-24 md:pb-16">
                 <MobilePaymentModal
                     isOpen={mobilePaymentModalOpen}
                     onClose={() => setMobilePaymentModalOpen(false)}
@@ -741,7 +775,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                     onConfirm={handleMobilePaymentConfirm}
                 />
                 {/* Left Panel - Products */}
-                <div className="flex-1 flex flex-col min-h-0">
+                <div className={cn("flex-1 flex-col min-h-0", mobileView === 'catalog' ? 'flex' : 'hidden md:flex')}>
                     {/* Search */}
                     <Card padding="md" className="mb-4">
                         <div className="flex gap-4">
@@ -886,7 +920,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                 </div>
 
                 {/* Right Panel - Cart */}
-                <div className="w-96 flex flex-col min-h-0">
+                <div className={cn("w-full md:w-96 flex-col min-h-0", mobileView === 'cart' ? 'flex' : 'hidden md:flex')}>
                     <Card padding="none" className="flex-1 flex flex-col overflow-hidden">
                         {/* Cart Header */}
                         <div className="p-4 border-b border-gray-200 dark:border-dark-700 overflow-y-auto max-h-[45%] flex-shrink-0 scrollbar-thin">
@@ -1541,10 +1575,42 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                 </div>
             </Modal>
             {isProcessing && (
-                <LoadingOverlay 
-                    message="A processar a venda... Por favor, aguarde um momento." 
-                    fullScreen={true} 
+                <LoadingOverlay
+                    message="A processar a venda... Por favor, aguarde um momento."
+                    fullScreen={true}
                 />
+            )}
+
+            {/* Mobile bottom bar — total + Pagar */}
+            {cart.length > 0 && (
+                <div
+                    className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-dark-800 border-t border-slate-200 dark:border-dark-700 shadow-[0_-4px_20px_rgba(15,23,42,0.08)]"
+                    style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+                >
+                    <div className="flex items-center justify-between gap-3 px-3 py-2">
+                        <div
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => setMobileView('cart')}
+                        >
+                            <p className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                                {cart.length} {cart.length === 1 ? 'item' : 'itens'}
+                            </p>
+                            <p className="text-lg font-black text-slate-900 dark:text-white tabular-nums leading-tight truncate">
+                                {formatCurrency(cartTotal)}
+                            </p>
+                        </div>
+                        <Button
+                            variant="success"
+                            size="md"
+                            onClick={() => setCheckoutModalOpen(true)}
+                            disabled={isProcessing}
+                            className="h-12 px-5"
+                            leftIcon={<HiOutlineBanknotes className="w-5 h-5" />}
+                        >
+                            Pagar
+                        </Button>
+                    </div>
+                </div>
             )}
         </div>
     );

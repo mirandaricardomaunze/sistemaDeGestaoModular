@@ -9,14 +9,15 @@ import { cn } from '../../utils';
 import { SegmentedControl } from '../../components/common/SegmentedControl';
 import toast from 'react-hot-toast';
 import {
-    HiOutlineShoppingCart, 
-    HiOutlineMagnifyingGlass as HiOutlineMagnifyingGlass, 
+    HiOutlineShoppingCart,
+    HiOutlineMagnifyingGlass as HiOutlineMagnifyingGlass,
     HiOutlineTrash,
-    HiOutlinePlus, 
-    HiOutlineMinus, 
-    HiOutlineXMark as HiOutlineXMark, 
+    HiOutlinePlus,
+    HiOutlineMinus,
+    HiOutlineXMark as HiOutlineXMark,
     HiOutlineArrowPath as HiOutlineArrowPath,
-    HiOutlineCake
+    HiOutlineCake,
+    HiOutlineBanknotes
 } from 'react-icons/hi2';
 
 // ============================================================================
@@ -177,6 +178,7 @@ export default function RestaurantPOS() {
     const [selectedCategory, setSelectedCategory] = useState('');
     const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
     const [cart, setCart] = useState<CartItem[]>([]);
+    const [mobileView, setMobileView] = useState<'catalog' | 'cart'>('catalog');
     const [checkoutOpen, setCheckoutOpen] = useState(false);
     const [checkoutProcessing, setCheckoutProcessing] = useState(false);
     const debouncedSearch = useDebounce(search, 400);
@@ -251,9 +253,45 @@ export default function RestaurantPOS() {
     };
 
     return (
-        <div className="flex h-[calc(100vh-4rem)] gap-0 overflow-hidden">
+        <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)] gap-0 overflow-hidden pb-20 md:pb-0">
+            {/* Mobile tabs (Catalogo/Carrinho) — only < md */}
+            <div className="md:hidden flex items-center gap-1 p-1 m-2 bg-slate-200/60 dark:bg-dark-800/60 rounded-xl">
+                <button
+                    type="button"
+                    onClick={() => setMobileView('catalog')}
+                    className={cn(
+                        "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98]",
+                        mobileView === 'catalog'
+                            ? 'bg-white dark:bg-dark-700 text-rose-600 dark:text-rose-400 shadow-sm'
+                            : 'text-slate-600 dark:text-gray-400'
+                    )}
+                >
+                    Menu
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setMobileView('cart')}
+                    className={cn(
+                        "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98] relative",
+                        mobileView === 'cart'
+                            ? 'bg-white dark:bg-dark-700 text-rose-600 dark:text-rose-400 shadow-sm'
+                            : 'text-slate-600 dark:text-gray-400'
+                    )}
+                >
+                    Pedido
+                    {cart.length > 0 && (
+                        <span className="absolute top-1 right-2 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center text-[10px] font-black text-white bg-red-500 rounded-full">
+                            {cart.length > 9 ? '9+' : cart.length}
+                        </span>
+                    )}
+                </button>
+            </div>
+
             {/* LEFT: Products Panel */}
-            <div className="flex-1 flex flex-col bg-gray-50 dark:bg-dark-900 overflow-hidden">
+            <div className={cn(
+                "flex-1 flex flex-col bg-gray-50 dark:bg-dark-900 overflow-hidden",
+                mobileView === 'catalog' ? 'flex' : 'hidden md:flex'
+            )}>
                 {/* Top bar */}
                 <div className="p-4 bg-white dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700 space-y-3">
                     <div className="flex items-center gap-3">
@@ -351,7 +389,10 @@ export default function RestaurantPOS() {
             </div>
 
             {/* RIGHT: Cart Panel */}
-            <div className="w-80 xl:w-96 flex flex-col bg-white dark:bg-dark-800 border-l border-gray-200 dark:border-dark-700">
+            <div className={cn(
+                "w-full md:w-80 xl:w-96 flex-col bg-white dark:bg-dark-800 border-l border-gray-200 dark:border-dark-700",
+                mobileView === 'cart' ? 'flex' : 'hidden md:flex'
+            )}>
                 {/* Cart Header */}
                 <div className="p-4 border-b border-gray-200 dark:border-dark-700">
                     <div className="flex items-center gap-4">
@@ -454,6 +495,37 @@ export default function RestaurantPOS() {
 
             {checkoutProcessing && (
                 <LoadingOverlay message="A processar o pedido... Por favor, aguarde." fullScreen />
+            )}
+
+            {/* Mobile bottom bar — total + Cobrar */}
+            {cart.length > 0 && (
+                <div
+                    className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-dark-800 border-t border-slate-200 dark:border-dark-700 shadow-[0_-4px_20px_rgba(15,23,42,0.08)]"
+                    style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+                >
+                    <div className="flex items-center justify-between gap-3 px-3 py-2">
+                        <div
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => setMobileView('cart')}
+                        >
+                            <p className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                                {cart.length} {cart.length === 1 ? 'item' : 'itens'}
+                            </p>
+                            <p className="text-lg font-black text-slate-900 dark:text-white tabular-nums leading-tight truncate">
+                                {formatCurrency(subtotal)}
+                            </p>
+                        </div>
+                        <Button
+                            variant="success"
+                            size="md"
+                            onClick={() => setCheckoutOpen(true)}
+                            className="h-12 px-5"
+                            leftIcon={<HiOutlineBanknotes className="w-5 h-5" />}
+                        >
+                            Cobrar
+                        </Button>
+                    </div>
+                </div>
             )}
         </div>
     );
