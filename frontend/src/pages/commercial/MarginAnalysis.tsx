@@ -18,6 +18,7 @@ import {
 import { formatCurrency, cn } from '../../utils/helpers';
 import { useMarginAnalysis, useInventoryTurnover } from '../../hooks/useCommercial';
 import { getApiErrorMessage } from '../../utils/apiError';
+import { SegmentedControl } from '../../components/common/SegmentedControl';
 
 const PERIOD_OPTIONS = [
     { label: '7 dias', value: 7 },
@@ -105,41 +106,29 @@ export default function MarginAnalysis() {
                 icon={<HiOutlineChartBar className="text-primary-600 dark:text-primary-400" />}
             />
             {/* Margin Actions */}
-            <div className="flex flex-wrap items-center justify-end gap-3 bg-white/50 dark:bg-dark-900/50 p-2 rounded-xl border border-gray-100 dark:border-dark-700/50">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-end gap-3 w-full bg-white/50 dark:bg-dark-900/50 p-2 rounded-xl border border-gray-100 dark:border-dark-700/50">
                 <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowBulkModal(true)}
-                    className="font-black text-[10px] uppercase tracking-widest text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                    className="font-black text-[10px] uppercase tracking-widest text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 w-full sm:w-auto flex items-center justify-center h-10"
                     leftIcon={<HiOutlineAdjustmentsHorizontal className="w-4 h-4" />}
                 >
                     Ajuste em Massa
                 </Button>
                 
-                <div className="flex bg-white dark:bg-dark-800 rounded-lg p-1 border border-gray-200 dark:border-dark-700 shadow-sm h-10">
-                    {PERIOD_OPTIONS.map(opt => (
-                        <Button
-                            key={opt.value}
-                            onClick={() => setPeriod(opt.value)}
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                                'h-8 px-3 rounded-md text-[10px] font-black uppercase tracking-widest',
-                                period === opt.value
-                                    ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20'
-                                    : 'text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400'
-                            )}
-                        >
-                            {opt.label}
-                        </Button>
-                    ))}
-                </div>
+                <SegmentedControl
+                    options={PERIOD_OPTIONS}
+                    value={period}
+                    onChange={setPeriod}
+                    className="w-full sm:w-auto"
+                />
 
                 <Button
                     variant="ghost"
                     size="sm"
                     onClick={refetch}
-                    className="p-2 h-10 w-10 flex items-center justify-center text-gray-400 hover:text-primary-500"
+                    className="p-2 h-10 w-full sm:w-10 flex items-center justify-center text-gray-400 hover:text-primary-500"
                 >
                     <HiOutlineArrowPath className={cn("w-5 h-5", isLoading && "animate-spin")} />
                 </Button>

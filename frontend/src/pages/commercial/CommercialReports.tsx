@@ -22,6 +22,7 @@ import { AISuggestionsPanel } from '../../components/commercial/analytics/AISugg
 import { StockAgingSummaryCards, type StockAgingBucket } from '../../components/commercial/analytics/StockAgingSummaryCards';
 import type { StockAgingProduct, SupplierPerformance } from '../../services/api/commercial.api';
 import { useCategories } from '../../hooks/useData';
+import { SegmentedControl } from '../../components/common/SegmentedControl';
 import { CHART_TOOLTIP_STYLE } from '../../utils/constants';
 import MarginAnalysis from './MarginAnalysis';
 
@@ -232,37 +233,25 @@ export default function CommercialReports({ initialTab = 'sales' }: CommercialRe
                         {activeTab === 'warehouses' && 'Concentração de stock e valor por localização.'}
                     </p>
                 </div>
-                <div className="flex flex-wrap items-center justify-end gap-3">
-                {activeTab === 'sales' && (
-                    <div className="flex h-10 rounded-xl border border-slate-200/90 bg-slate-50 p-1 shadow-inner dark:border-dark-700 dark:bg-dark-800">
-                        {PERIOD_OPTIONS.map(opt => (
-                            <Button
-                                key={opt.value}
-                                onClick={() => setPeriod(opt.value)}
-                                variant="ghost"
-                                size="sm"
-                                className={cn(
-                                    'h-8 px-4 text-[10px] font-black uppercase tracking-widest rounded-md',
-                                    period === opt.value
-                                        ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20'
-                                        : 'text-slate-600 hover:text-primary-600 dark:hover:text-primary-400'
-                                )}
-                            >
-                                {opt.label}
-                            </Button>
-                        ))}
-                    </div>
-                )}
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRefetch}
-                    disabled={activeTab === 'margins'}
-                    className="flex h-10 w-10 items-center justify-center border border-slate-200/90 bg-white p-2 text-slate-600 shadow-sm hover:text-primary-600 dark:border-dark-700 dark:bg-dark-800"
-                    title="Actualizar relatório"
-                >
-                    <HiOutlineArrowPath className={cn("w-5 h-5", (salesLoading || agingLoading || supplierLoading || warehouseLoading) && "animate-spin")} />
-                </Button>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                    {activeTab === 'sales' && (
+                        <SegmentedControl
+                            options={PERIOD_OPTIONS}
+                            value={period}
+                            onChange={setPeriod}
+                            className="w-full sm:w-auto"
+                        />
+                    )}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRefetch}
+                        disabled={activeTab === 'margins'}
+                        leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-primary-600", (salesLoading || agingLoading || supplierLoading || warehouseLoading) && "animate-spin")} />}
+                        className="h-10 px-4 text-slate-700 hover:text-primary-700 dark:text-gray-300 dark:hover:text-primary-400 w-full sm:w-auto flex items-center justify-center"
+                    >
+                        Actualizar
+                    </Button>
                 </div>
             </div>
 
