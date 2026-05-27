@@ -45,6 +45,7 @@ import {
     HiOutlineDocumentChartBar as HiOutlineDocumentChartBar,
     HiOutlineBookOpen,
     HiSparkles,
+    HiOutlineArrowsRightLeft,
 } from 'react-icons/hi2';
 
 import { cn } from '../../utils/helpers';
@@ -220,13 +221,11 @@ const menuItems: MenuItem[] = [
     { id: 'commercial_dashboard', labelKey: 'Dashboard', icon: HiOutlineSquares2X2, path: '/commercial/dashboard', module: 'commercial' },
     { id: 'commercial_reports', labelKey: 'Relatórios', icon: HiOutlineChartBar, path: '/commercial/reports', module: 'commercial' },
     { id: 'commercial_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/commercial/pos', module: 'commercial' },
-    { id: 'commercial_shifts', labelKey: 'nav.shifts', icon: HiOutlineCalculator, path: '/commercial/history?tab=shifts', module: 'commercial' },
     { id: 'commercial_history', labelKey: 'nav.history', icon: HiOutlineClock, path: '/commercial/history', module: 'commercial' },
-    { id: 'commercial_stock', labelKey: 'Movimentos', icon: HiOutlineArrowPath, path: '/commercial/history?tab=stock', module: 'commercial' },
     { id: 'commercial_inventory', labelKey: 'Inventário', icon: HiOutlineCube, path: '/commercial/inventory', module: 'commercial' },
-    { id: 'commercial_physical_inventory', labelKey: 'Inventario Fisico', icon: HiOutlineClipboardDocumentList, path: '/inventory/physical', module: 'commercial' },
+    { id: 'commercial_physical_inventory', labelKey: 'Inventario Fisico', icon: HiOutlineCheckCircle, path: '/inventory/physical', module: 'commercial' },
     { id: 'commercial_purchase_orders', labelKey: 'Ordens de Compra', icon: HiOutlineClipboardDocumentList, path: '/commercial/purchase-orders', module: 'commercial' },
-    { id: 'commercial_supplier_invoices', labelKey: 'Facturas de Fornecedor', icon: HiOutlineDocumentText, path: '/commercial/supplier-invoices', module: 'commercial' },
+    { id: 'commercial_supplier_invoices', labelKey: 'Facturas de Fornecedor', icon: HiOutlineRectangleStack, path: '/commercial/supplier-invoices', module: 'commercial' },
     { id: 'commercial_quotes', labelKey: 'Cotações', icon: HiOutlinePencilAlt, path: '/commercial/quotes', module: 'commercial' },
     { id: 'commercial_finance', labelKey: 'Gestão Financeira', icon: HiOutlineCurrencyDollar, path: '/commercial/finance', module: 'commercial' },
     { id: 'commercial_returns', labelKey: 'Devolucoes', icon: HiOutlineArrowPath, path: '/commercial/returns', module: 'commercial' },
@@ -237,8 +236,7 @@ const menuItems: MenuItem[] = [
     { id: 'commercial_suppliers', labelKey: 'Fornecedores', icon: HiOutlineTruck, path: '/commercial/suppliers', module: 'commercial' },
     { id: 'commercial_categories', labelKey: 'Categorias', icon: HiOutlineTag, path: '/commercial/categories', module: 'commercial' },
     { id: 'commercial_warehouses', labelKey: 'Armazéns', icon: HiOutlineHomeModern, path: '/warehouses', module: 'commercial' },
-    { id: 'commercial_transfers', labelKey: 'nav.transfers', icon: HiOutlineTruck, path: '/transfers', module: 'commercial' },
-    { id: 'commercial_audit', labelKey: 'Auditoria', icon: HiOutlineShieldCheck, path: '/commercial/history?tab=audit', module: 'commercial' },
+    { id: 'commercial_transfers', labelKey: 'nav.transfers', icon: HiOutlineArrowsRightLeft, path: '/transfers', module: 'commercial' },
     { id: 'commercial_hr', labelKey: 'Recursos Humanos', icon: HiOutlineUsers, path: '/hr', module: 'commercial' },
 
     // ============================================================================
