@@ -245,8 +245,8 @@ export default function Dashboard() {
                 subtitle={t('dashboard.overview')}
                 icon={<HiOutlineChartBar />}
                 actions={
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="w-56">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+                        <div className="w-full sm:w-56">
                             <Select
                                 size="sm"
                                 value={selectedWarehouseId}
@@ -255,7 +255,7 @@ export default function Dashboard() {
                                     { value: '', label: 'Todos os Armazéns' },
                                     ...(warehouses || []).map(w => ({ value: w.id, label: w.name }))
                                 ]}
-                                className="h-10 text-[10px] font-black uppercase tracking-widest border-slate-200 dark:border-dark-700 shadow-sm rounded-xl"
+                                className="w-full h-10 text-[10px] font-black uppercase tracking-widest border-slate-200 dark:border-dark-700 shadow-sm rounded-xl"
                             />
                         </div>
                         <SegmentedControl
@@ -263,11 +263,12 @@ export default function Dashboard() {
                             value={selectedPeriod}
                             onChange={(val) => setSelectedPeriod(val as TimePeriod)}
                             size="sm"
+                            className="w-full sm:w-auto"
                         />
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="h-10 px-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-primary-600 transition-all bg-slate-50/50 dark:bg-dark-800"
+                            className="h-10 px-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-primary-600 transition-all bg-slate-50/50 dark:bg-dark-800 w-full sm:w-auto flex items-center justify-center"
                             onClick={() => refetchDashboard()}
                             leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-primary-600", isLoading && "animate-spin")} />}
                         >
@@ -276,17 +277,17 @@ export default function Dashboard() {
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="h-10 px-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-primary-600 transition-all bg-slate-50/50 dark:bg-dark-800"
+                            className="h-10 px-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-primary-600 transition-all bg-slate-50/50 dark:bg-dark-800 w-full sm:w-auto flex items-center justify-center"
                             onClick={resetWidgetOrder}
                             leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-slate-500" />}
                         >
                             Repor layout
                         </Button>
-                        <Link to="/pos">
+                        <Link to="/pos" className="w-full sm:w-auto">
                             <Button
                                 variant="primary"
                                 size="sm"
-                                className="h-10 px-6 bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-500/20 rounded-xl font-black uppercase text-[10px] tracking-widest border-none"
+                                className="h-10 px-6 bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-500/20 rounded-xl font-black uppercase text-[10px] tracking-widest border-none w-full flex items-center justify-center"
                                 leftIcon={<HiOutlinePlus className="w-4 h-4" />}
                             >
                                 {t('dashboard.newSale')}

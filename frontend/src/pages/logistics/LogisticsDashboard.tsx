@@ -283,11 +283,12 @@ export default function LogisticsDashboard() {
                     </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 bg-white/40 dark:bg-dark-900/40 p-2 rounded-2xl border border-slate-200/60 dark:border-white/5 backdrop-blur-md">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto bg-white/40 dark:bg-dark-900/40 p-2 rounded-2xl border border-slate-200/60 dark:border-white/5 backdrop-blur-md">
                     <SegmentedControl
                         options={PERIOD_OPTIONS}
                         value={selectedDays}
                         onChange={setSelectedDays}
+                        className="w-full sm:w-auto"
                     />
 
                     <Button
@@ -295,6 +296,7 @@ export default function LogisticsDashboard() {
                         size="sm"
                         onClick={handleRefresh}
                         leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-primary-600" />}
+                        className="w-full sm:w-auto flex items-center justify-center h-10"
                     >
                         {t('common.refresh')}
                     </Button>
@@ -304,6 +306,7 @@ export default function LogisticsDashboard() {
                         size="sm"
                         leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />}
                         onClick={() => setIsTransferModalOpen(true)}
+                        className="w-full sm:w-auto flex items-center justify-center h-10"
                     >
                         {t('logistics_module.dashboard.newTransfer')}
                     </Button>

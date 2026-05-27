@@ -240,9 +240,9 @@ export default function CommercialDashboard() {
             )}
 
             {/* Actions Bar */}
-            <div className="flex flex-wrap items-center justify-end gap-3 bg-white dark:bg-dark-900/40 p-2.5 rounded-2xl border border-slate-200/90 dark:border-white/5 backdrop-blur-md shadow-[0_14px_30px_-24px_rgba(15,23,42,0.75)]">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-end gap-3 w-full bg-white dark:bg-dark-900/40 p-2.5 rounded-2xl border border-slate-200/90 dark:border-white/5 backdrop-blur-md shadow-[0_14px_30px_-24px_rgba(15,23,42,0.75)]">
                 {/* Warehouse Filter as Dropdown styled like the buttons */}
-                <div className="w-48">
+                <div className="w-full sm:w-48">
                     <Select
                         size="sm"
                         value={selectedWarehouseId}
@@ -251,7 +251,7 @@ export default function CommercialDashboard() {
                             { value: '', label: 'Todos os Armazéns' },
                             ...(warehouses || []).map(w => ({ value: w.id, label: w.name }))
                         ]}
-                        className="h-10 text-[10px] font-black uppercase tracking-widest border-slate-300/80 dark:border-white/10 shadow-sm focus:ring-0 rounded-xl bg-white dark:bg-dark-800 text-slate-700 dark:text-gray-200"
+                        className="w-full h-10 text-[10px] font-black uppercase tracking-widest border-slate-300/80 dark:border-white/10 shadow-sm focus:ring-0 rounded-xl bg-white dark:bg-dark-800 text-slate-700 dark:text-gray-200"
                     />
                 </div>
 
@@ -259,6 +259,7 @@ export default function CommercialDashboard() {
                     options={PERIOD_OPTIONS}
                     value={selectedDays}
                     onChange={setSelectedDays}
+                    className="w-full sm:w-auto"
                 />
                 
                 <Button
@@ -267,7 +268,7 @@ export default function CommercialDashboard() {
                     onClick={handleRefresh}
                     disabled={refreshing}
                     leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-primary-600 dark:text-primary-400", refreshing && "animate-spin")} />}
-                    className="h-10 px-4 text-slate-700 hover:text-primary-700 dark:text-gray-300 dark:hover:text-primary-400"
+                    className="h-10 px-4 text-slate-700 hover:text-primary-700 dark:text-gray-300 dark:hover:text-primary-400 w-full sm:w-auto flex items-center justify-center"
                 >
                     {refreshing ? 'Actualizando...' : 'Actualizar Tudo'}
                 </Button>
