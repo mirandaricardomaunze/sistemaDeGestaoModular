@@ -3,60 +3,38 @@ import { useLocation } from 'react-router-dom';
 import { useIsFetching } from '@tanstack/react-query';
 import { LoadingOverlay } from './Loading';
 
+const SHOW_GRACE_MS = 150;
+const SAFETY_TIMEOUT_MS = 20000;
+
 export function PageTransitionLoader() {
     const location = useLocation();
     const isFetching = useIsFetching();
-
-    const [isTransitioning, setIsTransitioning] = useState(true);
-    const [minTimeElapsed, setMinTimeElapsed] = useState(false);
-    const sawFetchRef = useRef(false);
-    const graceElapsedRef = useRef(false);
-    const [, forceTick] = useState(0);
+    const [show, setShow] = useState(false);
+    const isFetchingRef = useRef(isFetching);
 
     useEffect(() => {
-        setIsTransitioning(true);
-        setMinTimeElapsed(false);
-        sawFetchRef.current = false;
-        graceElapsedRef.current = false;
-
-        const minTimer = setTimeout(() => setMinTimeElapsed(true), 700);
-
-        const graceTimer = setTimeout(() => {
-            graceElapsedRef.current = true;
-            forceTick(x => x + 1);
-        }, 900);
-
-        return () => {
-            clearTimeout(minTimer);
-            clearTimeout(graceTimer);
-        };
-    }, [location.pathname]);
-
-    useEffect(() => {
-        if (isFetching > 0) sawFetchRef.current = true;
+        isFetchingRef.current = isFetching;
     }, [isFetching]);
 
     useEffect(() => {
-        if (!minTimeElapsed) return;
-
-        const noFetchActivity = isFetching === 0 && !sawFetchRef.current && graceElapsedRef.current;
-        const fetchesFinished = sawFetchRef.current && isFetching === 0;
-
-        if (noFetchActivity || fetchesFinished) {
-            setIsTransitioning(false);
-        }
-    }, [minTimeElapsed, isFetching]);
+        setShow(false);
+        const graceTimer = setTimeout(() => {
+            if (isFetchingRef.current > 0) setShow(true);
+        }, SHOW_GRACE_MS);
+        return () => clearTimeout(graceTimer);
+    }, [location.pathname]);
 
     useEffect(() => {
-        if (isTransitioning) {
-            const safetyTimer = setTimeout(() => {
-                setIsTransitioning(false);
-            }, 30000);
-            return () => clearTimeout(safetyTimer);
-        }
-    }, [isTransitioning]);
+        if (isFetching === 0 && show) setShow(false);
+    }, [isFetching, show]);
 
-    if (!isTransitioning) return null;
+    useEffect(() => {
+        if (!show) return;
+        const safetyTimer = setTimeout(() => setShow(false), SAFETY_TIMEOUT_MS);
+        return () => clearTimeout(safetyTimer);
+    }, [show]);
+
+    if (!show) return null;
 
     return <LoadingOverlay message="A carregar dados..." fullScreen />;
 }
