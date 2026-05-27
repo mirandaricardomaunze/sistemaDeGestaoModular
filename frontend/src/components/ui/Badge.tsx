@@ -29,13 +29,13 @@ export function Badge({ children, variant = 'primary', size = 'md', className }:
     return (
         <span
             className={cn(
-                'inline-flex items-center rounded-lg font-bold uppercase tracking-widest',
+                'inline-flex max-w-full min-w-0 items-center overflow-hidden rounded-lg font-bold uppercase tracking-widest',
                 variants[variant],
                 sizes[size],
                 className
             )}
         >
-            {children}
+            <span className="min-w-0 truncate">{children}</span>
         </span>
     );
 }

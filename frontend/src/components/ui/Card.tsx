@@ -47,7 +47,7 @@ export function Card({ children, className, variant = 'default', padding = 'md',
                 variantClasses[variant],
                 color && colorClasses[color],
                 paddingClasses[padding],
-                'transition-all duration-300 relative',
+                'transition-all duration-300 relative min-w-0 max-w-full break-words [overflow-wrap:anywhere]',
                 !className?.includes('overflow-') && 'overflow-hidden',
                 onClick && 'cursor-pointer active:scale-95',
                 className

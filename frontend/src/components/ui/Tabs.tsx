@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Button } from './Button';
+import { cn } from '../../utils/helpers';
 
 interface Tab {
     id: string;
@@ -28,10 +29,10 @@ interface TabContentProps {
 }
 
 export function Tabs({ tabs, activeTab, onChange, variant = 'default', className = '' }: TabsProps) {
-    const baseClasses = 'flex gap-1';
+    const baseClasses = 'flex max-w-full gap-1 overflow-x-auto overscroll-x-contain scrollbar-none';
 
     const getTabClasses = (tab: Tab, isActive: boolean) => {
-        const base = 'flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary-500/50';
+        const base = 'flex min-w-max max-w-[calc(100vw-2rem)] snap-start items-center gap-2 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary-500/50';
         const disabled = tab.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer';
 
         if (variant === 'pills') {
@@ -56,10 +57,20 @@ export function Tabs({ tabs, activeTab, onChange, variant = 'default', className
     };
 
     return (
-        <div className={`${baseClasses} ${variant === 'underline' ? 'border-b border-slate-200 dark:border-dark-600' : ''} ${className}`}>
+        <div
+            role="tablist"
+            className={cn(
+                baseClasses,
+                variant === 'underline' && 'border-b border-slate-200 dark:border-dark-600',
+                className
+            )}
+        >
             {tabs.map(tab => (
                 <Button variant="ghost"
+                    size="sm"
                     key={tab.id}
+                    role="tab"
+                    aria-selected={activeTab === tab.id}
                     type="button"
                     onClick={() => !tab.disabled && onChange(tab.id)}
                     className={getTabClasses(tab, activeTab === tab.id)}
@@ -75,7 +86,7 @@ export function Tabs({ tabs, activeTab, onChange, variant = 'default', className
 
 export function TabPanel({ children, className = '' }: TabPanelProps) {
     return (
-        <div className={`p-4 ${className}`}>
+        <div className={cn('min-w-0 p-3 sm:p-4', className)}>
             {children}
         </div>
     );
@@ -102,10 +113,10 @@ interface StepperProps {
 
 export function Stepper({ steps, currentStep, className = '' }: StepperProps) {
     return (
-        <div className={`flex items-center justify-between ${className}`}>
+        <div className={cn('flex max-w-full items-start justify-between overflow-x-auto overscroll-x-contain pb-2 scrollbar-none', className)}>
             {steps.map((step, index) => (
-                <div key={step.id} className="flex items-center flex-1">
-                    <div className="flex flex-col items-center">
+                <div key={step.id} className="flex min-w-[6.5rem] flex-1 items-start">
+                    <div className="flex min-w-0 flex-col items-center">
                         <div className={`
                             w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
                             transition-all duration-300
@@ -125,14 +136,14 @@ export function Stepper({ steps, currentStep, className = '' }: StepperProps) {
                             )}
                         </div>
                         <div className="mt-2 text-center">
-                            <p className={`text-xs font-medium ${index <= currentStep
+                            <p className={`max-w-24 truncate text-xs font-medium ${index <= currentStep
                                     ? 'text-gray-900 dark:text-white'
                                     : 'text-slate-600 dark:text-gray-400'
                                 }`}>
                                 {step.label}
                             </p>
                             {step.description && (
-                                <p className="text-[10px] text-slate-600 dark:text-gray-400 mt-0.5">
+                                <p className="max-w-24 truncate text-[10px] text-slate-600 dark:text-gray-400 mt-0.5">
                                     {step.description}
                                 </p>
                             )}

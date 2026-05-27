@@ -103,10 +103,10 @@ export function CommercialProductGrid({
     };
 
     return (
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-3 space-y-4 sm:space-y-6">
             {/* Search - Re-styled for Dark/Gamer look */}
             {/* Search - Professional & Clean */}
-            <div className="bg-white dark:bg-[#111214] border border-slate-200 dark:border-white/5 rounded-2xl p-5 shadow-sm relative overflow-hidden group">
+            <div className="bg-white dark:bg-[#111214] border border-slate-200 dark:border-white/5 rounded-2xl p-3 sm:p-5 shadow-sm relative overflow-hidden group">
                 <div className="relative z-10 space-y-4">
                     <Input
                         ref={searchInputRef}
@@ -120,12 +120,12 @@ export function CommercialProductGrid({
                         className="bg-slate-50 dark:bg-black/20 border-slate-200 dark:border-white/5 focus:border-blue-500/30 focus:ring-4 focus:ring-blue-500/5 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/20 font-medium h-12 rounded-xl transition-all"
                     />
 
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center sm:gap-4">
                         <p className="text-[10px] text-slate-400 dark:text-white/30 flex items-center gap-2 font-bold uppercase tracking-wider">
                             <HiOutlinePlus className="w-3 h-3 text-blue-500/50" />
                             Selecione um produto para adicionar
                         </p>
-                        <div className="flex gap-2 flex-wrap justify-center">
+                        <div className="hidden sm:flex gap-2 flex-wrap justify-center">
                             {[['F2', 'Busca'], ['F4', 'Pagar'], ['ESC', 'Limpar']].map(([key, label]) => (
                                 <div key={key} className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/5 rounded-lg hover:border-white/10 transition-all cursor-default">
                                     <kbd className="font-bold text-blue-600 dark:text-blue-400 uppercase text-[10px]">{key}</kbd>
@@ -137,7 +137,7 @@ export function CommercialProductGrid({
                 </div>
             </div>
 
-                <div className="pb-4">
+                <div className="pb-2 sm:pb-4">
                     <Select
                         options={categories.map(cat => ({
                             label: cat === 'all' ? `Todas as Categorias (${filteredProducts.length})` : cat,
@@ -150,7 +150,7 @@ export function CommercialProductGrid({
                 </div>
 
             {/* Product Grid - Premium Dark Style */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto lg:pr-3 scrollbar-none pb-10">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-5 lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto lg:pr-3 scrollbar-none pb-10">
                 {paginatedItems.map((product) => {
                     const isProcessing = processingActions[product.id];
                     const stock = Number(product.currentStock) || 0;
@@ -163,13 +163,13 @@ export function CommercialProductGrid({
                         <div
                             key={product.id}
                             className={cn(
-                                "p-3 sm:p-6 cursor-pointer bg-white dark:bg-[#111214] border border-slate-200 dark:border-white/5 rounded-2xl hover:border-blue-500/30 dark:hover:border-white/20 active:scale-[0.98] transition-all flex flex-col items-center text-center min-h-[140px] sm:min-h-[160px] group relative shadow-sm hover:shadow-md touch-manipulation",
+                                "min-w-0 p-3 sm:p-5 cursor-pointer bg-white dark:bg-[#111214] border border-slate-200 dark:border-white/5 rounded-2xl hover:border-blue-500/30 dark:hover:border-white/20 active:scale-[0.98] transition-all flex flex-col items-center text-center min-h-[150px] sm:min-h-[170px] group relative shadow-sm hover:shadow-md touch-manipulation",
                                 isProcessing && "opacity-70"
                             )}
                             onClick={() => !isProcessing && handleProductClick(product)}
                         >
                             <div className="flex-1 space-y-1 w-full">
-                                <p className="font-bold text-base text-slate-900 dark:text-white truncate leading-tight tracking-tight">
+                                <p className="font-bold text-sm sm:text-base text-slate-900 dark:text-white line-clamp-2 leading-tight tracking-tight break-words">
                                     {product.name}
                                 </p>
                                 <div className="flex items-center justify-center gap-2">
@@ -186,7 +186,7 @@ export function CommercialProductGrid({
                             </div>
 
                             <div className="mt-4 flex flex-col items-center gap-3 w-full">
-                                <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight block leading-none">
+                                <span className="text-base sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight block leading-none break-words">
                                     {formatCurrency(Number(product.price))}
                                 </span>
 
@@ -200,7 +200,7 @@ export function CommercialProductGrid({
                                     
                                     <div className={cn(
                                         "transition-all duration-300",
-                                        isProcessing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                                        isProcessing ? 'opacity-100' : 'opacity-100 lg:opacity-0 lg:group-hover:opacity-100'
                                     )}>
                                         <div className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-bold uppercase shadow-lg shadow-blue-500/10">
                                             {isProcessing ? (
@@ -253,7 +253,7 @@ export function CommercialProductGrid({
             {qtyModalProduct && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                     <div className="absolute inset-0 bg-black/40" onClick={() => setQtyModalProduct(null)} />
-                    <div className="relative z-10 bg-white dark:bg-dark-800 rounded-lg shadow-2xl p-6 w-72 flex flex-col gap-4">
+                    <div className="relative z-10 w-[calc(100vw-1.5rem)] max-w-sm bg-white dark:bg-dark-800 rounded-2xl shadow-2xl p-4 sm:p-6 flex flex-col gap-4">
                         <div>
                             <h3 className="font-black text-gray-900 dark:text-white text-base truncate">{qtyModalProduct.name}</h3>
                             <p className="text-xs text-gray-400 mt-0.5">
@@ -291,7 +291,7 @@ export function CommercialProductGrid({
                             </div>
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-2 sm:flex-row">
                             <Button
                                 variant="outline"
                                 onClick={() => setQtyModalProduct(null)}

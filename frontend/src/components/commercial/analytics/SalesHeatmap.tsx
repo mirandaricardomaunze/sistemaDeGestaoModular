@@ -26,15 +26,15 @@ export function SalesHeatmap({ data, isLoading }: SalesHeatmapProps) {
 
     return (
         <Card padding="lg" className="bg-white dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-10px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)]">
-            <div className="flex items-center justify-between mb-8">
-                <div>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
+                <div className="min-w-0">
                     <h3 className="font-black text-gray-900 dark:text-white uppercase tracking-tighter text-sm flex items-center gap-2">
                         <span className="w-2 h-6 bg-primary-500 rounded-full" />
                         Mapa de Calor de Vendas
                     </h3>
                     <p className="text-[10px] text-slate-600 dark:text-gray-300 uppercase font-black tracking-widest mt-1">Concentração por dia e hora</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[9px] font-black text-slate-600 dark:text-gray-300 uppercase tracking-widest">Intensidade</span>
                     <div className="flex gap-1">
                         {[20, 40, 60, 80, 100].map(i => (
@@ -45,7 +45,7 @@ export function SalesHeatmap({ data, isLoading }: SalesHeatmapProps) {
             </div>
 
             {/* overflow-visible nos contentores internos garante que os tooltips nunca são cortados */}
-            <div className="overflow-x-auto scroller-hidden" style={{ overflowY: 'visible', overflowX: 'hidden' }}>
+            <div className="max-w-full overflow-x-auto overscroll-x-contain scrollbar-thin" style={{ overflowY: 'visible' }}>
                 <div className="min-w-[600px]" style={{ overflow: 'visible' }}>
                     {/* Hours Header */}
                     <div className="grid grid-cols-[60px_1fr] mb-2">

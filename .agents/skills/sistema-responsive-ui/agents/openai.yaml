@@ -1,0 +1,7 @@
+interface:
+  display_name: "Sistema Responsive UI"
+  short_description: "Responsividade profissional para o Sistema."
+  default_prompt: "Use $sistema-responsive-ui para corrigir responsividade, overflow de texto e alinhamento visual no frontend do Sistema."
+
+policy:
+  allow_implicit_invocation: true

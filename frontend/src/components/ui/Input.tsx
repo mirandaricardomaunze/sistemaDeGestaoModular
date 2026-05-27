@@ -36,10 +36,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                         type={inputType}
                         className={cn(
                             'w-full rounded-xl border bg-white dark:bg-dark-800 text-slate-950 dark:text-gray-100 placeholder-slate-500 dark:placeholder-gray-500 transition-all duration-200 shadow-[inset_0_1px_2px_rgba(15,23,42,0.05)] outline-none',
-                            size === 'xs' ? 'px-3 h-8 text-[10px]' :
-                                size === 'sm' ? 'px-4 h-10 text-xs' :
+                            size === 'xs' ? 'px-3 h-11 sm:h-8 text-base sm:text-[10px]' :
+                                size === 'sm' ? 'px-4 h-11 sm:h-10 text-base sm:text-xs' :
                                     size === 'lg' ? 'px-6 h-14 text-lg' :
-                                        'px-4 h-12 text-sm',
+                                        'px-4 h-12 text-base sm:text-sm',
                             error
                                 ? 'border-red-500 ring-4 ring-red-500/10 focus:border-red-500'
                                 : 'border-slate-300 dark:border-dark-700 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-800 dark:shadow-none',
@@ -51,9 +51,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                     />
                     {isPassword && showPasswordToggle ? (
                         <Button variant="ghost"
+                            size="xs"
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-primary-500 transition-colors"
+                            className="absolute inset-y-0 right-0 min-h-0 w-11 rounded-l-none rounded-r-xl p-0 text-slate-500 hover:text-primary-500 transition-colors"
                         >
                             {showPassword ? (
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">

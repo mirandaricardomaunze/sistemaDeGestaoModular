@@ -117,7 +117,7 @@ export default function CommercialAuditLogs() {
                             { value: 'invoices', label: 'Facturas' }
                         ]}
                     />
-                    <div className="flex items-end gap-2">
+                    <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-end md:col-span-2 lg:col-span-1">
                         <Button 
                             className="flex-1" 
                             variant="primary" 
@@ -183,7 +183,7 @@ export default function CommercialAuditLogs() {
                 </SimpleTable>
 
                 {/* Pagination */}
-                <div className="px-6 py-4 bg-gray-50 dark:bg-dark-800 flex items-center justify-between border-t border-gray-100 dark:border-dark-700">
+                <div className="px-3 sm:px-6 py-4 bg-gray-50 dark:bg-dark-800 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-gray-100 dark:border-dark-700">
                     <span className="text-xs text-gray-500">
                         Página <span className="font-bold text-gray-900 dark:text-white">{page}</span> de <span className="font-bold text-gray-900 dark:text-white">{totalPages}</span>
                     </span>
@@ -210,4 +210,3 @@ export default function CommercialAuditLogs() {
         </div>
     );
 }
-

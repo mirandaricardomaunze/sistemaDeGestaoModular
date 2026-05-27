@@ -181,10 +181,10 @@ export function SmartTable<TData extends { id?: string | number }>({
             {/* Toolbar: Search, Filters & Actions */}
             {!hideToolbar && (
                 <Card padding="md" className="relative z-20 overflow-visible bg-white dark:bg-dark-900/50 border border-slate-300/70 dark:border-white/10 shadow-card">
-                    <div className="flex flex-col lg:flex-row items-stretch lg:items-end gap-3 lg:gap-4">
+                    <div className="flex min-w-0 flex-col items-stretch gap-3 lg:flex-row lg:items-end lg:gap-4">
                         {/* Pesquisa */}
                         {search && (
-                            <div className="flex-1">
+                            <div className="min-w-0 flex-1">
                                 <Input
                                     placeholder={search.placeholder || "Pesquisar..."}
                                     value={search.value}
@@ -198,13 +198,13 @@ export function SmartTable<TData extends { id?: string | number }>({
 
                         {/* Filtros Personalizados */}
                         {renderFilters && (
-                            <div className="flex flex-wrap items-end gap-3">
+                            <div className="grid min-w-0 grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap">
                                 {renderFilters}
                             </div>
                         )}
 
                         {/* Acções, Refresh & Exportação */}
-                        <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
+                        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 lg:ml-auto lg:w-auto lg:justify-end [&>*]:w-full sm:[&>*]:w-auto">
                             {actions}
                             
                             {onRefresh && (
@@ -264,7 +264,7 @@ export function SmartTable<TData extends { id?: string | number }>({
                     mobileCardRender && data.length > 0 && !isLoading && !isError && "hidden md:block"
                 )}
             >
-                <div className="overflow-x-auto">
+                <div className="max-w-full overflow-x-auto overscroll-x-contain scrollbar-thin">
                     <DataTable
                         table={table}
                         isLoading={isLoading}
@@ -285,7 +285,7 @@ export function SmartTable<TData extends { id?: string | number }>({
 
                 {/* Paginação */}
                 {pagination && pagination.totalItems > 0 && (
-                    <div className="px-6 border-t border-slate-200/80 dark:border-dark-700 bg-slate-50/90 dark:bg-dark-900/30">
+                    <div className="px-3 sm:px-6 border-t border-slate-200/80 dark:border-dark-700 bg-slate-50/90 dark:bg-dark-900/30">
                         <Pagination
                             currentPage={pagination.currentPage}
                             totalItems={pagination.totalItems}

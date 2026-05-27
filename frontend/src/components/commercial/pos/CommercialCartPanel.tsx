@@ -95,13 +95,13 @@ export function CommercialCartPanel({
 
 
     return (
-        <div className="flex flex-col h-full transition-all duration-500">
+        <div className="flex min-w-0 flex-col h-full transition-all duration-500">
             <Card padding="none" className="flex flex-col flex-1 overflow-hidden border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-2xl bg-white dark:bg-[#111214] rounded-2xl relative">
                 {/* Header - Professional & Clean */}
-                <div className="bg-white dark:bg-[#111214] px-4 py-4 text-slate-900 dark:text-white flex items-center justify-between flex-shrink-0 relative z-20 border-b border-slate-200 dark:border-white/5">
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-baseline gap-2">
-                            <h3 className="font-bold text-sm uppercase tracking-wider">Carrinho de Venda</h3>
+                <div className="bg-white dark:bg-[#111214] px-3 sm:px-4 py-3 sm:py-4 text-slate-900 dark:text-white flex items-center justify-between gap-3 flex-shrink-0 relative z-20 border-b border-slate-200 dark:border-white/5">
+                    <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex min-w-0 flex-wrap items-baseline gap-2">
+                            <h3 className="font-bold text-xs sm:text-sm uppercase tracking-wider truncate">Carrinho de Venda</h3>
                             {cart.length > 0 && (
                                 <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
                                     {cart.length} {cart.length === 1 ? 'item' : 'itens'}
@@ -109,7 +109,7 @@ export function CommercialCartPanel({
                             )}
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex shrink-0 items-center gap-2">
                         <Button
                             variant={showHeld ? 'primary' : 'ghost'}
                             size="sm"
@@ -180,7 +180,7 @@ export function CommercialCartPanel({
                 )}
 
                 {/* Customer & Promo - Re-styled for Dark */}
-                <div className="flex-shrink-0 bg-slate-50/50 dark:bg-[#0a0b0d] border-b border-slate-200 dark:border-white/5 p-4 space-y-3 relative z-10">
+                <div className="flex-shrink-0 bg-slate-50/50 dark:bg-[#0a0b0d] border-b border-slate-200 dark:border-white/5 p-3 sm:p-4 space-y-3 relative z-10">
                     <div className="grid grid-cols-1 gap-2">
                         <div className="flex flex-col gap-2">
                             <Select
@@ -208,7 +208,7 @@ export function CommercialCartPanel({
                 </div>
 
                 {/* Cart items container - Fits at least 3 items before scroll */}
-                <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 bg-slate-50/30 dark:bg-[#0a0b0d] min-h-[280px]">
+                <div className="flex-1 overflow-y-auto px-2 sm:px-3 py-2 space-y-2 bg-slate-50/30 dark:bg-[#0a0b0d] min-h-[260px]">
                     {cart.length === 0 ? (
                         <div className="py-20 flex flex-col items-center justify-center text-center gap-4">
                             <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center ring-1 ring-white/10 shadow-inner">
@@ -224,15 +224,15 @@ export function CommercialCartPanel({
                             const isProcessing = processingActions[item.productId];
                             return (
                                 <div key={item.productId} className={cn(
-                                    "group px-4 py-3 bg-white dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-blue-500/30 hover:bg-slate-50 dark:hover:bg-white/[0.08] transition-all relative overflow-hidden shadow-sm",
+                                    "group px-3 sm:px-4 py-3 bg-white dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-blue-500/30 hover:bg-slate-50 dark:hover:bg-white/[0.08] transition-all relative overflow-hidden shadow-sm",
                                     isProcessing && "opacity-60 pointer-events-none"
                                 )}>
-                                    <div className="flex items-center justify-between gap-4">
+                                    <div className="flex min-w-0 items-center justify-between gap-3 sm:gap-4">
                                         <div className="flex-1 min-w-0">
                                             <h4 className="font-bold text-slate-900 dark:text-white text-[11px] truncate uppercase tracking-wide mb-2">
                                                 {item.product.name}
                                             </h4>
-                                            <div className="flex items-center gap-3">
+                                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                                 <div className="flex items-center gap-2 bg-slate-100 dark:bg-black/20 px-2 py-1 rounded-lg border border-slate-200 dark:border-white/5 leading-none">
                                                     <Button variant="ghost" size="xs" onClick={() => updateQuantity(item.productId, item.quantity - 1)} className="h-7 w-7 p-0 rounded-md">
                                                         <HiOutlineMinus className="w-2.5 h-2.5 text-slate-400 dark:text-white/20 hover:text-rose-500" />
@@ -264,7 +264,7 @@ export function CommercialCartPanel({
                                             <p className="font-bold text-blue-400 text-sm tracking-tight">
                                                 {formatCurrency(item.total)}
                                             </p>
-                                            <Button variant="ghost" size="xs" onClick={() => removeFromCart(item.productId)} className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 text-slate-300 dark:text-white/10 hover:text-rose-500">
+                                            <Button variant="ghost" size="xs" onClick={() => removeFromCart(item.productId)} className="h-9 w-9 p-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-slate-400 dark:text-white/20 hover:text-rose-500">
                                                 <HiOutlineTrash className="w-4 h-4" />
                                             </Button>
                                         </div>
@@ -276,7 +276,7 @@ export function CommercialCartPanel({
                 </div>
 
                 {/* Hardware bar */}
-                <div className="px-3 py-1 bg-gray-50/5 dark:bg-dark-900/5 border-t border-gray-100 dark:border-dark-700 flex items-center justify-between gap-1">
+                <div className="px-3 py-2 bg-gray-50/5 dark:bg-dark-900/5 border-t border-gray-100 dark:border-dark-700 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-1">
                         <Button variant="ghost" size="xs" onClick={handleScaleAction} className="h-7 w-7 p-0 bg-white dark:bg-dark-800 text-gray-400 rounded hover:text-blue-500 border border-gray-100 dark:border-dark-700 shadow-sm">
                             <HiOutlineScale className="w-3 h-3" />
@@ -302,7 +302,7 @@ export function CommercialCartPanel({
                 </div>
 
                 {/* Footer totals - Compact & Clean */}
-                <div className="flex-shrink-0 bg-white dark:bg-[#111214] px-5 py-4 border-t border-slate-200 dark:border-white/5 shadow-sm relative z-20">
+                <div className="flex-shrink-0 bg-white dark:bg-[#111214] px-3 sm:px-5 py-3 sm:py-4 border-t border-slate-200 dark:border-white/5 shadow-sm relative z-20">
                     {cart.length > 0 && (
                         <Button
                             variant={globalDiscount ? 'danger' : 'ghost'}
@@ -325,8 +325,8 @@ export function CommercialCartPanel({
                         </Button>
                     )}
 
-                    <div className="flex justify-between items-center mb-4 bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-200 dark:border-white/5 shadow-inner">
-                        <div className="space-y-2">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4 bg-slate-50 dark:bg-white/5 p-3 sm:p-4 rounded-xl border border-slate-200 dark:border-white/5 shadow-inner">
+                        <div className="w-full min-w-0 space-y-2 sm:w-auto">
                             <div className="flex justify-between gap-6 text-[10px] text-slate-400 dark:text-white/30 uppercase font-bold tracking-wider leading-none">
                                 <span>Subtotal</span>
                                 <span className="text-slate-900 dark:text-white">{formatCurrency(cartSubtotal)}</span>
@@ -344,7 +344,7 @@ export function CommercialCartPanel({
                         </div>
                         <div className="text-right flex flex-col items-end gap-1">
                             <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">TOTAL</span>
-                            <span className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                            <span className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight break-words">
                                 {formatCurrency(cartTotal)}
                             </span>
                         </div>

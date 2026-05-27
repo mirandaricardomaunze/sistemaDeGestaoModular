@@ -97,8 +97,8 @@ export default function CommercialInventory() {
                 />
             )}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
-                <div>
-                    <h1 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
+                <div className="min-w-0">
+                    <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-3 break-words">
                         <span className="w-10 h-10 rounded-2xl bg-primary-100 dark:bg-primary-500/15 border border-primary-200 dark:border-primary-500/25 flex items-center justify-center">
                             <HiOutlineCube className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                         </span>
@@ -109,7 +109,7 @@ export default function CommercialInventory() {
                     </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 bg-white/40 dark:bg-dark-900/40 p-2 rounded-2xl border border-slate-200/60 dark:border-white/5 backdrop-blur-md">
+                <div className="grid w-full grid-cols-1 gap-2 bg-white/40 dark:bg-dark-900/40 p-2 rounded-2xl border border-slate-200/60 dark:border-white/5 backdrop-blur-md sm:grid-cols-3 md:w-auto md:flex md:flex-wrap md:items-center md:gap-3">
                     <Button
                         variant="ghost"
                         size="sm"
@@ -144,7 +144,7 @@ export default function CommercialInventory() {
             </div>
 
             {/* Metrics Dashboard */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
                     label="Valor em Inventário"
                     value={formatCurrency(metrics.inventoryValue)}
@@ -186,14 +186,14 @@ export default function CommercialInventory() {
             </div>
 
             {/* Tabs */}
-            <div className="border-b border-gray-100 dark:border-dark-700">
-                <nav className="flex gap-4">
+            <div className="border-b border-gray-100 dark:border-dark-700 overflow-hidden">
+                <nav className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain scrollbar-none sm:gap-4">
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setActiveTab('products')}
                         className={cn(
-                            "group flex items-center gap-2 py-4 text-xs font-black uppercase tracking-[0.2em] border-b-2 rounded-none focus:ring-0",
+                            "group flex min-w-max items-center gap-2 py-4 text-xs font-black uppercase tracking-widest sm:tracking-[0.2em] border-b-2 rounded-none focus:ring-0",
                             activeTab === 'products'
                                 ? "border-primary-500 text-primary-600"
                                 : "border-transparent text-gray-400 hover:text-gray-600"
@@ -212,7 +212,7 @@ export default function CommercialInventory() {
                         size="sm"
                         onClick={() => setActiveTab('batches')}
                         className={cn(
-                            "group flex items-center gap-2 py-4 text-xs font-black uppercase tracking-[0.2em] border-b-2 rounded-none focus:ring-0",
+                            "group flex min-w-max items-center gap-2 py-4 text-xs font-black uppercase tracking-widest sm:tracking-[0.2em] border-b-2 rounded-none focus:ring-0",
                             activeTab === 'batches'
                                 ? "border-amber-500 text-amber-600"
                                 : "border-transparent text-gray-400 hover:text-gray-600"

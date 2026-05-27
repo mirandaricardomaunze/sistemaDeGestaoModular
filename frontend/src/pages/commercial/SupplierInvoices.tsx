@@ -286,7 +286,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: CreateModalProps) {
                         <p>IVA ({taxRate}%): <strong className="text-gray-900 dark:text-white">{formatCurrency(totals.tax)}</strong></p>
                         <p className="text-base">Total: <strong className="text-primary-600 dark:text-primary-400 text-lg">{formatCurrency(totals.total)}</strong></p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                         <Button variant="ghost" type="button" onClick={onClose}>Cancelar</Button>
                         <Button variant="primary" type="submit" isLoading={saving}>Registar Factura</Button>
                     </div>
@@ -391,7 +391,7 @@ export default function SupplierInvoices() {
                 }
             />
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
                     label="Em Aberto"
                     value={String(stats.totalOpen)}
@@ -445,7 +445,7 @@ export default function SupplierInvoices() {
                     </div>
                     <Button
                         onClick={refetch}
-                        className="bg-primary-600 hover:bg-primary-700 text-white rounded-lg h-10 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary-500/20"
+                        className="bg-primary-600 hover:bg-primary-700 text-white rounded-lg min-h-11 sm:h-10 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary-500/20"
                     >
                         Filtrar
                     </Button>
@@ -617,7 +617,7 @@ export default function SupplierInvoices() {
                 </SimpleTable>
 
                 {!isLoading && pagination && pagination.totalPages > 1 && (
-                    <div className="px-6 py-4 border-t border-gray-100 dark:border-dark-700">
+                    <div className="px-3 sm:px-6 py-4 border-t border-gray-100 dark:border-dark-700">
                         <Pagination
                             currentPage={page}
                             totalItems={pagination.total}

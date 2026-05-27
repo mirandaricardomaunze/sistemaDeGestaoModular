@@ -229,7 +229,7 @@ function CreatePOModal({ onClose, onSuccess }: CreatePOModalProps) {
                             {formatCurrency(grandTotal)}
                         </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                         <Button variant="ghost" type="button" onClick={onClose}>Cancelar</Button>
                         <Button variant="primary" type="submit" isLoading={saving}>Criar Ordem</Button>
                     </div>
@@ -513,14 +513,14 @@ export default function PurchaseOrders() {
             />
 
             {/* Tab Navigation */}
-            <div className="flex p-1 bg-gray-100/50 dark:bg-dark-800/50 rounded-xl border border-gray-200/30 dark:border-dark-700/30 shadow-inner">
+            <div className="flex max-w-full overflow-x-auto overscroll-x-contain p-1 bg-gray-100/50 dark:bg-dark-800/50 rounded-xl border border-gray-200/30 dark:border-dark-700/30 shadow-inner scrollbar-none">
                 <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => setActiveTab('list')}
                     className={cn(
-                        "flex-1 h-10 px-3 text-[10px] font-black uppercase tracking-widest rounded-lg",
+                        "min-w-max flex-1 min-h-11 sm:h-10 px-3 text-[10px] font-black uppercase tracking-widest rounded-lg",
                         activeTab === 'list'
                             ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
                             : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -535,7 +535,7 @@ export default function PurchaseOrders() {
                     size="sm"
                     onClick={() => setActiveTab('predictive')}
                     className={cn(
-                        "flex-1 h-10 px-3 text-[10px] font-black uppercase tracking-widest rounded-lg",
+                        "min-w-max flex-1 min-h-11 sm:h-10 px-3 text-[10px] font-black uppercase tracking-widest rounded-lg",
                         activeTab === 'predictive'
                             ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
                             : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -549,7 +549,7 @@ export default function PurchaseOrders() {
             {activeTab === 'list' ? (
                 <>
                     {/* Summary Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
                     label="Total em Aberto"
                     value={String(stats.pending)}
@@ -592,7 +592,7 @@ export default function PurchaseOrders() {
                                 placeholder="Nº OC ou Nome do fornecedor..."
                                 value={search}
                                 onChange={e => { setSearch(e.target.value); setPage(1); }}
-                                className="w-full h-10 pl-10 pr-4 bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-primary-500/20 outline-none transition-all"
+                                className="w-full h-11 sm:h-10 pl-10 pr-4 bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-gray-900 dark:text-white text-base sm:text-sm font-medium focus:ring-2 focus:ring-primary-500/20 outline-none transition-all"
                             />
                         </div>
                     </div>
@@ -610,7 +610,7 @@ export default function PurchaseOrders() {
                     </div>
                     <Button 
                         onClick={refetch} 
-                        className="bg-primary-600 hover:bg-primary-700 text-white rounded-lg h-10 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary-500/20"
+                        className="bg-primary-600 hover:bg-primary-700 text-white rounded-lg min-h-11 sm:h-10 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary-500/20"
                     >
                         Filtrar Resultados
                     </Button>
@@ -815,7 +815,7 @@ export default function PurchaseOrders() {
                 </SimpleTable>
 
                 {!isLoading && pagination && pagination.totalPages > 1 && (
-                    <div className="px-6 py-4 border-t border-gray-100 dark:border-dark-700">
+                    <div className="px-3 sm:px-6 py-4 border-t border-gray-100 dark:border-dark-700">
                         <Pagination 
                             currentPage={page}
                             totalItems={pagination.total}
@@ -895,15 +895,15 @@ export default function PurchaseOrders() {
 
                         {/* Forecasting & Action Table */}
                         <Card padding="none" className="overflow-hidden shadow-xl shadow-black/5">
-                            <div className="p-6 border-b border-gray-100 dark:border-dark-700 flex justify-between items-center bg-gray-50/30 dark:bg-dark-900/30">
-                                <div>
+                            <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-dark-700 flex flex-col gap-4 bg-gray-50/30 dark:bg-dark-900/30 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="min-w-0">
                                     <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                         <HiOutlineSparkles className="text-amber-500" />
                                         Análise Preditiva e Reposição
                                     </h3>
                                     <p className="text-xs text-gray-500 mt-1">Procura estimada para os próximos 30 dias com base no histórico real</p>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                                     {selectedItems.length > 0 && (
                                         <Button 
                                             size="sm" 
@@ -934,8 +934,8 @@ export default function PurchaseOrders() {
                                     </Button>
                                 </div>
                             </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
+                            <div className="max-w-full overflow-x-auto overscroll-x-contain scrollbar-thin">
+                                <table className="w-full min-w-[760px] text-left text-sm">
                                     <thead>
                                         <tr className="bg-gray-50 dark:bg-dark-800 text-gray-400 uppercase text-[10px] font-black tracking-widest">
                                             <th className="px-6 py-4 w-10 text-center">
@@ -1057,4 +1057,3 @@ export default function PurchaseOrders() {
         </div>
     );
 }
-

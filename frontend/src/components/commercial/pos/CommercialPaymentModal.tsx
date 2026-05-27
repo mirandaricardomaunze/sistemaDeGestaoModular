@@ -162,16 +162,16 @@ export function CommercialPaymentModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-stretch justify-center sm:items-center">
             {/* Backdrop */}
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-            <div className="relative z-10 w-full max-w-xl mx-4 bg-white dark:bg-[#111214] border border-slate-200 dark:border-white/5 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="relative z-10 flex h-full w-full flex-col overflow-hidden bg-white shadow-2xl dark:bg-[#111214] sm:mx-4 sm:h-auto sm:max-h-[90vh] sm:max-w-xl sm:rounded-2xl sm:border sm:border-slate-200 sm:dark:border-white/5">
                 {/* Header - Modern Style */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5 flex items-center justify-between flex-shrink-0 relative overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-3 flex-shrink-0 relative overflow-hidden pt-[max(env(safe-area-inset-top),1rem)] sm:pt-5">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16" />
-                    <div className="relative z-10">
-                        <h2 className="text-white font-black text-xl uppercase tracking-tighter italic">PAGAMENTO</h2>
+                    <div className="relative z-10 min-w-0">
+                        <h2 className="text-white font-black text-lg sm:text-xl uppercase tracking-normal italic">PAGAMENTO</h2>
                         <p className="text-white/60 text-[10px] font-bold uppercase tracking-[0.2em] mt-1 italic">
                             {selectedCustomer?.name || customerName || 'Consumidor Geral'}
                         </p>
@@ -188,8 +188,8 @@ export function CommercialPaymentModal({
 
                 <div className="overflow-y-auto flex-1">
                     {/* Summary Section - High Contrast */}
-                    <div className="px-6 py-6 bg-slate-50/50 dark:bg-black/40 border-b border-slate-200 dark:border-white/5">
-                        <div className="grid grid-cols-3 gap-6 text-center">
+                    <div className="px-4 sm:px-6 py-4 sm:py-6 bg-slate-50/50 dark:bg-black/40 border-b border-slate-200 dark:border-white/5">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 text-center">
                             <div className="space-y-1">
                                 <p className="text-[10px] uppercase font-black text-slate-400 dark:text-white/20 tracking-[0.2em]">Subtotal</p>
                                 <p className="font-black text-slate-900 dark:text-white text-sm tracking-tight">{formatCurrency(cartSubtotal)}</p>
@@ -203,16 +203,16 @@ export function CommercialPaymentModal({
                                 <p className="font-black text-rose-500 text-sm tracking-tight">- {formatCurrency(cartDiscount)}</p>
                             </div>
                         </div>
-                        <div className="mt-6 pt-6 border-t border-slate-200 dark:border-white/5 flex items-center justify-between">
+                        <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-slate-200 dark:border-white/5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <span className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 dark:text-white/30 italic">Total Final</span>
-                            <span className="text-4xl font-black text-blue-600 dark:text-blue-400 italic tracking-tighter drop-shadow-[0_0_15px_rgba(96,165,250,0.3)]">
+                            <span className="text-3xl sm:text-4xl font-black text-blue-600 dark:text-blue-400 italic tracking-normal sm:tracking-tighter drop-shadow-[0_0_15px_rgba(96,165,250,0.3)] break-words">
                                 {formatCurrency(cartTotal)}
                             </span>
                         </div>
                     </div>
 
                     {/* Credit toggle - Modern Style */}
-                    <div className="px-6 pt-6">
+                    <div className="px-4 sm:px-6 pt-4 sm:pt-6">
                         <Button
                             variant="ghost"
                             onClick={handleCredit}
@@ -236,9 +236,9 @@ export function CommercialPaymentModal({
                         </Button>
 
                         {isCredit && (
-                            <div className="mt-4 flex items-center gap-4 px-1">
+                            <div className="mt-4 flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:gap-4">
                                 <p className="text-[10px] text-slate-400 dark:text-white/30 font-black uppercase tracking-widest italic">Vence em</p>
-                                <div className="flex gap-2">
+                                <div className="grid grid-cols-2 gap-2 sm:flex">
                                     {[15, 30, 45, 60].map(d => (
                                         <Button
                                             key={d}
@@ -262,10 +262,10 @@ export function CommercialPaymentModal({
 
                     {/* Payment methods - Tech Style */}
                     {!isCredit && (
-                        <div className="px-6 pt-6 space-y-4">
-                            <div className="flex items-center justify-between">
+                        <div className="px-4 sm:px-6 pt-4 sm:pt-6 space-y-4">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/20 italic">Métodos Adicionais</p>
-                                <div className="flex gap-2">
+                                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                                     {(['cash', 'mpesa', 'emola', 'card'] as PaymentMethodType[]).map(m => {
                                         const conf = METHOD_CONFIG[m];
                                         const active = payments.some(p => p.method === m);
@@ -296,8 +296,8 @@ export function CommercialPaymentModal({
                                     const conf = METHOD_CONFIG[payment.method];
                                     return (
                                         <div key={idx} className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl p-4 space-y-4 relative group/item shadow-sm">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3 text-slate-900 dark:text-white font-black text-[11px] uppercase tracking-[0.2em] italic">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex min-w-0 items-center gap-3 text-slate-900 dark:text-white font-black text-[11px] uppercase tracking-widest sm:tracking-[0.2em] italic">
                                                     <div className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-blue-600 dark:text-blue-400">
                                                         {conf.icon}
                                                     </div>
@@ -330,7 +330,7 @@ export function CommercialPaymentModal({
 
                                             {/* Quick amounts for cash */}
                                             {payment.method === 'cash' && (
-                                                <div className="flex flex-wrap gap-2">
+                                                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
@@ -372,7 +372,7 @@ export function CommercialPaymentModal({
 
                     {/* Change / Remaining */}
                     {!isCredit && (
-                        <div className="px-6 py-4 space-y-2">
+                        <div className="px-4 sm:px-6 py-4 space-y-2">
                             {remaining > 0.01 && (
                                 <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
                                     <span className="text-xs font-black uppercase tracking-widest text-red-600">Em falta</span>
@@ -396,7 +396,7 @@ export function CommercialPaymentModal({
                 </div>
 
                 {/* Footer Actions - Premium Modern Look */}
-                <div className="px-6 py-6 bg-slate-50 dark:bg-[#0a0b0d] border-t border-slate-200 dark:border-white/5 flex gap-4 flex-shrink-0">
+                <div className="px-4 sm:px-6 py-4 sm:py-6 bg-slate-50 dark:bg-[#0a0b0d] border-t border-slate-200 dark:border-white/5 flex flex-col gap-3 flex-shrink-0 sm:flex-row pb-[max(env(safe-area-inset-bottom),1rem)] sm:pb-6">
                     <Button
                         variant="ghost"
                         onClick={onClose}

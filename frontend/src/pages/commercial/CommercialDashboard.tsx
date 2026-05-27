@@ -693,8 +693,8 @@ export default function CommercialDashboard() {
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                         Estes clientes não realizam compras há algum tempo. Considere entrar em contacto.
                     </p>
-                    <div className="overflow-hidden border border-gray-100 dark:border-dark-700 rounded-lg">
-                        <table className="w-full text-left text-sm">
+                    <div className="max-w-full overflow-x-auto overscroll-x-contain border border-gray-100 dark:border-dark-700 rounded-lg scrollbar-thin">
+                        <table className="w-full min-w-[520px] text-left text-sm">
                             <thead className="bg-gray-50 dark:bg-dark-800 text-[10px] font-black uppercase tracking-widest text-gray-500">
                                 <tr>
                                     <th className="px-4 py-3">Cliente</th>

@@ -31,6 +31,19 @@
     @apply border-slate-300/60 dark:border-dark-700/50;
   }
 
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  img,
+  video,
+  canvas {
+    max-width: 100%;
+    height: auto;
+  }
+
   :root {
     --tooltip-bg: #ffffff;
     --tooltip-text: #0f172a;
@@ -53,7 +66,17 @@
 
   h1, h2, h3, h4, h5, h6 {
     word-spacing: 0.125em;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+  }
+
+  p,
+  span,
+  a,
+  label,
+  dd,
+  dt {
+    min-width: 0;
   }
 }
 
@@ -83,10 +106,11 @@
   }
 
   .card {
-    @apply bg-white dark:bg-dark-800/80 rounded-2xl p-4 sm:p-6 transition-all duration-300 border border-slate-300/70 dark:border-white/5 hover:border-primary-500/30;
+    @apply min-w-0 max-w-full bg-white dark:bg-dark-800/80 rounded-2xl p-4 sm:p-6 transition-all duration-300 border border-slate-300/70 dark:border-white/5 hover:border-primary-500/30;
     box-shadow: var(--surface-shadow);
     position: relative;
     overflow: hidden;
+    overflow-wrap: anywhere;
   }
 
   /* Premium Light Border Effect */
@@ -107,12 +131,14 @@
   }
 
   .card-premium {
-    @apply bg-primary-600 text-white rounded-lg shadow-premium p-6 sm:p-8 transition-all duration-300 border-none relative overflow-hidden;
+    @apply min-w-0 max-w-full bg-primary-600 text-white rounded-lg shadow-premium p-4 sm:p-6 lg:p-8 transition-all duration-300 border-none relative overflow-hidden;
+    overflow-wrap: anywhere;
   }
 
   .card-glass {
-    @apply bg-white dark:bg-dark-900/40 rounded-2xl p-4 sm:p-6 border border-slate-300/70 dark:border-white/10;
+    @apply min-w-0 max-w-full bg-white dark:bg-dark-900/40 rounded-2xl p-4 sm:p-6 border border-slate-300/70 dark:border-white/10;
     box-shadow: var(--surface-shadow);
+    overflow-wrap: anywhere;
   }
 
   /* Responsive card content helpers */
@@ -130,7 +156,7 @@
   .card-value {
     @apply font-bold text-slate-950 dark:text-white truncate;
     font-size: clamp(1.25rem, 5vw, 2.25rem); /* 20px -> 36px */
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
   }
 
   .card-label {
@@ -148,7 +174,7 @@
   }
 
   .stat-content {
-    @apply min-w-0 flex-1 w-full;
+    @apply min-w-0 max-w-full flex-1 w-full;
   }
 
   .stat-value {
@@ -163,7 +189,7 @@
   }
 
   .input {
-    @apply w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-dark-600 bg-white dark:bg-dark-800 text-slate-950 dark:text-gray-100 placeholder-slate-500 dark:placeholder-gray-500 transition-all duration-300;
+    @apply w-full px-4 py-3 text-base sm:text-sm rounded-xl border border-slate-300 dark:border-dark-600 bg-white dark:bg-dark-800 text-slate-950 dark:text-gray-100 placeholder-slate-500 dark:placeholder-gray-500 transition-all duration-300;
     @apply focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 shadow-[inset_0_1px_2px_rgba(15,23,42,0.05)] focus:shadow-md;
   }
 
@@ -200,7 +226,7 @@
   }
 
   .table-container {
-    @apply overflow-x-auto rounded-xl border border-slate-300/70 dark:border-dark-700 bg-white dark:bg-dark-900;
+    @apply max-w-full overflow-x-auto overscroll-x-contain rounded-xl border border-slate-300/70 dark:border-dark-700 bg-white dark:bg-dark-900 scrollbar-thin;
   }
 
   .table-min-h {
@@ -208,15 +234,27 @@
   }
 
   /* Global Table Standardization */
+  table:not(.compact-table):not(.receipt-table):not(.print-table) {
+    width: 100%;
+    min-width: 640px;
+  }
+
+  :where(.overflow-hidden, .rounded-lg, .rounded-xl, .rounded-2xl):has(> table:not(.compact-table):not(.receipt-table):not(.print-table)) {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
   table:not(.compact-table):not(.receipt-table):not(.print-table) th {
-    @apply px-6 py-4 text-left text-[10px] font-black text-slate-700 dark:text-gray-400 uppercase tracking-widest bg-slate-100 dark:bg-dark-800;
+    @apply px-4 sm:px-6 py-4 text-left text-[10px] font-black text-slate-700 dark:text-gray-400 uppercase tracking-widest bg-slate-100 dark:bg-dark-800;
     height: 48px;
+    overflow-wrap: anywhere;
   }
 
   table:not(.compact-table):not(.receipt-table):not(.print-table) td {
-    @apply px-6 py-4 text-sm text-gray-900 dark:text-gray-100;
+    @apply px-4 sm:px-6 py-4 text-sm text-gray-900 dark:text-gray-100;
     height: 56px;
     vertical-align: middle;
+    overflow-wrap: anywhere;
   }
 
   table:not(.compact-table):not(.receipt-table):not(.print-table) tbody tr {
@@ -224,16 +262,16 @@
   }
 
   .table {
-    @apply min-w-full divide-y divide-slate-200/60 dark:divide-dark-700/50;
+    @apply w-full min-w-[640px] divide-y divide-slate-200/60 dark:divide-dark-700/50;
   }
 
   .table th {
-    @apply px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-gray-400 uppercase tracking-wider bg-slate-100 dark:bg-dark-800;
+    @apply px-4 sm:px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-gray-400 uppercase tracking-wider bg-slate-100 dark:bg-dark-800;
     height: 48px;
   }
 
   .table td {
-    @apply px-6 py-4 text-sm text-gray-900 dark:text-gray-100;
+    @apply px-4 sm:px-6 py-4 text-sm text-gray-900 dark:text-gray-100;
     height: 56px;
     vertical-align: middle;
   }
@@ -243,8 +281,16 @@
   }
 
   .sidebar-link {
-    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-gray-300 hover:bg-white dark:hover:bg-dark-800 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-200;
+    @apply flex min-w-0 items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-gray-300 hover:bg-white dark:hover:bg-dark-800 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-200;
     word-spacing: 0.05em;
+  }
+
+  .text-safe,
+  .content-safe {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .sidebar-link-active {

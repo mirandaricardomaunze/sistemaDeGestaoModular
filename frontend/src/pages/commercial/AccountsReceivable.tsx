@@ -159,7 +159,7 @@ export default function AccountsReceivable() {
                 icon={<HiOutlineCurrencyDollar className="text-primary-600 dark:text-primary-400" />}
             />
             {/* Actions Bar */}
-            <div className="flex flex-wrap items-center justify-end gap-3 bg-white/50 dark:bg-dark-900/50 p-2 rounded-xl border border-gray-100 dark:border-dark-700/50">
+            <div className="flex flex-wrap items-center justify-stretch gap-3 bg-white/50 dark:bg-dark-900/50 p-2 rounded-xl border border-gray-100 dark:border-dark-700/50 sm:justify-end [&>*]:w-full sm:[&>*]:w-auto">
                 <Button
                     variant="ghost"
                     size="sm"
@@ -208,7 +208,7 @@ export default function AccountsReceivable() {
 
             {/* Filters */}
             <Card padding="md">
-                <div className="flex flex-col md:flex-row gap-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_11rem]">
                     <div className="flex-1">
                         <Input
                             placeholder="Pesquisar por nº de fatura ou cliente..."
@@ -218,7 +218,7 @@ export default function AccountsReceivable() {
                             size="sm"
                         />
                     </div>
-                    <div className="w-44">
+                    <div className="w-full">
                         <Select
                             options={FILTER_OPTIONS}
                             value={filter}

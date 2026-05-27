@@ -34,10 +34,10 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                         ref={ref}
                         className={cn(
                             'w-full rounded-xl border bg-white dark:bg-dark-800 text-slate-950 dark:text-gray-100 transition-all duration-200 appearance-none cursor-pointer shadow-[inset_0_1px_2px_rgba(15,23,42,0.05)] dark:shadow-none outline-none',
-                            size === 'xs' ? 'px-3 h-8 text-[10px]' :
-                                size === 'sm' ? 'px-4 h-10 text-xs' :
+                            size === 'xs' ? 'px-3 h-11 sm:h-8 text-base sm:text-[10px]' :
+                                size === 'sm' ? 'px-4 h-11 sm:h-10 text-base sm:text-xs' :
                                     size === 'lg' ? 'px-6 h-14 text-lg' :
-                                        'px-4 h-12 text-sm',
+                                        'px-4 h-12 text-base sm:text-sm',
                             error
                                 ? 'border-red-500 ring-4 ring-red-500/10 focus:border-red-500'
                                 : 'border-slate-300 dark:border-dark-700 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500',

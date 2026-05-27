@@ -259,8 +259,8 @@ export default function CommercialFinance() {
             </div>
 
             {/* Filter & Period Header */}
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-4 py-2">
-                <div className="flex items-center gap-1 bg-gray-100/50 dark:bg-dark-800 p-1 rounded-lg w-full lg:w-auto">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 py-2">
+                <div className="flex w-full items-center gap-1 overflow-x-auto overscroll-x-contain bg-gray-100/50 dark:bg-dark-800 p-1 rounded-lg scrollbar-none lg:w-auto">
                     {periodOptions.map((option) => (
                         <Button
                             key={option.value}
@@ -268,7 +268,7 @@ export default function CommercialFinance() {
                             variant="ghost"
                             size="sm"
                             className={cn(
-                                'h-8 flex-1 lg:px-6 rounded-lg text-[10px] font-black uppercase tracking-widest',
+                                'min-h-11 lg:h-8 flex-1 lg:px-6 rounded-lg text-[10px] font-black uppercase tracking-widest',
                                 selectedPeriod === option.value
                                     ? 'bg-white dark:bg-dark-700 text-orange-600 shadow-sm'
                                     : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
@@ -279,13 +279,13 @@ export default function CommercialFinance() {
                     ))}
                 </div>
 
-                <div className="flex items-center gap-2 w-full lg:w-auto">
+                <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:w-auto lg:items-center">
                     <Input
                         placeholder="Filtrar por descrição..."
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                         leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
-                        className="bg-white dark:bg-dark-800 border-none shadow-sm min-w-[280px]"
+                        className="bg-white dark:bg-dark-800 border-none shadow-sm w-full lg:min-w-[280px]"
                         size="sm"
                     />
                     <Select
@@ -296,7 +296,7 @@ export default function CommercialFinance() {
                         ]}
                         value={filterType}
                         onChange={(e) => { setFilterType(e.target.value as 'all' | CommercialTransactionType); setPage(1); }}
-                        className="w-40 border-none shadow-sm"
+                        className="w-full lg:w-40 border-none shadow-sm"
                         size="sm"
                     />
                 </div>
@@ -305,7 +305,7 @@ export default function CommercialFinance() {
             {/* Table Area */}
             <Card padding="none" className="min-h-[500px] relative overflow-hidden border-none shadow-sm">
                 {loading && transactions.length === 0 ? (
-                    <div className="p-6">
+                    <div className="p-3 sm:p-6">
                         <SkeletonTable rows={8} columns={6} />
                     </div>
                 ) : (
@@ -318,8 +318,8 @@ export default function CommercialFinance() {
                                 />
                             </div>
                         )}
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
+                        <div className="max-w-full overflow-x-auto overscroll-x-contain scrollbar-thin">
+                            <table className="w-full min-w-[720px] divide-y divide-gray-200 dark:divide-dark-700">
                                 <thead className="bg-gray-50/50 dark:bg-dark-900/50">
                                     <tr className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] italic">
                                         <th className="px-6 py-4 text-left">Canal</th>
@@ -368,7 +368,7 @@ export default function CommercialFinance() {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                    <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <div className="flex items-center justify-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                                                         <Button
                                                             onClick={() => handleEdit(t)}
                                                             variant="ghost"
@@ -399,7 +399,7 @@ export default function CommercialFinance() {
                     </>
                 )}
 
-                <div className="px-6 py-4 bg-gray-50/30 dark:bg-dark-900/30 border-t border-gray-100 dark:border-dark-700">
+                <div className="px-3 sm:px-6 py-4 bg-gray-50/30 dark:bg-dark-900/30 border-t border-gray-100 dark:border-dark-700">
                     <Pagination
                         currentPage={page}
                         totalItems={totalRows}

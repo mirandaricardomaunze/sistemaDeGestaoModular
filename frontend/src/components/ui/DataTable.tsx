@@ -101,7 +101,7 @@ export function TableContainer({
     loadingMessage,
 }: TableContainerProps) {
     return (
-        <div className={cn("overflow-x-auto relative transition-all duration-300", className)} style={{ minHeight }}>
+        <div className={cn("relative max-w-full overflow-x-auto overscroll-x-contain transition-all duration-300 scrollbar-thin", className)} style={{ minHeight }}>
             {isLoading ? (
                 <TableLoadingState rows={loadingRows} columns={loadingColumns} message={loadingMessage} />
             ) : isError ? (
@@ -184,7 +184,7 @@ export function SimpleTable({
             loadingColumns={loadingColumns ?? columns.length}
             {...props}
         >
-            <table className={cn('w-full text-sm border-collapse', tableClassName)}>
+            <table className={cn('w-full min-w-[640px] text-sm border-collapse', tableClassName)}>
                 <thead className={theadClassName}>
                     <tr
                         className={cn(
@@ -193,8 +193,8 @@ export function SimpleTable({
                         )}
                     >
                         {columns.map((column) => (
-                            <th key={column.key} className={cn('px-6 py-4 text-left', column.className)}>
-                                {column.label}
+                            <th key={column.key} className={cn('px-4 sm:px-6 py-4 text-left align-middle', column.className)}>
+                                <div className="min-w-0 break-words">{column.label}</div>
                             </th>
                         ))}
                     </tr>
@@ -226,18 +226,18 @@ export function DataTable<TData>({
             loadingColumns={props.loadingColumns ?? visibleColumnCount}
             {...props}
         >
-            <table className="min-w-full divide-y divide-slate-200/80 dark:divide-dark-700/50">
+            <table className="w-full min-w-[720px] table-auto divide-y divide-slate-200/80 dark:divide-dark-700/50">
                 <thead>
                     {table.getHeaderGroups().map((headerGroup) => (
                         <tr key={headerGroup.id}>
                             {headerGroup.headers.map((header) => (
                                 <th
                                     key={header.id}
-                                    className="px-6 py-4 text-left text-xs font-black text-slate-700 dark:text-gray-400 uppercase tracking-wider bg-slate-100 dark:bg-dark-800 cursor-pointer select-none hover:bg-slate-200/70 dark:hover:bg-dark-700 transition-colors"
+                                    className="px-4 sm:px-6 py-4 text-left text-xs font-black text-slate-700 dark:text-gray-400 uppercase tracking-wider bg-slate-100 dark:bg-dark-800 cursor-pointer select-none hover:bg-slate-200/70 dark:hover:bg-dark-700 transition-colors align-middle"
                                     style={{ minHeight: '48px' }}
                                     onClick={header.column.getToggleSortingHandler()}
                                 >
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex min-w-0 items-center gap-2 break-words">
                                         {flexRender(header.column.columnDef.header, header.getContext())}
                                         {header.column.getIsSorted() && (
                                             <span className="text-primary-500">
@@ -264,8 +264,10 @@ export function DataTable<TData>({
                                     )}
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        <td key={cell.id} className="max-w-[22rem] px-4 sm:px-6 py-4 align-middle">
+                                            <div className="min-w-0 break-words [overflow-wrap:anywhere]">
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </div>
                                         </td>
                                     ))}
                                 </tr>

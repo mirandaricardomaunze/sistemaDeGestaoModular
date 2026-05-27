@@ -1083,9 +1083,9 @@ export default function CommercialPOS() {
 
     if (loadingProducts || loadingShift) {
         return (
-            <div className="min-h-screen bg-slate-100 dark:bg-dark-900 p-6 space-y-6">
+            <div className="min-h-screen bg-slate-100 dark:bg-dark-900 p-3 sm:p-6 space-y-4 sm:space-y-6 overflow-x-hidden">
                 {/* Header Skeleton */}
-            <div className="h-32 bg-white dark:bg-dark-800 border border-slate-200 dark:border-white/5 rounded-2xl p-6 flex gap-6 animate-pulse shadow-sm dark:shadow-2xl">
+            <div className="min-h-28 bg-white dark:bg-dark-800 border border-slate-200 dark:border-white/5 rounded-2xl p-4 sm:p-6 flex gap-4 sm:gap-6 animate-pulse shadow-sm dark:shadow-2xl">
                     <div className="space-y-3 flex-1">
                         <div className="h-8 bg-slate-100 dark:bg-white/5 rounded-lg w-1/3" />
                         <div className="h-4 bg-slate-100 dark:bg-white/5 rounded-lg w-1/4" />
@@ -1135,12 +1135,12 @@ export default function CommercialPOS() {
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/5 rounded-full blur-[80px] pointer-events-none" />
                 
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-6 relative z-10">
-                    <div className="space-y-1">
+                <div className="flex min-w-0 flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-6 relative z-10">
+                    <div className="min-w-0 space-y-1">
                         <h1 className="text-lg lg:text-2xl font-bold tracking-tight text-slate-900 dark:text-white drop-shadow-sm">
                             PDV COMERCIAL
                         </h1>
-                        <div className="flex items-center gap-3 flex-wrap">
+                        <div className="flex min-w-0 items-center gap-2 sm:gap-3 flex-wrap">
                             <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
                                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
                                 <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Sistema Online</span>
@@ -1160,13 +1160,13 @@ export default function CommercialPOS() {
                                 </div>
                             )}
                             
-                            <span className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] ml-2">
+                            <span className="text-[10px] font-bold text-slate-500 dark:text-white/30 uppercase tracking-widest sm:tracking-[0.2em] sm:ml-2 break-words">
                                 Abra o turno para iniciar vendas
                             </span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex w-full flex-wrap items-center gap-2 sm:gap-3 lg:w-auto lg:justify-end [&>*]:w-full sm:[&>*]:w-auto">
                         {!shift ? (
                             <Button
                                 variant="primary"
@@ -1176,7 +1176,7 @@ export default function CommercialPOS() {
                                 Abrir Turno
                             </Button>
                         ) : (
-                            <div className="flex items-center gap-2">
+                            <div className="flex w-full items-center gap-2 sm:w-auto">
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -1188,7 +1188,7 @@ export default function CommercialPOS() {
                             </div>
                         )}
                         
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer group/sync">
+                        <div className="hidden sm:flex w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 items-center justify-center hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer group/sync">
                             <HiOutlineCloudArrowUp className={cn("w-5 h-5 text-slate-400 dark:text-white/30 group-hover/sync:text-blue-500 dark:group-hover/sync:text-blue-400 transition-colors", pendingCount > 0 && "animate-bounce text-blue-500")} />
                         </div>
                     </div>
@@ -1205,7 +1205,7 @@ export default function CommercialPOS() {
 
             {/* Mobile tabs (Catalogo/Carrinho) — sticky, only < lg */}
             <div className="lg:hidden sticky top-14 z-20 -mx-2 sm:-mx-3 px-2 sm:px-3 py-2 bg-slate-100 dark:bg-dark-950 mb-2 border-b border-slate-200 dark:border-dark-800">
-                <div className="flex items-center gap-1 p-1 bg-slate-200 dark:bg-dark-800 rounded-xl shadow-inner">
+                <div className="flex min-w-0 items-center gap-1 p-1 bg-slate-200 dark:bg-dark-800 rounded-xl shadow-inner">
                     <button
                         type="button"
                         onClick={() => setMobileView('catalog')}
@@ -1331,7 +1331,7 @@ export default function CommercialPOS() {
                             onClick={handleOpenCheckout}
                             disabled={checkoutLoading || !shift}
                             isLoading={checkoutLoading}
-                            className="h-12 px-5"
+                            className="h-12 flex-1 px-4 sm:flex-none sm:px-5"
                             leftIcon={<HiOutlineBanknotes className="w-5 h-5" />}
                         >
                             Pagar
