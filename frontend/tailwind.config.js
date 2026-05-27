@@ -64,6 +64,25 @@ export default {
             fontFamily: {
                 sans: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
             },
+            // Fluid typography — every text-* class scales smoothly from
+            // ~375px viewport (min) up to ~1280px (max). No sm:/md: prefixes
+            // needed in markup; just use text-xs/sm/base/lg/... as usual.
+            // Linear interpolation: clamp(min, intercept + slopeVW, max).
+            fontSize: {
+                'xs':   ['clamp(0.6875rem, 0.661rem + 0.110vw, 0.75rem)',  { lineHeight: '1rem' }],
+                'sm':   ['clamp(0.75rem,   0.698rem + 0.221vw, 0.875rem)', { lineHeight: '1.25rem' }],
+                'base': ['clamp(0.875rem,  0.823rem + 0.221vw, 1rem)',     { lineHeight: '1.5rem' }],
+                'lg':   ['clamp(0.9375rem, 0.860rem + 0.331vw, 1.125rem)', { lineHeight: '1.75rem' }],
+                'xl':   ['clamp(1rem,      0.896rem + 0.442vw, 1.25rem)',  { lineHeight: '1.75rem' }],
+                '2xl':  ['clamp(1.125rem,  0.969rem + 0.663vw, 1.5rem)',   { lineHeight: '2rem' }],
+                '3xl':  ['clamp(1.375rem,  1.168rem + 0.884vw, 1.875rem)', { lineHeight: '2.25rem' }],
+                '4xl':  ['clamp(1.625rem,  1.366rem + 1.105vw, 2.25rem)',  { lineHeight: '2.5rem' }],
+                '5xl':  ['clamp(2rem,      1.586rem + 1.768vw, 3rem)',     { lineHeight: '1' }],
+                '6xl':  ['clamp(2.5rem,    1.981rem + 2.210vw, 3.75rem)',  { lineHeight: '1' }],
+                '7xl':  ['clamp(3rem,      2.378rem + 2.652vw, 4.5rem)',   { lineHeight: '1' }],
+                '8xl':  ['clamp(3.75rem,   2.819rem + 3.978vw, 6rem)',     { lineHeight: '1' }],
+                '9xl':  ['clamp(5rem,      3.757rem + 5.304vw, 8rem)',     { lineHeight: '1' }],
+            },
             animation: {
                 'fade-in': 'fadeIn 0.3s ease-in-out',
                 'slide-in': 'slideIn 0.3s ease-out',

@@ -259,7 +259,7 @@ export default function NotificationCenter({ isOpen, onClose, className = '' }: 
                 <div className="mt-3 flex items-center gap-1 overflow-x-auto pb-1 scrollbar-thin">
                     <Button variant="ghost"
                         onClick={() => setSelectedModule('all')}
-                        className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap transition-colors
+                        className={`px-2.5 py-1 text-xs font-semibold rounded-lg whitespace-nowrap transition-colors
                             ${selectedModule === 'all'
                                 ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700'}`}
@@ -270,7 +270,7 @@ export default function NotificationCenter({ isOpen, onClose, className = '' }: 
                         <Button variant="ghost"
                             key={mod}
                             onClick={() => setSelectedModule(mod as AlertModule)}
-                            className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap transition-colors
+                            className={`px-2.5 py-1 text-xs font-semibold rounded-lg whitespace-nowrap transition-colors
                                 ${selectedModule === mod
                                     ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
                                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700'}`}

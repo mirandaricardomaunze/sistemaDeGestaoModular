@@ -1169,7 +1169,7 @@ export default function Settings() {
             {activeTab === 'backup' && (
                 <div className="space-y-4 sm:space-y-6">
                     <Card padding="md" className="sm:p-8">
-                        <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4 sm:mb-6">
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 sm:mb-6">
                             Backup e Restauração
                         </h2>
 
@@ -1181,13 +1181,13 @@ export default function Settings() {
                                         <HiOutlineCloudDownload className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600 dark:text-primary-300" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white break-words">
+                                        <h3 className="text-base font-semibold text-gray-900 dark:text-white break-words">
                                             Exportar Backup Completo
                                         </h3>
-                                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 break-words">
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 break-words">
                                             Faça o download de um backup com todos os dados do sistema:
                                         </p>
-                                        <ul className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 space-y-1 break-words">
+                                        <ul className="text-sm text-gray-500 dark:text-gray-400 mt-2 space-y-1 break-words">
                                             <li>✅ Configurações da empresa</li>
                                             <li>✅ Produtos e categorias</li>
                                             <li>✅ Funcionários e presença</li>
@@ -1195,7 +1195,7 @@ export default function Settings() {
                                             <li>✅ Alertas e configurações</li>
                                             <li>✅ Utilizadores registados</li>
                                         </ul>
-                                        <Button onClick={handleExportData} size="sm" className="mt-4 w-full sm:w-auto sm:!text-sm">
+                                        <Button onClick={handleExportData} className="mt-4 w-full sm:w-auto">
                                             <HiOutlineCloudDownload className="w-4 h-4 mr-2" />
                                             Exportar Backup
                                         </Button>
@@ -1210,14 +1210,14 @@ export default function Settings() {
                                         <HiOutlineShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 dark:text-amber-300" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white break-words">
+                                        <h3 className="text-base font-semibold text-gray-900 dark:text-white break-words">
                                             Restaurar Dados
                                         </h3>
-                                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 break-words">
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 break-words">
                                             Restaure as configurações e dados a partir de um arquivo de backup.
                                         </p>
                                         <div className="mt-3 p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                                            <p className="text-xs sm:text-sm font-medium text-amber-800 dark:text-amber-300 break-words">
+                                            <p className="text-sm font-medium text-amber-800 dark:text-amber-300 break-words">
                                                 ⚠️ Atenção: Este processo irá substituir todos os dados actuais!
                                             </p>
                                         </div>
@@ -1252,7 +1252,7 @@ export default function Settings() {
                                                     }
                                                 }}
                                             />
-                                            <Button variant="secondary" size="sm" className="w-full sm:w-auto sm:!text-sm">
+                                            <Button variant="secondary" className="w-full sm:w-auto">
                                                 <HiOutlineCloudDownload className="w-4 h-4 mr-2" />
                                                 Selecionar Arquivo de Backup
                                             </Button>
@@ -1264,10 +1264,10 @@ export default function Settings() {
 
                         {/* Backup Info */}
                         <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                            <h4 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white mb-2">
+                            <h4 className="text-base font-medium text-gray-900 dark:text-white mb-2">
                                 Informações do Backup
                             </h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                                 <div className="min-w-0">
                                     <p className="text-gray-500 dark:text-gray-400">Formato:</p>
                                     <p className="font-medium text-gray-900 dark:text-white break-words">JSON</p>
@@ -1290,10 +1290,10 @@ export default function Settings() {
 
                     {/* Tips Card */}
                     <Card padding="sm" className="sm:p-6 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800">
-                        <h3 className="text-sm sm:text-base font-semibold text-blue-900 dark:text-blue-300 mb-2">
+                        <h3 className="text-base font-semibold text-blue-900 dark:text-blue-300 mb-2">
                             Dicas de Backup
                         </h3>
-                        <ul className="text-xs sm:text-sm text-blue-800 dark:text-blue-400 space-y-1 break-words">
+                        <ul className="text-sm text-blue-800 dark:text-blue-400 space-y-1 break-words">
                             <li>• Faça backups regulares (recomendado: diariamente)</li>
                             <li>• Guarde os ficheiros de backup em local seguro</li>
                             <li>• Antes de restaurar, faça um backup do estado actual</li>
