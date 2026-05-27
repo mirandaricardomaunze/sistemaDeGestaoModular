@@ -302,19 +302,19 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
                                 size="sm"
                             />
                         </div>
-                        <div className="flex gap-2">
+                        <div className="w-full grid grid-cols-2 gap-2 lg:flex lg:w-auto">
                             <Input
                                 type="date"
                                 value={filters.startDate}
                                 onChange={(event) => handleFilterChange('startDate', event.target.value)}
-                                className="w-36"
+                                className="w-full lg:w-36"
                                 size="sm"
                             />
                             <Input
                                 type="date"
                                 value={filters.endDate}
                                 onChange={(event) => handleFilterChange('endDate', event.target.value)}
-                                className="w-36"
+                                className="w-full lg:w-36"
                                 size="sm"
                             />
                         </div>

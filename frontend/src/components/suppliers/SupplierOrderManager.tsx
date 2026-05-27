@@ -248,7 +248,7 @@ export default function SupplierOrderManager() {
                             setCurrentPage(1);
                         }}
                         size="sm"
-                        className="w-48 bg-white dark:bg-dark-800"
+                        className="w-full sm:w-48 bg-white dark:bg-dark-800"
                     />
                 )}
                 actions={(

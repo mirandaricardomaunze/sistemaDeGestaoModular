@@ -57,36 +57,38 @@ export default function CommercialHistoryHub() {
             />
 
             {/* Premium Segmented Tabs */}
-            <div className="flex gap-1 bg-gray-100/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-xl p-1.5 w-fit border border-gray-200 dark:border-dark-700 shadow-sm">
-                {TABS.map(tab => {
-                    const Icon = tab.icon;
-                    const isActive = activeTab === tab.id;
-                    return (
-                        <Button
-                            key={tab.id} 
-                            onClick={() => handleTabChange(tab.id)}
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                                'h-10 px-5 rounded-lg text-sm font-bold normal-case tracking-normal',
-                                isActive
-                                    ? 'bg-white dark:bg-dark-700 text-primary-600 dark:text-primary-400 shadow-md transform scale-[1.02]'
-                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-dark-700/30'
-                            )}
-                        >
-                            <Icon className={cn(
-                                "w-4.5 h-4.5 transition-transform duration-300",
-                                isActive ? "text-primary-600 dark:text-primary-400 scale-110" : "text-gray-400 group-hover:text-gray-600"
-                            )} />
-                            {tab.label}
-                            {tab.id === 'voids' && pendingCount > 0 && (
-                                <span className="ml-1 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-black rounded-full bg-red-500 text-white">
-                                    {pendingCount}
-                                </span>
-                            )}
-                        </Button>
-                    );
-                })}
+            <div className="w-full overflow-x-auto overscroll-x-contain scrollbar-none pb-1">
+                <div className="flex gap-1 bg-gray-100/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-xl p-1.5 w-max border border-gray-200 dark:border-dark-700 shadow-sm">
+                    {TABS.map(tab => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <Button
+                                key={tab.id} 
+                                onClick={() => handleTabChange(tab.id)}
+                                variant="ghost"
+                                size="sm"
+                                className={cn(
+                                    'h-10 px-5 rounded-lg text-sm font-bold normal-case tracking-normal whitespace-nowrap',
+                                    isActive
+                                        ? 'bg-white dark:bg-dark-700 text-primary-600 dark:text-primary-400 shadow-md transform scale-[1.02]'
+                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-dark-700/30'
+                                )}
+                            >
+                                <Icon className={cn(
+                                    "w-4.5 h-4.5 transition-transform duration-300",
+                                    isActive ? "text-primary-600 dark:text-primary-400 scale-110" : "text-gray-400 group-hover:text-gray-600"
+                                )} />
+                                {tab.label}
+                                {tab.id === 'voids' && pendingCount > 0 && (
+                                    <span className="ml-1 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-black rounded-full bg-red-500 text-white">
+                                        {pendingCount}
+                                    </span>
+                                )}
+                            </Button>
+                        );
+                    })}
+                </div>
             </div>
 
             <div className="min-h-[400px] relative">

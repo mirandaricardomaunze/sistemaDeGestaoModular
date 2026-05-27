@@ -175,27 +175,29 @@ export default function MarginAnalysis() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 bg-gray-100 dark:bg-dark-800/80 backdrop-blur-sm rounded-lg p-1.5 border border-gray-200 dark:border-dark-700 shadow-inner">
-                {TABS.map(tab => {
-                    const Icon = tab.icon;
-                    return (
-                        <Button
-                            key={tab.key}
-                            onClick={() => setActiveTab(tab.key as MarginTab)}
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                                'h-10 flex-1 rounded-lg text-[10px] font-black uppercase tracking-widest',
-                                activeTab === tab.key
-                                    ? 'bg-white dark:bg-dark-600 text-primary-600 dark:text-white shadow-lg shadow-black/5'
-                                    : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'
-                            )}
-                        >
-                            <Icon className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">{tab.label}</span>
-                        </Button>
-                    );
-                })}
+            <div className="w-full overflow-x-auto overscroll-x-contain scrollbar-none pb-1">
+                <div className="flex gap-1 bg-gray-100 dark:bg-dark-800/80 backdrop-blur-sm rounded-lg p-1.5 border border-gray-200 dark:border-dark-700 shadow-inner w-max sm:w-full">
+                    {TABS.map(tab => {
+                        const Icon = tab.icon;
+                        return (
+                            <Button
+                                key={tab.key}
+                                onClick={() => setActiveTab(tab.key as MarginTab)}
+                                variant="ghost"
+                                size="sm"
+                                className={cn(
+                                    'h-10 flex-1 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap',
+                                    activeTab === tab.key
+                                        ? 'bg-white dark:bg-dark-600 text-primary-600 dark:text-white shadow-lg shadow-black/5 scale-[1.02]'
+                                        : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'
+                                )}
+                            >
+                                <Icon className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">{tab.label}</span>
+                            </Button>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Tab content */}

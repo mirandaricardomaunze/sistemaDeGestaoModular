@@ -464,22 +464,21 @@ export default function Hospitality() {
                     </>
                 }
                 tabs={
-                    <div className="flex flex-wrap -mb-px">
+                    <div className="flex flex-nowrap w-max -mb-px gap-1">
                         {tabs.map((tab) => (
                             <Button
                                 key={tab.id}
                                 variant="ghost"
                                 onClick={() => setActiveMainTab(tab.id as MainTab)}
                                 className={cn(
-                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-black border-b-2 rounded-none whitespace-nowrap uppercase tracking-widest",
+                                    "flex items-center justify-center gap-2 px-4 md:px-6 py-3 text-xs md:text-sm font-black border-b-2 rounded-none whitespace-nowrap uppercase tracking-widest",
                                     activeMainTab === tab.id
                                         ? "border-primary-500 text-primary-600 dark:text-primary-400"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
                                 )}
                             >
                                 <span className="shrink-0">{tab.icon(activeMainTab === tab.id)}</span>
-                                <span className="hidden sm:inline-block">{tab.label}</span>
-                                <span className="sm:hidden text-[10px]">{tab.label.substring(0, 3)}...</span>
+                                <span>{tab.label}</span>
                             </Button>
                         ))}
                     </div>
@@ -524,8 +523,8 @@ export default function Hospitality() {
                         </Button>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <div className="relative">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                        <div className="relative w-full sm:w-auto">
                             <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-600 dark:text-primary-400 w-5 h-5 z-10" />
                             <Input
                                 placeholder="Procurar quarto..."
@@ -537,7 +536,7 @@ export default function Hospitality() {
                         <Button
                             variant="primary"
                             size="sm"
-                            className="font-black text-[10px] uppercase tracking-widest h-10 px-6"
+                            className="font-black text-[10px] uppercase tracking-widest h-10 px-6 w-full sm:w-auto"
                             leftIcon={<HiOutlinePlus className="w-5 h-5 text-white" />}
                             onClick={() => setIsRoomModalOpen(true)}
                         >

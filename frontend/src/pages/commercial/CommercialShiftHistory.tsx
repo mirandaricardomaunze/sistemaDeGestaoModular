@@ -549,9 +549,9 @@ const CommercialShiftHistory: React.FC = () => {
     return (
         <div className="space-y-4 animate-fade-in pb-10">
             {/* High Density Filters & Actions */}
-            <Card padding="md" className="border-none shadow-none bg-white dark:bg-dark-900 border border-gray-100 dark:border-dark-700 rounded-lg overflow-visible">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                    <div className="md:col-span-3">
+            <Card padding="md" className="bg-white dark:bg-dark-900 border border-gray-100 dark:border-dark-700 rounded-lg overflow-visible shadow-card">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-4 items-end">
+                    <div className="sm:col-span-1 md:col-span-3">
                         <Input 
                             label="Operador"
                             placeholder="Filtrar por nome..."
@@ -565,7 +565,7 @@ const CommercialShiftHistory: React.FC = () => {
                             size="sm"
                         />
                     </div>
-                    <div className="md:col-span-2">
+                    <div className="sm:col-span-1 md:col-span-2">
                         <Select
                             label="Armazém"
                             value={warehouseId}
@@ -585,49 +585,49 @@ const CommercialShiftHistory: React.FC = () => {
                             size="sm"
                         />
                     </div>
-                    <div className="md:col-span-2">
-                        <Input
-                            label="Início"
-                            type="date"
-                            value={dateRange.start}
-                            onChange={(e) => { setDateRange({...dateRange, start: e.target.value}); setPage(1); }}
-                            className="bg-gray-50 dark:bg-dark-800 border-none"
-                            size="sm"
-                        />
+                    <div className="sm:col-span-2 md:col-span-4">
+                        <div className="grid grid-cols-2 gap-2">
+                            <Input
+                                label="Início"
+                                type="date"
+                                value={dateRange.start}
+                                onChange={(e) => { setDateRange({...dateRange, start: e.target.value}); setPage(1); }}
+                                className="bg-gray-50 dark:bg-dark-800 border-none"
+                                size="sm"
+                            />
+                            <Input
+                                label="Fim"
+                                type="date"
+                                value={dateRange.end}
+                                onChange={(e) => { setDateRange({...dateRange, end: e.target.value}); setPage(1); }}
+                                className="bg-gray-50 dark:bg-dark-800 border-none"
+                                size="sm"
+                            />
+                        </div>
                     </div>
-                    <div className="md:col-span-2">
-                        <Input
-                            label="Fim"
-                            type="date"
-                            value={dateRange.end}
-                            onChange={(e) => { setDateRange({...dateRange, end: e.target.value}); setPage(1); }}
-                            className="bg-gray-50 dark:bg-dark-800 border-none"
-                            size="sm"
-                        />
-                    </div>
-                    <div className="md:col-span-1">
+                    <div className="sm:col-span-1 md:col-span-1">
                         <Button 
                             onClick={applyFilters} 
                             size="sm"
-                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-500/20 border-none"
+                            className="w-full h-11 lg:h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-500/20 border-none"
                         >
                             Filtrar
                         </Button>
                     </div>
                     
-                    <div className="md:col-span-2 flex justify-end gap-2">
+                    <div className="sm:col-span-1 md:col-span-2 flex justify-end gap-2 w-full [&>*]:w-full sm:[&>*]:w-auto">
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => loadHistory(page)}
-                            className="h-10 px-3 bg-gray-50 dark:bg-dark-800 text-gray-400 hover:text-indigo-600"
+                            className="h-11 lg:h-10 px-3 bg-gray-50 dark:bg-dark-800 text-gray-400 hover:text-indigo-600"
                         >
                             <HiOutlineArrowPath className={cn("w-5 h-5", loading && "animate-spin")} />
                         </Button>
 
-                        <Menu as="div" className="relative inline-block text-left">
+                        <Menu as="div" className="relative inline-block text-left w-full sm:w-auto">
                             <Menu.Button
-                                className="inline-flex items-center justify-center h-10 px-4 rounded-lg font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 active:scale-[0.98]"
+                                className="inline-flex items-center justify-center w-full h-11 lg:h-10 px-4 rounded-lg font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 active:scale-[0.98]"
                             >
                                 <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
                                 Exportar

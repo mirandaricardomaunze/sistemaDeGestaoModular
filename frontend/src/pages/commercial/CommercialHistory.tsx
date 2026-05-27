@@ -264,23 +264,25 @@ export default function CommercialHistory() {
                 }}
                 renderFilters={
                     <>
-                        <div className="w-full lg:w-44">
-                            <Input 
-                                type="date" 
-                                label="Início" 
-                                value={startDate}
-                                onChange={e => { setStartDate(e.target.value); setPage(1); }}
-                                size="sm"
-                            />
-                        </div>
-                        <div className="w-full lg:w-44">
-                            <Input 
-                                type="date" 
-                                label="Fim" 
-                                value={endDate}
-                                onChange={e => { setEndDate(e.target.value); setPage(1); }}
-                                size="sm"
-                            />
+                        <div className="w-full grid grid-cols-2 gap-2 lg:flex lg:w-auto">
+                            <div className="w-full lg:w-44">
+                                <Input 
+                                    type="date" 
+                                    label="Início" 
+                                    value={startDate}
+                                    onChange={e => { setStartDate(e.target.value); setPage(1); }}
+                                    size="sm"
+                                />
+                            </div>
+                            <div className="w-full lg:w-44">
+                                <Input 
+                                    type="date" 
+                                    label="Fim" 
+                                    value={endDate}
+                                    onChange={e => { setEndDate(e.target.value); setPage(1); }}
+                                    size="sm"
+                                />
+                            </div>
                         </div>
                     </>
                 }

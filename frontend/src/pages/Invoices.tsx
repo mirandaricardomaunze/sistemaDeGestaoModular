@@ -820,22 +820,21 @@ export default function Invoices({ originModule }: InvoicesProps) {
                     </>
                 }
                 tabs={
-                    <div className="flex flex-wrap -mb-px">
+                    <div className="flex flex-nowrap w-max -mb-px gap-1">
                         {tabs.map((tab) => (
                             <Button
                                 key={tab.id}
                                 variant="ghost"
                                 onClick={() => setActiveTab(tab.id as 'invoices' | 'credit_notes')}
                                 className={cn(
-                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-black border-b-2 rounded-none whitespace-nowrap uppercase tracking-widest",
+                                    "flex items-center justify-center gap-2 px-4 md:px-6 py-3 text-xs md:text-sm font-black border-b-2 rounded-none whitespace-nowrap uppercase tracking-widest",
                                     activeTab === tab.id
                                         ? "border-primary-500 text-primary-600 dark:text-primary-400"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
                                 )}
                             >
                                 <span className="shrink-0">{tab.icon}</span>
-                                <span className="hidden sm:inline-block">{tab.label}</span>
-                                <span className="sm:hidden text-[10px]">{tab.label.substring(0, 3)}...</span>
+                                <span>{tab.label}</span>
                             </Button>
                         ))}
                     </div>
@@ -998,26 +997,28 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                             }}
                                             size="sm"
                                         />
-                                        <Input
-                                            label="De"
-                                            type="date"
-                                            value={customStartDate}
-                                            onChange={(e) => {
-                                                setCustomStartDate(e.target.value);
-                                                setPage(1);
-                                            }}
-                                            size="sm"
-                                        />
-                                        <Input
-                                            label="Até"
-                                            type="date"
-                                            value={customEndDate}
-                                            onChange={(e) => {
-                                                setCustomEndDate(e.target.value);
-                                                setPage(1);
-                                            }}
-                                            size="sm"
-                                        />
+                                        <div className="grid grid-cols-2 gap-2 col-span-1 sm:col-span-2 xl:col-span-2">
+                                            <Input
+                                                label="De"
+                                                type="date"
+                                                value={customStartDate}
+                                                onChange={(e) => {
+                                                    setCustomStartDate(e.target.value);
+                                                    setPage(1);
+                                                }}
+                                                size="sm"
+                                            />
+                                            <Input
+                                                label="Até"
+                                                type="date"
+                                                value={customEndDate}
+                                                onChange={(e) => {
+                                                    setCustomEndDate(e.target.value);
+                                                    setPage(1);
+                                                }}
+                                                size="sm"
+                                            />
+                                        </div>
                                         {hasActiveFilters && (
                                             <Button
                                                 variant="outline"

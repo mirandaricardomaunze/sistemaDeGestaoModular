@@ -266,7 +266,7 @@ export default function CommercialReports({ initialTab = 'sales' }: CommercialRe
                 </div>
             </div>
 
-            <div className="flex gap-1 overflow-x-auto rounded-2xl border border-slate-200/90 bg-slate-100/80 p-1 shadow-inner scroller-hidden dark:border-white/10 dark:bg-dark-700/50">
+            <div className="flex gap-1 overflow-x-auto rounded-2xl border border-slate-200/90 bg-slate-100/80 p-1 shadow-inner scrollbar-none dark:border-white/10 dark:bg-dark-700/50">
                 {[
                     { key: 'sales', label: 'Vendas & Produtos', icon: HiOutlineChartBar, color: 'text-blue-500' },
                     { key: 'margins', label: 'Margens & Lucro', icon: HiOutlineArrowTrendingUp, color: 'text-emerald-500' },

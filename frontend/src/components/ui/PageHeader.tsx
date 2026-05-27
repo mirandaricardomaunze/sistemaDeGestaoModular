@@ -41,7 +41,7 @@ export function PageHeader({ title, subtitle, icon, actions, tabs, className }: 
                     )}
                 </div>
                 {tabs && (
-                    <div className="mt-4 sm:mt-6 border-t border-slate-200/80 dark:border-white/5 pt-4 sm:pt-6 relative z-10 overflow-hidden">
+                    <div className="mt-4 sm:mt-6 border-t border-slate-200/80 dark:border-white/5 pt-4 sm:pt-6 relative z-10 w-full overflow-x-auto overscroll-x-contain scrollbar-none pb-1">
                         {tabs}
                     </div>
                 )}
