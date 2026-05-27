@@ -512,37 +512,39 @@ export default function PharmacyPOS() {
                 </div>
             )}
 
-            {/* Mobile tabs (Catalogo/Carrinho) — only < lg */}
-            <div className="lg:hidden flex items-center gap-1 p-1 bg-slate-200/60 dark:bg-dark-800/60 rounded-xl">
-                <button
-                    type="button"
-                    onClick={() => setMobileView('catalog')}
-                    className={cn(
-                        "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98]",
-                        mobileView === 'catalog'
-                            ? 'bg-white dark:bg-dark-700 text-teal-600 dark:text-teal-400 shadow-sm'
-                            : 'text-slate-600 dark:text-gray-400'
-                    )}
-                >
-                    Catálogo
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setMobileView('cart')}
-                    className={cn(
-                        "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98] relative",
-                        mobileView === 'cart'
-                            ? 'bg-white dark:bg-dark-700 text-teal-600 dark:text-teal-400 shadow-sm'
-                            : 'text-slate-600 dark:text-gray-400'
-                    )}
-                >
-                    Carrinho
-                    {cart.length > 0 && (
-                        <span className="absolute top-1 right-2 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center text-[10px] font-black text-white bg-red-500 rounded-full">
-                            {cart.length > 9 ? '9+' : cart.length}
-                        </span>
-                    )}
-                </button>
+            {/* Mobile tabs (Catalogo/Carrinho) — sticky, only < lg */}
+            <div className="lg:hidden sticky top-14 z-20 -mx-2 sm:-mx-3 px-2 sm:px-3 py-2 bg-slate-100 dark:bg-dark-950 border-b border-slate-200 dark:border-dark-800">
+                <div className="flex items-center gap-1 p-1 bg-slate-200 dark:bg-dark-800 rounded-xl shadow-inner">
+                    <button
+                        type="button"
+                        onClick={() => setMobileView('catalog')}
+                        className={cn(
+                            "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98]",
+                            mobileView === 'catalog'
+                                ? 'bg-teal-600 text-white shadow-md'
+                                : 'text-slate-700 dark:text-gray-300 hover:bg-white/40 dark:hover:bg-dark-700/40'
+                        )}
+                    >
+                        Catálogo
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setMobileView('cart')}
+                        className={cn(
+                            "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98] relative",
+                            mobileView === 'cart'
+                                ? 'bg-teal-600 text-white shadow-md'
+                                : 'text-slate-700 dark:text-gray-300 hover:bg-white/40 dark:hover:bg-dark-700/40'
+                        )}
+                    >
+                        Carrinho
+                        {cart.length > 0 && (
+                            <span className="absolute top-1 right-2 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center text-[10px] font-black text-white bg-red-500 rounded-full ring-2 ring-white dark:ring-dark-800">
+                                {cart.length > 9 ? '9+' : cart.length}
+                            </span>
+                        )}
+                    </button>
+                </div>
             </div>
 
             {/* POS Layout */}

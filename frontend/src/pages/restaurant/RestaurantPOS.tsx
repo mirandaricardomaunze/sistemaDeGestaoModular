@@ -254,37 +254,39 @@ export default function RestaurantPOS() {
 
     return (
         <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)] gap-0 overflow-hidden pb-20 md:pb-0">
-            {/* Mobile tabs (Catalogo/Carrinho) — only < md */}
-            <div className="md:hidden flex items-center gap-1 p-1 m-2 bg-slate-200/60 dark:bg-dark-800/60 rounded-xl">
-                <button
-                    type="button"
-                    onClick={() => setMobileView('catalog')}
-                    className={cn(
-                        "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98]",
-                        mobileView === 'catalog'
-                            ? 'bg-white dark:bg-dark-700 text-rose-600 dark:text-rose-400 shadow-sm'
-                            : 'text-slate-600 dark:text-gray-400'
-                    )}
-                >
-                    Menu
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setMobileView('cart')}
-                    className={cn(
-                        "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98] relative",
-                        mobileView === 'cart'
-                            ? 'bg-white dark:bg-dark-700 text-rose-600 dark:text-rose-400 shadow-sm'
-                            : 'text-slate-600 dark:text-gray-400'
-                    )}
-                >
-                    Pedido
-                    {cart.length > 0 && (
-                        <span className="absolute top-1 right-2 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center text-[10px] font-black text-white bg-red-500 rounded-full">
-                            {cart.length > 9 ? '9+' : cart.length}
-                        </span>
-                    )}
-                </button>
+            {/* Mobile tabs (Menu/Pedido) — sticky, only < md */}
+            <div className="md:hidden sticky top-14 z-20 px-2 py-2 bg-slate-100 dark:bg-dark-950 border-b border-slate-200 dark:border-dark-800">
+                <div className="flex items-center gap-1 p-1 bg-slate-200 dark:bg-dark-800 rounded-xl shadow-inner">
+                    <button
+                        type="button"
+                        onClick={() => setMobileView('catalog')}
+                        className={cn(
+                            "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98]",
+                            mobileView === 'catalog'
+                                ? 'bg-rose-600 text-white shadow-md'
+                                : 'text-slate-700 dark:text-gray-300 hover:bg-white/40 dark:hover:bg-dark-700/40'
+                        )}
+                    >
+                        Menu
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setMobileView('cart')}
+                        className={cn(
+                            "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98] relative",
+                            mobileView === 'cart'
+                                ? 'bg-rose-600 text-white shadow-md'
+                                : 'text-slate-700 dark:text-gray-300 hover:bg-white/40 dark:hover:bg-dark-700/40'
+                        )}
+                    >
+                        Pedido
+                        {cart.length > 0 && (
+                            <span className="absolute top-1 right-2 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center text-[10px] font-black text-white bg-red-500 rounded-full ring-2 ring-white dark:ring-dark-800">
+                                {cart.length > 9 ? '9+' : cart.length}
+                            </span>
+                        )}
+                    </button>
+                </div>
             </div>
 
             {/* LEFT: Products Panel */}
