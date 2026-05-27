@@ -1167,27 +1167,27 @@ export default function Settings() {
 
             {/* Backup Settings */}
             {activeTab === 'backup' && (
-                <div className="space-y-6">
-                    <Card padding="lg">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+                <div className="space-y-4 sm:space-y-6">
+                    <Card padding="md" className="sm:p-8">
+                        <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4 sm:mb-6">
                             Backup e Restauração
                         </h2>
 
-                        <div className="space-y-6">
+                        <div className="space-y-4 sm:space-y-6">
                             {/* Export Section */}
-                            <div className="p-6 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
-                                <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-primary-500/15 border border-primary-500/20 flex items-center justify-center backdrop-blur-sm">
-                                        <HiOutlineCloudDownload className="w-6 h-6 text-primary-600 dark:text-primary-300" />
+                            <div className="p-4 sm:p-6 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
+                                <div className="flex items-start gap-3 sm:gap-4">
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-xl bg-primary-500/15 border border-primary-500/20 flex items-center justify-center backdrop-blur-sm">
+                                        <HiOutlineCloudDownload className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600 dark:text-primary-300" />
                                     </div>
-                                    <div className="flex-1">
-                                        <h3 className="font-semibold text-gray-900 dark:text-white">
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white break-words">
                                             Exportar Backup Completo
                                         </h3>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 break-words">
                                             Faça o download de um backup com todos os dados do sistema:
                                         </p>
-                                        <ul className="text-sm text-gray-500 dark:text-gray-400 mt-2 space-y-1">
+                                        <ul className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 space-y-1 break-words">
                                             <li>✅ Configurações da empresa</li>
                                             <li>✅ Produtos e categorias</li>
                                             <li>✅ Funcionários e presença</li>
@@ -1195,7 +1195,7 @@ export default function Settings() {
                                             <li>✅ Alertas e configurações</li>
                                             <li>✅ Utilizadores registados</li>
                                         </ul>
-                                        <Button onClick={handleExportData} className="mt-4">
+                                        <Button onClick={handleExportData} size="sm" className="mt-4 w-full sm:w-auto sm:!text-sm">
                                             <HiOutlineCloudDownload className="w-4 h-4 mr-2" />
                                             Exportar Backup
                                         </Button>
@@ -1204,24 +1204,24 @@ export default function Settings() {
                             </div>
 
                             {/* Import Section */}
-                            <div className="p-6 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800">
-                                <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center backdrop-blur-sm">
-                                        <HiOutlineShieldCheck className="w-6 h-6 text-amber-600 dark:text-amber-300" />
+                            <div className="p-4 sm:p-6 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800">
+                                <div className="flex items-start gap-3 sm:gap-4">
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center backdrop-blur-sm">
+                                        <HiOutlineShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 dark:text-amber-300" />
                                     </div>
-                                    <div className="flex-1">
-                                        <h3 className="font-semibold text-gray-900 dark:text-white">
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white break-words">
                                             Restaurar Dados
                                         </h3>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 break-words">
                                             Restaure as configurações e dados a partir de um arquivo de backup.
                                         </p>
                                         <div className="mt-3 p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                                            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                                            <p className="text-xs sm:text-sm font-medium text-amber-800 dark:text-amber-300 break-words">
                                                 ⚠️ Atenção: Este processo irá substituir todos os dados actuais!
                                             </p>
                                         </div>
-                                        <label className="mt-4 inline-block">
+                                        <label className="mt-4 block sm:inline-block">
                                             <input
                                                 type="file"
                                                 accept=".json"
@@ -1252,7 +1252,7 @@ export default function Settings() {
                                                     }
                                                 }}
                                             />
-                                            <Button variant="secondary">
+                                            <Button variant="secondary" size="sm" className="w-full sm:w-auto sm:!text-sm">
                                                 <HiOutlineCloudDownload className="w-4 h-4 mr-2" />
                                                 Selecionar Arquivo de Backup
                                             </Button>
@@ -1263,37 +1263,37 @@ export default function Settings() {
                         </div>
 
                         {/* Backup Info */}
-                        <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                            <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                        <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
+                            <h4 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white mb-2">
                                 Informações do Backup
                             </h4>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
+                                <div className="min-w-0">
                                     <p className="text-gray-500 dark:text-gray-400">Formato:</p>
-                                    <p className="font-medium text-gray-900 dark:text-white">JSON</p>
+                                    <p className="font-medium text-gray-900 dark:text-white break-words">JSON</p>
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                     <p className="text-gray-500 dark:text-gray-400">Armazenamento:</p>
-                                    <p className="font-medium text-gray-900 dark:text-white">Local (Browser)</p>
+                                    <p className="font-medium text-gray-900 dark:text-white break-words">Local (Browser)</p>
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                     <p className="text-gray-500 dark:text-gray-400">Tipo de negócio:</p>
-                                    <p className="font-medium text-gray-900 dark:text-white">{businessTypeOptions.find(b => b.value === businessType)?.label}</p>
+                                    <p className="font-medium text-gray-900 dark:text-white break-words">{businessTypeOptions.find(b => b.value === businessType)?.label}</p>
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                     <p className="text-gray-500 dark:text-gray-400">Empresa:</p>
-                                    <p className="font-medium text-gray-900 dark:text-white">{companySettings?.companyName ?? 'Empresa'}</p>
+                                    <p className="font-medium text-gray-900 dark:text-white break-words">{companySettings?.companyName ?? 'Empresa'}</p>
                                 </div>
                             </div>
                         </div>
                     </Card>
 
                     {/* Tips Card */}
-                    <Card padding="md" className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800">
-                        <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">
+                    <Card padding="sm" className="sm:p-6 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800">
+                        <h3 className="text-sm sm:text-base font-semibold text-blue-900 dark:text-blue-300 mb-2">
                             Dicas de Backup
                         </h3>
-                        <ul className="text-sm text-blue-800 dark:text-blue-400 space-y-1">
+                        <ul className="text-xs sm:text-sm text-blue-800 dark:text-blue-400 space-y-1 break-words">
                             <li>• Faça backups regulares (recomendado: diariamente)</li>
                             <li>• Guarde os ficheiros de backup em local seguro</li>
                             <li>• Antes de restaurar, faça um backup do estado actual</li>

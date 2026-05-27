@@ -212,8 +212,10 @@ export default function NotificationCenter({ isOpen, onClose, className = '' }: 
     return (
         <div
             ref={containerRef}
-            className={`absolute right-0 top-12 w-96 max-h-[80vh] bg-white dark:bg-dark-800 
-                       rounded-lg shadow-2xl border border-gray-200 dark:border-dark-700 
+            className={`fixed inset-x-2 top-16 max-h-[calc(100vh-5rem)]
+                       sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:w-96 sm:max-h-[80vh]
+                       bg-white dark:bg-dark-800
+                       rounded-lg shadow-2xl border border-gray-200 dark:border-dark-700
                        flex flex-col z-50 overflow-hidden ${className}`}
         >
             {/* Header */}

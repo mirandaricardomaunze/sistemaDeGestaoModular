@@ -74,9 +74,9 @@ export function Pagination({
     }, [currentPage, totalPages]);
 
     return (
-        <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200/90 dark:border-dark-700 ${className}`}>
+        <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 w-full py-2 ${className}`}>
             {showInfo && (
-                <div className="text-sm text-slate-600 dark:text-gray-400">
+                <div className="text-xs text-slate-600 dark:text-gray-400">
                     Mostrando <span className="font-semibold text-slate-950 dark:text-white">{totalItems > 0 ? startItem : 0}</span> a{' '}
                     <span className="font-semibold text-slate-950 dark:text-white">{totalItems > 0 ? endItem : 0}</span> de{' '}
                     <span className="font-semibold text-slate-950 dark:text-white">{totalItems}</span> resultados
@@ -86,7 +86,7 @@ export function Pagination({
             <div className="flex items-center gap-4">
                 {showItemsPerPage && onItemsPerPageChange && (
                     <div className="flex items-center gap-2">
-                        <label htmlFor="pagination-page-size" className="text-sm text-slate-600 dark:text-gray-400">
+                        <label htmlFor="pagination-page-size" className="text-xs text-slate-600 dark:text-gray-400">
                             Por página:
                         </label>
                         <select
@@ -97,7 +97,7 @@ export function Pagination({
                                 onPageChange(1);
                             }}
                             aria-label="Itens por página"
-                            className="px-2 py-1.5 text-sm rounded-lg border border-slate-300/80 dark:border-dark-600 bg-white dark:bg-dark-800 text-slate-800 dark:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                            className="px-1.5 py-1 text-xs rounded-lg border border-slate-300/80 dark:border-dark-600 bg-white dark:bg-dark-800 text-slate-800 dark:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 h-8"
                         >
                             {itemsPerPageOptions.map((option) => (
                                 <option key={option} value={option}>
@@ -114,7 +114,7 @@ export function Pagination({
                         onClick={() => onPageChange(1)}
                         disabled={currentPage === 1 || totalItems === 0}
                         aria-label="Primeira página"
-                        className="p-2 rounded-lg text-slate-600 dark:text-gray-400 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                        className="h-8 w-8 p-0 flex items-center justify-center rounded-lg text-slate-600 dark:text-gray-400 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                     >
                         <HiOutlineChevronDoubleLeft className="w-4 h-4" />
                     </Button>
@@ -124,17 +124,17 @@ export function Pagination({
                         onClick={() => onPageChange(currentPage - 1)}
                         disabled={currentPage === 1 || totalItems === 0}
                         aria-label="Página anterior"
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-gray-300 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-300/80 dark:border-dark-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                        className="flex items-center gap-1 px-2.5 h-8 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-gray-300 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-300/80 dark:border-dark-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                     >
-                        <HiOutlineChevronLeft className="w-4 h-4" />
-                        <span className="inline">Anterior</span>
+                        <HiOutlineChevronLeft className="w-3.5 h-3.5" />
+                        <span>Anterior</span>
                     </Button>
 
                     <div className="flex items-center gap-1">
                         {totalItems > 0 ? (
                             pageNumbers.map((page, index) => (
                                 page === 'ellipsis' ? (
-                                    <span key={`ellipsis-${index}`} className="px-2 text-slate-500" aria-hidden="true">
+                                    <span key={`ellipsis-${index}`} className="px-2 text-slate-500 text-xs" aria-hidden="true">
                                         ...
                                     </span>
                                 ) : (
@@ -144,7 +144,7 @@ export function Pagination({
                                         onClick={() => onPageChange(page)}
                                         aria-label={`Ir para a página ${page}`}
                                         aria-current={currentPage === page ? 'page' : undefined}
-                                        className={`min-w-[36px] h-9 px-3 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${currentPage === page
+                                        className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${currentPage === page
                                             ? 'bg-primary-600 text-white shadow-sm'
                                             : 'text-slate-700 dark:text-gray-300 hover:bg-white dark:hover:bg-dark-700'
                                             }`}
@@ -158,7 +158,7 @@ export function Pagination({
                                 type="button"
                                 disabled
                                 aria-current="page"
-                                className="min-w-[36px] h-9 px-3 rounded-lg text-sm font-medium bg-primary-600 text-white shadow-sm opacity-50 cursor-not-allowed"
+                                className="min-w-[32px] h-8 px-2 rounded-lg text-xs font-bold bg-primary-600 text-white shadow-sm opacity-50 cursor-not-allowed"
                             >
                                 1
                             </Button>
@@ -170,10 +170,10 @@ export function Pagination({
                         onClick={() => onPageChange(currentPage + 1)}
                         disabled={currentPage === totalPages || totalItems === 0}
                         aria-label="Próxima página"
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-gray-300 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-300/80 dark:border-dark-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                        className="flex items-center gap-1 px-2.5 h-8 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-gray-300 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-300/80 dark:border-dark-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                     >
-                        <span className="inline">Próximo</span>
-                        <HiOutlineChevronRight className="w-4 h-4" />
+                        <span>Próximo</span>
+                        <HiOutlineChevronRight className="w-3.5 h-3.5" />
                     </Button>
 
                     <Button variant="ghost"
@@ -181,7 +181,7 @@ export function Pagination({
                         onClick={() => onPageChange(totalPages)}
                         disabled={currentPage === totalPages || totalItems === 0}
                         aria-label="Última página"
-                        className="p-2 rounded-lg text-slate-600 dark:text-gray-400 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                        className="h-8 w-8 p-0 flex items-center justify-center rounded-lg text-slate-600 dark:text-gray-400 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                     >
                         <HiOutlineChevronDoubleRight className="w-4 h-4" />
                     </Button>

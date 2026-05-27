@@ -285,7 +285,7 @@ export function SmartTable<TData extends { id?: string | number }>({
 
                 {/* Paginação */}
                 {pagination && pagination.totalItems > 0 && (
-                    <div className="px-3 sm:px-6 border-t border-slate-200/80 dark:border-dark-700 bg-slate-50/90 dark:bg-dark-900/30">
+                    <div className="px-3 sm:px-6 py-2 border-t border-slate-200/80 dark:border-dark-700 bg-slate-50/90 dark:bg-dark-900/30 rounded-b-2xl">
                         <Pagination
                             currentPage={pagination.currentPage}
                             totalItems={pagination.totalItems}
