@@ -97,6 +97,13 @@ interface SmartTableProps<TData> {
     /** ID da linha que está expandida */
     expandedId?: string | number | null;
     rowClassName?: (data: TData) => string | undefined;
+
+    /**
+     * Renderiza cada linha como Card em viewports < md (mobile).
+     * Quando definido, a tabela é escondida em mobile e substituída por uma
+     * lista vertical de cards. Em >= md, mantém o comportamento normal.
+     */
+    mobileCardRender?: (row: TData) => ReactNode;
 }
 
 /**
@@ -136,7 +143,8 @@ export function SmartTable<TData extends { id?: string | number }>({
     hideToolbar = false,
     expandedRowRender,
     expandedId,
-    rowClassName
+    rowClassName,
+    mobileCardRender,
 }: SmartTableProps<TData>) {
     const { settings: companySettings } = useCompanySettings();
 
@@ -173,7 +181,7 @@ export function SmartTable<TData extends { id?: string | number }>({
             {/* Toolbar: Search, Filters & Actions */}
             {!hideToolbar && (
                 <Card padding="md" className="relative z-20 overflow-visible bg-white dark:bg-dark-900/50 border border-slate-300/70 dark:border-white/10 shadow-card">
-                    <div className="flex flex-col lg:flex-row items-stretch lg:items-end gap-4">
+                    <div className="flex flex-col lg:flex-row items-stretch lg:items-end gap-3 lg:gap-4">
                         {/* Pesquisa */}
                         {search && (
                             <div className="flex-1">
@@ -196,7 +204,7 @@ export function SmartTable<TData extends { id?: string | number }>({
                         )}
 
                         {/* Acções, Refresh & Exportação */}
-                        <div className="flex items-center gap-2 ml-auto">
+                        <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
                             {actions}
                             
                             {onRefresh && (
@@ -237,24 +245,43 @@ export function SmartTable<TData extends { id?: string | number }>({
                 </Card>
             )}
 
-            {/* Table Container */}
-            <Card padding="none" className="border border-slate-300/70 dark:border-white/10 shadow-card overflow-hidden">
-                <DataTable
-                    table={table}
-                    isLoading={isLoading}
-                    isError={isError}
-                    errorMessage={errorMessage}
-                    onRetry={onRetry}
-                    isEmpty={!isLoading && data.length === 0}
-                    emptyTitle={emptyTitle}
-                    emptyDescription={emptyDescription}
-                    onEmptyAction={onEmptyAction}
-                    emptyActionLabel={emptyActionLabel}
-                    minHeight={minHeight}
-                    renderExpandedRow={expandedRowRender}
-                    isRowExpanded={(row) => row.id === expandedId}
-                    rowClassName={rowClassName}
-                />
+            {/* Mobile card list — < md (only when mobileCardRender provided) */}
+            {mobileCardRender && !isLoading && !isError && data.length > 0 && (
+                <div className="md:hidden space-y-2">
+                    {data.map((row) => (
+                        <div key={(row.id as string | number | undefined) ?? Math.random()}>
+                            {mobileCardRender(row)}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Table Container — hidden on mobile when mobileCardRender provided */}
+            <Card
+                padding="none"
+                className={cn(
+                    "border border-slate-300/70 dark:border-white/10 shadow-card overflow-hidden",
+                    mobileCardRender && data.length > 0 && !isLoading && !isError && "hidden md:block"
+                )}
+            >
+                <div className="overflow-x-auto">
+                    <DataTable
+                        table={table}
+                        isLoading={isLoading}
+                        isError={isError}
+                        errorMessage={errorMessage}
+                        onRetry={onRetry}
+                        isEmpty={!isLoading && data.length === 0}
+                        emptyTitle={emptyTitle}
+                        emptyDescription={emptyDescription}
+                        onEmptyAction={onEmptyAction}
+                        emptyActionLabel={emptyActionLabel}
+                        minHeight={minHeight}
+                        renderExpandedRow={expandedRowRender}
+                        isRowExpanded={(row) => row.id === expandedId}
+                        rowClassName={rowClassName}
+                    />
+                </div>
 
                 {/* Paginação */}
                 {pagination && pagination.totalItems > 0 && (

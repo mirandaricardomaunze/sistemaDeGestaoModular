@@ -97,14 +97,15 @@ export function ConfirmationModal({
                 onClick={!isLoading ? onClose : undefined}
             />
 
-            {/* Modal Container */}
-            <div className="flex min-h-full items-center justify-center p-4">
+            {/* Modal Container — bottom sheet on mobile, centered card on >= sm */}
+            <div className="flex min-h-full items-end sm:items-center justify-center sm:p-4">
                 <div
-                    className="relative w-full max-w-md bg-white dark:bg-dark-800 rounded-2xl border border-slate-300/70 dark:border-white/10 shadow-card-hover animate-slide-up"
+                    className="relative w-full sm:max-w-md bg-white dark:bg-dark-800 rounded-t-2xl sm:rounded-2xl border border-slate-300/70 dark:border-white/10 shadow-card-hover animate-slide-up"
+                    style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Content */}
-                    <div className="p-6">
+                    <div className="p-5 sm:p-6">
                         {/* Icon */}
                         <div className={cn(
                             'w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4',

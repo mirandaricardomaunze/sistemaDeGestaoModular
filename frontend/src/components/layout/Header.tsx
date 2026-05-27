@@ -47,10 +47,10 @@ export default function Header() {
     };
 
     return (
-        <header className="sticky top-0 z-30 h-16 bg-white dark:bg-dark-900/70 backdrop-blur-md border-b border-slate-300/70 dark:border-dark-800/50 shadow-[0_1px_2px_rgba(15,23,42,0.06),0_10px_26px_-24px_rgba(15,23,42,0.75)] transition-all duration-300">
-            <div className="flex items-center justify-between h-full px-4 lg:px-8 gap-4 max-w-[1600px] mx-auto">
+        <header className="sticky top-0 z-30 h-14 lg:h-16 bg-white dark:bg-dark-900/70 backdrop-blur-md border-b border-slate-300/70 dark:border-dark-800/50 shadow-[0_1px_2px_rgba(15,23,42,0.06),0_10px_26px_-24px_rgba(15,23,42,0.75)] transition-all duration-300">
+            <div className="flex items-center justify-between h-full px-3 sm:px-4 lg:px-8 gap-2 sm:gap-4 max-w-[1600px] mx-auto">
                 {/* Left Section */}
-                <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
                     {/* Mobile Menu Toggle */}
                     <Button
                         onClick={toggleSidebar}
@@ -65,11 +65,11 @@ export default function Header() {
                 </div>
 
                 {/* Right Section */}
-                <div className="flex items-center gap-2 lg:gap-3">
-                    {/* Theme Toggle */}
+                <div className="flex items-center gap-1 sm:gap-2 lg:gap-3">
+                    {/* Theme Toggle — hidden on smallest screens to save space */}
                     <Button variant="ghost"
                         onClick={toggleTheme}
-                        className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-dark-800 text-slate-700 dark:text-gray-300 transition-all duration-200"
+                        className="hidden sm:flex p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-dark-800 text-slate-700 dark:text-gray-300 transition-all duration-200"
                         title={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')}
                     >
                         {theme === 'light' ? (

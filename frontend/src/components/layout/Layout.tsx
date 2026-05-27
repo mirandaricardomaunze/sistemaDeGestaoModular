@@ -95,9 +95,10 @@ export default function Layout() {
                 <main
                     className={
                         isPOSPage
-                            ? "flex-1 flex flex-col min-h-0 overflow-y-auto bg-slate-100 dark:bg-dark-900 p-4 lg:p-6 scrollbar-thin relative"
-                            : "flex-1 overflow-y-auto p-4 lg:p-6 pb-16 scrollbar-thin relative"
+                            ? "flex-1 flex flex-col min-h-0 overflow-y-auto bg-slate-100 dark:bg-dark-900 p-2 sm:p-3 lg:p-6 scrollbar-thin relative"
+                            : "flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-16 lg:pb-16 scrollbar-thin relative"
                     }
+                    style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}
                 >
                     <PageTransitionLoader />
                     <Suspense fallback={<LoadingOverlay />}>

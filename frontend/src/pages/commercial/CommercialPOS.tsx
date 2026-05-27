@@ -231,6 +231,9 @@ export default function CommercialPOS() {
     const [selectedCustomer, setSelectedCustomer] = useState<POSCustomer | null>(null);
     const [customerName, setCustomerName] = useState('');
 
+    // Mobile view toggle: catalog vs cart (< lg only)
+    const [mobileView, setMobileView] = useState<'catalog' | 'cart'>('catalog');
+
 
     // Track processing state for each action (e.g., product addition, qty change)
     const [processingActions, setProcessingActions] = useState<Record<string, boolean>>({});
@@ -1132,9 +1135,9 @@ export default function CommercialPOS() {
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/5 rounded-full blur-[80px] pointer-events-none" />
                 
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-6 relative z-10">
                     <div className="space-y-1">
-                        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white drop-shadow-sm">
+                        <h1 className="text-lg lg:text-2xl font-bold tracking-tight text-slate-900 dark:text-white drop-shadow-sm">
                             PDV COMERCIAL
                         </h1>
                         <div className="flex items-center gap-3 flex-wrap">
@@ -1200,9 +1203,47 @@ export default function CommercialPOS() {
                 onViewHistory={handleReminderViewHistory}
             />
 
-            {/* Layout 60/40 */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 h-[calc(100vh-220px)]">
-                <div className="lg:col-span-3 overflow-y-auto pr-2 scrollbar-none">
+            {/* Mobile tabs (Catalogo/Carrinho) — only < lg */}
+            <div className="lg:hidden flex items-center gap-1 p-1 bg-slate-200/60 dark:bg-dark-800/60 rounded-xl mb-2">
+                <button
+                    type="button"
+                    onClick={() => setMobileView('catalog')}
+                    className={cn(
+                        "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98]",
+                        mobileView === 'catalog'
+                            ? 'bg-white dark:bg-dark-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                            : 'text-slate-600 dark:text-gray-400'
+                    )}
+                >
+                    Catálogo
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setMobileView('cart')}
+                    className={cn(
+                        "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98] relative",
+                        mobileView === 'cart'
+                            ? 'bg-white dark:bg-dark-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                            : 'text-slate-600 dark:text-gray-400'
+                    )}
+                >
+                    Carrinho
+                    {cart.length > 0 && (
+                        <span className="absolute top-1 right-2 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center text-[10px] font-black text-white bg-red-500 rounded-full">
+                            {cart.length > 9 ? '9+' : cart.length}
+                        </span>
+                    )}
+                </button>
+            </div>
+
+            {/* Layout 60/40 (desktop) / tabs (mobile) */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 lg:gap-6 lg:h-[calc(100vh-220px)] pb-24 lg:pb-0">
+                <div
+                    className={cn(
+                        "lg:col-span-3 lg:overflow-y-auto lg:pr-2 lg:scrollbar-none",
+                        mobileView === 'catalog' ? 'block' : 'hidden lg:block'
+                    )}
+                >
                     <CommercialProductGrid
                         searchInputRef={searchInputRef}
                         posSearch={posSearch}
@@ -1216,7 +1257,12 @@ export default function CommercialPOS() {
                     />
                 </div>
 
-                <div className="lg:col-span-2">
+                <div
+                    className={cn(
+                        "lg:col-span-2",
+                        mobileView === 'cart' ? 'block' : 'hidden lg:block'
+                    )}
+                >
                     <CommercialCartPanel
                         cart={cart}
                         setCart={setCart}
@@ -1258,6 +1304,39 @@ export default function CommercialPOS() {
                     />
                 </div>
             </div>
+
+            {/* Mobile bottom bar — visible only on < lg, shows total + pay */}
+            {cart.length > 0 && (
+                <div
+                    className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-dark-800 border-t border-slate-200 dark:border-dark-700 shadow-[0_-4px_20px_rgba(15,23,42,0.08)]"
+                    style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+                >
+                    <div className="flex items-center justify-between gap-3 px-3 py-2">
+                        <div
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => setMobileView('cart')}
+                        >
+                            <p className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                                {cart.length} {cart.length === 1 ? 'item' : 'itens'}
+                            </p>
+                            <p className="text-lg font-black text-slate-900 dark:text-white tabular-nums leading-tight truncate">
+                                {toMoney(cartTotal)} MZN
+                            </p>
+                        </div>
+                        <Button
+                            variant="success"
+                            size="md"
+                            onClick={handleOpenCheckout}
+                            disabled={checkoutLoading || !shift}
+                            isLoading={checkoutLoading}
+                            className="h-12 px-5"
+                            leftIcon={<HiOutlineBanknotes className="w-5 h-5" />}
+                        >
+                            Pagar
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             {/* Modals */}
             <CommercialPaymentModal

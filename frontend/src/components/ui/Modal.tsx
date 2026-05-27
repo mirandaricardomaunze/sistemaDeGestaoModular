@@ -27,11 +27,11 @@ export function Modal({
     if (!isOpen) return null;
 
     const sizeClasses = {
-        sm: 'max-w-sm',
-        md: 'max-w-xl',
-        lg: 'max-w-3xl',
-        xl: 'max-w-5xl',
-        full: 'max-w-[95vw]',
+        sm: 'sm:max-w-sm',
+        md: 'sm:max-w-xl',
+        lg: 'sm:max-w-3xl',
+        xl: 'sm:max-w-5xl',
+        full: 'sm:max-w-[95vw]',
     };
 
     return (
@@ -42,26 +42,29 @@ export function Modal({
                 onClick={onClose}
             />
 
-            {/* Modal Container */}
-            <div className="flex min-h-full items-center justify-center p-4">
+            {/* Modal Container — full-screen on mobile, centered card on >= sm */}
+            <div className="flex min-h-full items-stretch sm:items-center justify-center sm:p-4">
                 <div
                     className={cn(
-                        'relative w-full rounded-2xl shadow-card-hover animate-slide-up border border-slate-300/70 dark:border-dark-700/50 flex flex-col max-h-[90vh] overflow-hidden',
+                        'relative w-full flex flex-col overflow-hidden',
+                        'min-h-screen sm:min-h-0 sm:max-h-[90vh] sm:rounded-2xl sm:shadow-card-hover sm:border sm:border-slate-300/70 sm:dark:border-dark-700/50',
+                        'animate-slide-up',
                         isLight ? 'bg-white text-slate-900' : 'bg-white dark:bg-dark-800',
                         sizeClasses[size],
                         className
                     )}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    {/* Header */}
+                    {/* Header — sticky on mobile */}
                     {(title || showCloseButton) && (
                         <div className={cn(
-                            "flex items-center justify-between p-6 border-b",
-                            isLight ? "border-slate-200" : "border-slate-200 dark:border-dark-700"
+                            "sticky top-0 z-10 flex items-center justify-between px-4 py-3 sm:p-6 border-b",
+                            isLight ? "bg-white border-slate-200" : "bg-white dark:bg-dark-800 border-slate-200 dark:border-dark-700",
+                            "pt-[max(env(safe-area-inset-top),0.75rem)] sm:pt-6"
                         )}>
                             {title && (
                                 <h2 className={cn(
-                                    "text-xl font-bold",
+                                    "text-base sm:text-xl font-bold truncate pr-2",
                                     isLight ? "text-slate-950" : "text-slate-950 dark:text-white"
                                 )}>
                                     {title}
@@ -73,7 +76,7 @@ export function Modal({
                                     onClick={onClose}
                                     aria-label="Fechar"
                                     className={cn(
-                                        "p-2 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+                                        "p-2 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 flex-shrink-0",
                                         isLight
                                             ? "hover:bg-slate-100 text-slate-500"
                                             : "hover:bg-slate-100 dark:hover:bg-dark-700 text-slate-500 dark:text-gray-400"
@@ -86,7 +89,12 @@ export function Modal({
                     )}
 
                     {/* Content */}
-                    <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">{children}</div>
+                    <div
+                        className="p-4 sm:p-6 overflow-y-auto flex-1 custom-scrollbar"
+                        style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}
+                    >
+                        {children}
+                    </div>
                 </div>
             </div>
         </div>

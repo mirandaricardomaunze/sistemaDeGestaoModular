@@ -150,7 +150,7 @@ export function CommercialProductGrid({
                 </div>
 
             {/* Product Grid - Premium Dark Style */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-5 max-h-[calc(100vh-10rem)] overflow-y-auto pr-3 scrollbar-none pb-10">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto lg:pr-3 scrollbar-none pb-10">
                 {paginatedItems.map((product) => {
                     const isProcessing = processingActions[product.id];
                     const stock = Number(product.currentStock) || 0;
@@ -163,7 +163,7 @@ export function CommercialProductGrid({
                         <div
                             key={product.id}
                             className={cn(
-                                "p-6 cursor-pointer bg-white dark:bg-[#111214] border border-slate-200 dark:border-white/5 rounded-2xl hover:border-blue-500/30 dark:hover:border-white/20 transition-all flex flex-col items-center text-center min-h-[160px] group relative shadow-sm hover:shadow-md",
+                                "p-3 sm:p-6 cursor-pointer bg-white dark:bg-[#111214] border border-slate-200 dark:border-white/5 rounded-2xl hover:border-blue-500/30 dark:hover:border-white/20 active:scale-[0.98] transition-all flex flex-col items-center text-center min-h-[140px] sm:min-h-[160px] group relative shadow-sm hover:shadow-md touch-manipulation",
                                 isProcessing && "opacity-70"
                             )}
                             onClick={() => !isProcessing && handleProductClick(product)}
