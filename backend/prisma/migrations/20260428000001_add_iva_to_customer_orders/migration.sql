@@ -14,6 +14,11 @@ ALTER TABLE "customer_orders"
     ADD COLUMN "taxRate"   DECIMAL(5,2)  NOT NULL DEFAULT 0,
     ADD COLUMN "taxAmount" DECIMAL(15,2) NOT NULL DEFAULT 0;
 
+-- Some fresh deploys can start from an older baseline where company_settings
+-- did not yet have a company relation. Ensure the backfill join is available.
+ALTER TABLE "company_settings"
+    ADD COLUMN IF NOT EXISTS "companyId" TEXT;
+
 -- Backfill from total + each company's stored ivaRate.
 UPDATE "customer_orders" co
 SET
