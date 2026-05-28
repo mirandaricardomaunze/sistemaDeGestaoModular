@@ -86,6 +86,7 @@ import { logger } from './utils/logger';
 
 // ── App Initialization ──────────────────────────────────────────────────────
 export const app = express();
+app.set('trust proxy', 1);
 
 const healthCors: RequestHandler = (req, res, next) => {
     const origin = req.headers.origin;
