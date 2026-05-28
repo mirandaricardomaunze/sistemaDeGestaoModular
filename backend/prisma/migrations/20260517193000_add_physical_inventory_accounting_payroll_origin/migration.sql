@@ -7,7 +7,12 @@ CREATE TYPE "JournalEntryStatus" AS ENUM ('DRAFT', 'POSTED', 'VOID');
 
 ALTER TABLE "payroll_records"
   ADD COLUMN IF NOT EXISTS "inssEmployer" DECIMAL(15,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS "companyId" TEXT,
   ADD COLUMN IF NOT EXISTS "origin_module" TEXT NOT NULL DEFAULT 'hr';
+
+ALTER TABLE "payroll_records"
+  DROP CONSTRAINT IF EXISTS "payroll_records_companyId_fkey",
+  ADD CONSTRAINT "payroll_records_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 CREATE INDEX IF NOT EXISTS "payroll_records_companyId_origin_module_idx"
   ON "payroll_records"("companyId", "origin_module");
