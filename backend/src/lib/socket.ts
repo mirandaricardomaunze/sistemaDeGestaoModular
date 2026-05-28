@@ -7,9 +7,19 @@ import { isTokenBlacklisted } from './redis';
 let io: Server;
 
 export function initSocket(server: HttpServer) {
-    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(s => s.trim()).filter(Boolean);
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(s => s.trim()).filter(Boolean) || [];
     const corsOrigin = process.env.NODE_ENV === 'production'
-        ? (allowedOrigins?.length ? allowedOrigins : false)
+        ? (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+            if (!origin) return callback(null, true);
+            const isAllowed = allowedOrigins.includes(origin) ||
+                              origin === 'https://sistema-de-gestao-modular-frontend.vercel.app' ||
+                              origin.endsWith('-mirandaricardomaunze.vercel.app');
+            if (isAllowed) {
+                callback(null, true);
+            } else {
+                callback(new Error('Origin not allowed by CORS'));
+            }
+          }
         : true; // allow all in development
 
     io = new Server(server, {

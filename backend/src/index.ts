@@ -90,7 +90,12 @@ const allowedOrigins = env.ALLOWED_ORIGINS;
 
 const healthCors: RequestHandler = (req, res, next) => {
     const origin = req.headers.origin;
-    if (origin && allowedOrigins.includes(origin)) {
+    const isAllowed = origin && (
+        allowedOrigins.includes(origin) ||
+        origin === 'https://sistema-de-gestao-modular-frontend.vercel.app' ||
+        origin.endsWith('-mirandaricardomaunze.vercel.app')
+    );
+    if (origin && isAllowed) {
         res.setHeader('Access-Control-Allow-Origin', origin);
         res.setHeader('Access-Control-Allow-Credentials', 'true');
         res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
@@ -149,7 +154,10 @@ app.use(cors({
             }
             return callback(null, true);
         }
-        if (allowedOrigins.includes(origin)) return callback(null, true);
+        const isAllowed = allowedOrigins.includes(origin) ||
+                          origin === 'https://sistema-de-gestao-modular-frontend.vercel.app' ||
+                          origin.endsWith('-mirandaricardomaunze.vercel.app');
+        if (isAllowed) return callback(null, true);
         callback(new Error(`Origin '${origin}' not allowed by CORS policy`));
     },
     credentials: true,
