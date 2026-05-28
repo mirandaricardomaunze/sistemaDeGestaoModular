@@ -753,9 +753,19 @@ CREATE TABLE "company_settings" (
     "ivaRate" DECIMAL(5,2) NOT NULL DEFAULT 16,
     "currency" TEXT NOT NULL DEFAULT 'MZN',
     "businessType" "BusinessType" NOT NULL DEFAULT 'retail',
+    "companyId" TEXT,
 
     CONSTRAINT "company_settings_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "company_settings_companyId_key" ON "company_settings"("companyId");
+
+-- CreateIndex
+CREATE INDEX "company_settings_companyId_idx" ON "company_settings"("companyId");
+
+-- AddForeignKey
+ALTER TABLE "company_settings" ADD CONSTRAINT "company_settings_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- CreateTable
 CREATE TABLE "campaigns" (

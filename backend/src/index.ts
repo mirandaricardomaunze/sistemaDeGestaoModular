@@ -22,6 +22,7 @@ import { errorHandler } from './middleware/error.middleware';
 import { authenticate, AuthRequest } from './middleware/auth';
 import { ApiError } from './middleware/error.middleware';
 import { env } from './config/env';
+import { isCorsOriginAllowed } from './config/cors';
 
 // Import Routes
 import authRoutes from './routes/auth';
@@ -86,18 +87,10 @@ import { logger } from './utils/logger';
 // ── App Initialization ──────────────────────────────────────────────────────
 export const app = express();
 
-const allowedOrigins = env.ALLOWED_ORIGINS;
-
 const healthCors: RequestHandler = (req, res, next) => {
     const origin = req.headers.origin;
-    const isAllowed = origin && (
-        allowedOrigins.includes(origin) ||
-        origin === 'https://sistema-de-gestao-modular-frontend.vercel.app' ||
-        origin.endsWith('-mirandaricardomaunze.vercel.app')
-    );
-    if (origin && isAllowed) {
+    if (origin) {
         res.setHeader('Access-Control-Allow-Origin', origin);
-        res.setHeader('Access-Control-Allow-Credentials', 'true');
         res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Idempotency-Key');
         res.setHeader('Access-Control-Max-Age', '3600');
@@ -144,7 +137,7 @@ app.use(cookieParser());
 app.use(cors({
     origin: (origin, callback) => {
         // In development without an allowlist, permit all origins
-        if (process.env.NODE_ENV !== 'production' && allowedOrigins.length === 0) {
+        if (process.env.NODE_ENV !== 'production' && env.ALLOWED_ORIGINS.length === 0) {
             return callback(null, true);
         }
         // Reject requests without an Origin header in production (prevents CSRF from forms)
@@ -154,10 +147,7 @@ app.use(cors({
             }
             return callback(null, true);
         }
-        const isAllowed = allowedOrigins.includes(origin) ||
-                          origin === 'https://sistema-de-gestao-modular-frontend.vercel.app' ||
-                          origin.endsWith('-mirandaricardomaunze.vercel.app');
-        if (isAllowed) return callback(null, true);
+        if (isCorsOriginAllowed(origin)) return callback(null, true);
         callback(new Error(`Origin '${origin}' not allowed by CORS policy`));
     },
     credentials: true,

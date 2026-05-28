@@ -3,18 +3,15 @@ import { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
 import { prisma } from './prisma';
 import { isTokenBlacklisted } from './redis';
+import { isCorsOriginAllowed } from '../config/cors';
 
 let io: Server;
 
 export function initSocket(server: HttpServer) {
-    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(s => s.trim()).filter(Boolean) || [];
     const corsOrigin = process.env.NODE_ENV === 'production'
         ? (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
             if (!origin) return callback(null, true);
-            const isAllowed = allowedOrigins.includes(origin) ||
-                              origin === 'https://sistema-de-gestao-modular-frontend.vercel.app' ||
-                              origin.endsWith('-mirandaricardomaunze.vercel.app');
-            if (isAllowed) {
+            if (isCorsOriginAllowed(origin)) {
                 callback(null, true);
             } else {
                 callback(new Error('Origin not allowed by CORS'));
