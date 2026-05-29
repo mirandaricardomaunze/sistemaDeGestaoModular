@@ -124,47 +124,22 @@ export const useAuthStore = create<AuthStore>()(
                 } catch (error) {
                     set({ isLoading: false });
 
-                    // Audit log failed login
-                    const addAuditLog = useAuditStore.getState().addLog;
-
-                    // Determine the error type precisely
+                    // Note: failed-login audit log is created server-side by the
+                    // /api/auth/login route. Don't POST /api/audit here — the user
+                    // is not authenticated yet and the call would 401.
                     const axiosError = error as {
                         response?: { status?: number; data?: { message?: string } };
                         request?: unknown;
                         code?: string;
                     };
 
-                    let toastMessage: string;
-                    let auditErrorMsg: string;
-
                     if (!axiosError.response) {
-                        // No response at all — network/internet problem
-                        toastMessage = 'Sem ligação ao servidor. Verifique a sua ligação à internet e tente novamente.';
-                        auditErrorMsg = 'Falha de rede (sem resposta do servidor)';
-                        toast.error(toastMessage, { duration: 6000, icon: '📡' });
+                        toast.error('Sem ligação ao servidor. Verifique a sua ligação à internet e tente novamente.', { duration: 6000, icon: '📡' });
                     } else if (axiosError.response.status === 401 || axiosError.response.status === 403) {
-                        // Wrong credentials
-                        toastMessage = 'Email ou senha incorretos. Verifique as suas credenciais e tente novamente.';
-                        auditErrorMsg = 'Credenciais inválidas';
-                        toast.error(toastMessage, { duration: 5000 });
+                        toast.error('Email ou senha incorretos. Verifique as suas credenciais e tente novamente.', { duration: 5000 });
                     } else {
-                        // Other server error (500, 503, etc.)
-                        toastMessage = axiosError.response.data?.message || 'Erro no servidor. Tente mais tarde ou contacte o suporte.';
-                        auditErrorMsg = `Erro HTTP ${axiosError.response.status}`;
-                        toast.error(toastMessage, { duration: 6000 });
+                        toast.error(axiosError.response.data?.message || 'Erro no servidor. Tente mais tarde ou contacte o suporte.', { duration: 6000 });
                     }
-
-                    addAuditLog({
-                        userId: 'anonymous',
-                        userName: 'Desconhecido',
-                        module: 'auth',
-                        action: 'login_failed',
-                        severity: 'warning',
-                        entityType: 'User',
-                        description: `Tentativa de login falhada para email: ${email}`,
-                        success: false,
-                        errorMessage: auditErrorMsg,
-                    });
 
                     return false;
                 }
