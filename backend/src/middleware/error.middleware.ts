@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { logger } from '../utils/logger';
 
 export type ApiErrorDetail = { field?: string; message?: string; label?: string; [key: string]: unknown };
+type HttpError = Error & { status?: number; type?: string };
 
 export class ApiError extends Error {
     constructor(
@@ -47,6 +48,13 @@ export const errorHandler = (
     res: Response,
     _next: NextFunction
 ) => {
+    const httpError = err as HttpError;
+    if (httpError.status === 400 && httpError.type === 'entity.parse.failed') {
+        return res.status(400).json({
+            message: 'JSON inválido. Verifique os dados enviados e tente novamente.',
+        });
+    }
+
     if (err instanceof ApiError) {
         return res.status(err.statusCode).json({
             message: err.message,

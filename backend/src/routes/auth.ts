@@ -9,12 +9,37 @@ import { rateLimiters } from '../middleware/rateLimit';
 import { CORE_MODULES } from '../constants/modules.constants';
 import { blacklistToken } from '../lib/redis';
 import { sendPasswordResetEmail, dispatchEmail } from '../utils/mail';
+import { registerSchema } from '../validation/auth';
 
 const router = Router();
 
 /** Requires ≥8 chars with at least one uppercase, one lowercase and one digit */
 const isPasswordStrong = (pwd: string): boolean =>
     pwd.length >= 8 && /[A-Z]/.test(pwd) && /[a-z]/.test(pwd) && /[0-9]/.test(pwd);
+
+const registerInputSchema = registerSchema
+    .omit({ companyNuit: true })
+    .extend({ companyNuit: registerSchema.shape.companyNuit.optional().nullable() });
+
+const optionalRegisterFields = new Set([
+    'phone',
+    'companyTradeName',
+    'companyNuit',
+    'companyPhone',
+    'companyEmail',
+    'companyAddress',
+]);
+
+const normalizeRegisterInput = (body: unknown) => {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return body;
+    return Object.fromEntries(
+        Object.entries(body).map(([key, value]) => {
+            if (typeof value !== 'string') return [key, value];
+            const trimmed = value.trim();
+            return [key, optionalRegisterFields.has(key) && trimmed === '' ? undefined : trimmed];
+        })
+    );
+};
 
 /**
  * Utility to remove sensitive fields from user object
@@ -127,7 +152,18 @@ router.post('/login', rateLimiters.auth, async (req, res) => {
 });
 
 router.post('/register', rateLimiters.auth, async (req, res) => {
-    const { email, password, name, companyName, companyNuit, moduleCode } = req.body;
+    const {
+        email,
+        password,
+        name,
+        companyName,
+        companyNuit,
+        moduleCode,
+        companyTradeName,
+        companyPhone,
+        companyEmail,
+        companyAddress,
+    } = registerInputSchema.parse(normalizeRegisterInput(req.body));
 
     // Input validation
     if (!email || !password || !name || !companyName || !moduleCode) {
@@ -157,11 +193,11 @@ router.post('/register', rateLimiters.auth, async (req, res) => {
             const company = await tx.company.create({
                 data: {
                     name: companyName,
-                    tradeName: req.body.companyTradeName || companyName,
+                    tradeName: companyTradeName || companyName,
                     nuit: companyNuit || null,
-                    phone: req.body.companyPhone,
-                    email: req.body.companyEmail,
-                    address: req.body.companyAddress,
+                    phone: companyPhone,
+                    email: companyEmail,
+                    address: companyAddress,
                     modules: {
                         create: { moduleCode, isActive: true }
                     }
