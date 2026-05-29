@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-#
 # Backend (Node/Express/Prisma) — monorepo workspace build.
 # IMPORTANT: build context must be the repo root (see docker-compose.yml).
 #   docker build -f backend/Dockerfile -t sistema-backend .
@@ -14,7 +12,7 @@ COPY frontend/package.json ./frontend/
 COPY backend/package.json ./backend/
 # Prisma schema is needed for `prisma generate` during install/build.
 COPY backend/prisma ./backend/prisma
-RUN npm ci
+RUN npm ci --workspace backend --include-workspace-root
 RUN npm run prisma:generate -w backend
 
 # ---------- builder ----------
@@ -32,7 +30,7 @@ COPY package.json package-lock.json ./
 COPY frontend/package.json ./frontend/
 COPY backend/package.json ./backend/
 COPY backend/prisma ./backend/prisma
-RUN npm ci --omit=dev --workspaces --include-workspace-root
+RUN npm ci --omit=dev --workspace backend --include-workspace-root
 RUN npm run prisma:generate -w backend
 
 # ---------- runner ----------
