@@ -20,6 +20,8 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json ./
 COPY backend ./backend
+# Workspace-local packages are not always hoisted to /app/node_modules.
+COPY --from=deps /app/backend/node_modules ./backend/node_modules
 # Carry over the Prisma-generated client from the deps stage.
 COPY --from=deps /app/backend/prisma ./backend/prisma
 RUN npm run build -w backend
@@ -50,6 +52,7 @@ COPY --chown=node:node backend/package.json ./backend/package.json
 # Production node_modules (hoisted at /app/node_modules, plus any unhoistable
 # packages under /app/backend/node_modules).
 COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=prod-deps --chown=node:node /app/backend/node_modules ./backend/node_modules
 
 # Compiled output + Prisma schema/migrations
 COPY --from=builder --chown=node:node /app/backend/dist ./backend/dist
