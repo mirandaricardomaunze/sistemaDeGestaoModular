@@ -41,6 +41,45 @@ const normalizeRegisterInput = (body: unknown) => {
     );
 };
 
+const registerFieldLabels: Record<string, string> = {
+    name: 'Nome do administrador',
+    email: 'Email de login',
+    password: 'Senha',
+    phone: 'Telefone',
+    companyName: 'Razao social',
+    companyTradeName: 'Nome comercial',
+    companyNuit: 'NUIT',
+    companyPhone: 'Telefone da empresa',
+    companyEmail: 'Email da empresa',
+    companyAddress: 'Endereco da empresa',
+    moduleCode: 'Modulo',
+};
+
+const parseRegisterInput = (body: unknown) => {
+    const result = registerInputSchema.safeParse(normalizeRegisterInput(body));
+
+    if (!result.success) {
+        const errors = result.error.issues.map((issue) => {
+            const field = issue.path.join('.');
+            const firstKey = String(issue.path[0] ?? '');
+            return {
+                field,
+                label: registerFieldLabels[firstKey] ?? field,
+                message: issue.message,
+            };
+        });
+        const firstError = errors[0];
+        throw ApiError.badRequest(
+            firstError
+                ? `${firstError.label}: ${firstError.message}`
+                : 'Dados de registo invalidos. Verifique os campos e tente novamente.',
+            errors
+        );
+    }
+
+    return result.data;
+};
+
 /**
  * Utility to remove sensitive fields from user object
  */
@@ -163,7 +202,7 @@ router.post('/register', rateLimiters.auth, async (req, res) => {
         companyPhone,
         companyEmail,
         companyAddress,
-    } = registerInputSchema.parse(normalizeRegisterInput(req.body));
+    } = parseRegisterInput(req.body);
 
     // Input validation
     if (!email || !password || !name || !companyName || !moduleCode) {
