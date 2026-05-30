@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import { useAuthStore } from '../stores/useAuthStore';
 import { logger } from '../utils/logger';
-import { env, API_HOST } from '../config/env';
+import { API_HOST } from '../config/env';
 
 interface SocketContextType {
     socket: Socket | null;
