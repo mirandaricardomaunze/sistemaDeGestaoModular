@@ -132,8 +132,9 @@ export const useAuditStore = create<AuditState>()(
                 if (config.excludeModules.includes(logData.module)) return;
                 if (config.excludeActions.includes(logData.action)) return;
 
-                // Sync to database if enabled
-                if (get().syncEnabled) {
+                const token = localStorage.getItem('auth_token');
+                // Sync to database if enabled and authenticated
+                if (get().syncEnabled && token) {
                     auditAPI.create({
                         userId: logData.userId,
                         userName: logData.userName,
@@ -142,6 +143,13 @@ export const useAuditStore = create<AuditState>()(
                         entityId: logData.entityId,
                         oldData: logData.previousValues,
                         newData: logData.newValues,
+                    }).then((res) => {
+                        if (res === null) {
+                            // If API returned null (failed silently), store it locally to sync later
+                            set((state) => ({
+                                pendingSync: [...state.pendingSync, logData],
+                            }));
+                        }
                     }).catch(error => {
                         logger.error('Failed to sync audit log to database:', error);
                         // Add to pending sync queue for retry
@@ -235,29 +243,40 @@ export const useAuditStore = create<AuditState>()(
             // Sync pending logs to database
             syncToDatabase: async () => {
                 const { pendingSync, syncEnabled } = get();
+                const token = localStorage.getItem('auth_token');
 
-                if (!syncEnabled || pendingSync.length === 0) return;
+                // Do not attempt to sync if not enabled, no token, or no pending logs
+                if (!syncEnabled || !token || pendingSync.length === 0) return;
 
                 set({ isSyncing: true });
 
                 try {
-                    // Sync pending logs
-                    const promises = pendingSync.map(logData =>
-                        auditAPI.create({
-                            userId: logData.userId,
-                            userName: logData.userName,
-                            action: logData.action,
-                            entity: logData.entityType,
-                            entityId: logData.entityId,
-                            oldData: logData.previousValues,
-                            newData: logData.newValues,
+                    const failedLogs: CreateAuditLog[] = [];
+
+                    // Attempt to sync each pending log, collecting failures
+                    await Promise.allSettled(
+                        pendingSync.map(async (logData) => {
+                            try {
+                                const res = await auditAPI.create({
+                                    userId: logData.userId,
+                                    userName: logData.userName,
+                                    action: logData.action,
+                                    entity: logData.entityType,
+                                    entityId: logData.entityId,
+                                    oldData: logData.previousValues,
+                                    newData: logData.newValues,
+                                });
+                                if (res === null) {
+                                    failedLogs.push(logData);
+                                }
+                            } catch (err) {
+                                failedLogs.push(logData);
+                            }
                         })
                     );
 
-                    await Promise.allSettled(promises);
-
-                    // Clear successfully synced logs
-                    set({ pendingSync: [] });
+                    // Keep failed logs in the queue to retry later, clear successfully synced ones
+                    set({ pendingSync: failedLogs });
                 } catch (error) {
                     logger.error('Failed to sync audit logs:', error);
                 } finally {

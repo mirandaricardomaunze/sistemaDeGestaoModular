@@ -11,7 +11,7 @@ import {
 } from 'react-icons/hi2';
 import { format, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
-import { Badge, Button, Input, Modal, PageHeader, Select, Textarea } from '../../components/ui';
+import { Badge, Button, Card, Input, Modal, PageHeader, Select, Textarea } from '../../components/ui';
 import type { BadgeVariant } from '../../components/ui';
 import { SmartTable } from '../../components/ui/SmartTable';
 import { CommercialReceiptModal, type ReceiptData } from '../../components/commercial/pos/CommercialReceiptModal';
@@ -233,6 +233,70 @@ export default function PharmacyHistory() {
         },
     ], []);
 
+    const renderMobileCard = (sale: PharmacySale) => {
+        const method = getPaymentMethodLabel(sale.paymentMethod);
+        return (
+            <Card padding="sm" className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-gray-900 dark:text-white">
+                        {sale.receiptNumber || `SALE-${sale.id.slice(-6)}`}
+                    </span>
+                    {sale.status === 'voided' ? (
+                        <Badge variant="danger" size="sm" className="inline-flex items-center gap-1">
+                            <HiOutlineXCircle className="w-3 h-3" /> ANULADA
+                        </Badge>
+                    ) : (
+                        <Badge variant="success" size="sm" className="inline-flex items-center gap-1">
+                            <HiOutlineCheckCircle className="w-3 h-3" /> ACTIVA
+                        </Badge>
+                    )}
+                </div>
+
+                <div className="flex justify-between items-start text-sm">
+                    <div className="space-y-1 min-w-0 flex-1">
+                        <p className="font-bold text-gray-800 dark:text-gray-200 capitalize truncate">
+                            {sale.customer?.name || 'Consumidor Geral'}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                            {format(parseISO(sale.createdAt), 'dd/MM/yyyy HH:mm')}
+                        </p>
+                    </div>
+                    <div className="text-right space-y-1 ml-4 flex-shrink-0">
+                        <div className="font-black text-blue-600 dark:text-blue-400">
+                            {formatCurrency(sale.total)}
+                        </div>
+                        <Badge variant={method.color} size="sm" className="text-[9px]">
+                            {method.label}
+                        </Badge>
+                    </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-dark-800">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewReceipt(sale)}
+                        className="flex-1 justify-center gap-2 h-10"
+                    >
+                        <HiOutlineEye className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                        Ver Recibo
+                    </Button>
+                    {sale.status !== 'voided' && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenVoidModal(sale)}
+                            className="flex-1 justify-center gap-2 h-10 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                            <HiOutlineTrash className="w-4 h-4 text-red-500 dark:text-red-400" />
+                            Anular
+                        </Button>
+                    )}
+                </div>
+            </Card>
+        );
+    };
+
     return (
         <div className="space-y-6">
             <PageHeader
@@ -269,27 +333,31 @@ export default function PharmacyHistory() {
                 }}
                 renderFilters={(
                     <>
-                        <Input
-                            type="date"
-                            value={startDate}
-                            onChange={(event) => {
-                                setStartDate(event.target.value);
-                                setPage(1);
-                            }}
-                            className="w-36 bg-white dark:bg-dark-800"
-                            size="sm"
-                        />
-                        <Input
-                            type="date"
-                            value={endDate}
-                            onChange={(event) => {
-                                setEndDate(event.target.value);
-                                setPage(1);
-                            }}
-                            className="w-36 bg-white dark:bg-dark-800"
-                            size="sm"
-                        />
-                        <div className="w-full lg:w-44">
+                        <div className="w-full sm:w-36">
+                            <Input
+                                type="date"
+                                value={startDate}
+                                onChange={(event) => {
+                                    setStartDate(event.target.value);
+                                    setPage(1);
+                                }}
+                                className="bg-white dark:bg-dark-800"
+                                size="sm"
+                            />
+                        </div>
+                        <div className="w-full sm:w-36">
+                            <Input
+                                type="date"
+                                value={endDate}
+                                onChange={(event) => {
+                                    setEndDate(event.target.value);
+                                    setPage(1);
+                                }}
+                                className="bg-white dark:bg-dark-800"
+                                size="sm"
+                            />
+                        </div>
+                        <div className="w-full sm:w-44">
                             <Select
                                 value={statusFilter}
                                 onChange={(event) => {
@@ -321,6 +389,7 @@ export default function PharmacyHistory() {
                 emptyTitle="Nenhuma venda encontrada"
                 emptyDescription="Ajuste os filtros ou realize novas vendas no PDV."
                 minHeight="500px"
+                mobileCardRender={renderMobileCard}
             />
 
             <Modal

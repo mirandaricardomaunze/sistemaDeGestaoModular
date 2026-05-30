@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import { useAuthStore } from '../stores/useAuthStore';
 import { logger } from '../utils/logger';
-import { env } from '../config/env';
+import { env, API_HOST } from '../config/env';
 
 interface SocketContextType {
     socket: Socket | null;
@@ -24,9 +24,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             let cancelled = false;
             let newSocket: Socket | null = null;
 
-            // Extract base URL from VITE_API_URL (remove /api suffix) - Socket.io needs the base path
-            const apiUrl = env.VITE_API_URL || 'http://localhost:3001';
-            const socketUrl = apiUrl.replace(/\/api$/, '');
+            // Use unified API_HOST from env config (without trailing slash or /api suffix)
+            const socketUrl = API_HOST || 'http://localhost:3001';
 
             void import('socket.io-client').then(({ io }) => {
                 if (cancelled) return;

@@ -32,10 +32,12 @@ export interface ProductCategoryMixItem {
  * Server-backed analytics live in {@link useCommercialAnalytics} from `useCommercial.ts`.
  */
 export function useDerivedCommercialAnalytics(abcPeriod: number = 90, warehouseId?: string) {
-    const { products, isLoading: productsLoading } = useProducts({
+    const productsParams = useMemo(() => ({
         originModule: 'commercial',
         ...(warehouseId ? { warehouseId } : {})
-    });
+    }), [warehouseId]);
+
+    const { products, isLoading: productsLoading } = useProducts(productsParams);
     const { customers, isLoading: customersLoading } = useCustomers();
     const { data: marginData, isLoading: marginsLoading } = useMarginAnalysis(abcPeriod, warehouseId);
 

@@ -192,7 +192,19 @@ export const useAuthStore = create<AuthStore>()(
                     return { success: true };
                 } catch (error) {
                     set({ isLoading: false });
-                    const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Erro ao criar conta.';
+                    const responseData = (error as {
+                        response?: {
+                            data?: {
+                                message?: string;
+                                errors?: Array<{ label?: string; message?: string; field?: string }>;
+                            };
+                        };
+                    })?.response?.data;
+                    const firstDetail = responseData?.errors?.[0];
+                    const errorMessage =
+                        responseData?.message ||
+                        (firstDetail?.label && firstDetail?.message ? `${firstDetail.label}: ${firstDetail.message}` : firstDetail?.message) ||
+                        'Erro ao criar conta.';
                     toast.error(errorMessage);
                     return { success: false, error: errorMessage };
                 }
@@ -285,4 +297,3 @@ export const useAuthStore = create<AuthStore>()(
 export const useUser = () => useAuthStore((state) => state.user);
 export const useIsAuthenticated = () => useAuthStore((state) => state.isAuthenticated);
 export const useIsAuthLoading = () => useAuthStore((state) => state.isLoading);
-

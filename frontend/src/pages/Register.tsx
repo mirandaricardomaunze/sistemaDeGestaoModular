@@ -65,6 +65,12 @@ const registerSchema = z.object({
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
+const requiredText = (value: string) => value.trim();
+const optionalText = (value?: string) => {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : undefined;
+};
+
 export default function Register() {
     const navigate = useNavigate();
     const { register: registerUser, isLoading } = useAuthStore();
@@ -125,17 +131,17 @@ export default function Register() {
     const onSubmit = async (data: RegisterFormData) => {
         setRegisterError(null);
         const result = await registerUser({
-            name: data.name,
-            email: data.email,
+            name: requiredText(data.name),
+            email: requiredText(data.email).toLowerCase(),
             password: data.password,
             role: 'admin',
-            phone: data.phone,
-            companyName: data.companyName,
-            companyTradeName: data.companyTradeName,
-            companyNuit: data.companyNuit,
-            companyAddress: data.companyAddress,
-            companyPhone: data.companyPhone,
-            companyEmail: data.companyEmail,
+            phone: optionalText(data.phone),
+            companyName: requiredText(data.companyName),
+            companyTradeName: optionalText(data.companyTradeName),
+            companyNuit: requiredText(data.companyNuit),
+            companyAddress: requiredText(data.companyAddress),
+            companyPhone: requiredText(data.companyPhone),
+            companyEmail: optionalText(data.companyEmail),
             moduleCode: data.moduleCode,
         });
 
@@ -445,4 +451,3 @@ export default function Register() {
         </div>
     );
 }
-
