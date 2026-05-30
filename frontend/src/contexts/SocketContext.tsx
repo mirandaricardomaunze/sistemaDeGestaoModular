@@ -24,8 +24,16 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             let cancelled = false;
             let newSocket: Socket | null = null;
 
-            // Use unified API_HOST from env config (without trailing slash or /api suffix)
-            const socketUrl = API_HOST || 'http://localhost:3001';
+            // socket.io-client interpreta qualquer path no URL como namespace.
+            // Em produção (Vercel/Railway) VITE_API_URL pode ter sufixos como
+            // /api ou /api/v1 — usar só a origin garante namespace "/".
+            const rawHost = API_HOST || 'http://localhost:3001';
+            let socketUrl = rawHost;
+            try {
+                socketUrl = new URL(rawHost).origin;
+            } catch {
+                // fallback silencioso: usa rawHost se não for URL válido
+            }
 
             void import('socket.io-client').then(({ io }) => {
                 if (cancelled) return;

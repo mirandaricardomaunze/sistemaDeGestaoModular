@@ -65,21 +65,23 @@ export function Tabs({ tabs, activeTab, onChange, variant = 'default', className
                 className
             )}
         >
-            {tabs.map(tab => (
-                <Button variant="ghost"
-                    size="sm"
-                    key={tab.id}
-                    role="tab"
-                    aria-selected={activeTab === tab.id}
-                    type="button"
-                    onClick={() => !tab.disabled && onChange(tab.id)}
-                    className={getTabClasses(tab, activeTab === tab.id)}
-                    disabled={tab.disabled}
-                >
-                    {tab.icon}
-                    {tab.label}
-                </Button>
-            ))}
+            <div className="flex gap-1.5 w-max min-w-max pb-0.5">
+                {tabs.map(tab => (
+                    <Button variant="ghost"
+                        size="sm"
+                        key={tab.id}
+                        role="tab"
+                        aria-selected={activeTab === tab.id}
+                        type="button"
+                        onClick={() => !tab.disabled && onChange(tab.id)}
+                        className={getTabClasses(tab, activeTab === tab.id)}
+                        disabled={tab.disabled}
+                    >
+                        {tab.icon}
+                        {tab.label}
+                    </Button>
+                ))}
+            </div>
         </div>
     );
 }
