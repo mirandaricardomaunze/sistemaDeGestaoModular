@@ -739,20 +739,32 @@ export default function CalendarPage() {
 
                     {/* View toggle */}
                     <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                        <Button variant="ghost" size="sm" onClick={() => setViewMode('month')} className={cn('px-3 py-1.5 text-sm flex items-center gap-1 rounded-none', viewMode === 'month' ? 'bg-blue-600 text-white hover:bg-blue-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800')}>
-                            <HiOutlineViewColumns className="w-4 h-4" /> Mês
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            leftIcon={<HiOutlineViewColumns className="w-4 h-4" />}
+                            onClick={() => setViewMode('month')}
+                            className={cn('px-3 py-1.5 text-sm rounded-none', viewMode === 'month' ? 'bg-blue-600 text-white hover:bg-blue-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800')}
+                        >
+                            Mês
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setViewMode('list')} className={cn('px-3 py-1.5 text-sm flex items-center gap-1 rounded-none', viewMode === 'list' ? 'bg-blue-600 text-white hover:bg-blue-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800')}>
-                            <HiOutlineListBullet className="w-4 h-4" /> Lista
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            leftIcon={<HiOutlineListBullet className="w-4 h-4" />}
+                            onClick={() => setViewMode('list')}
+                            className={cn('px-3 py-1.5 text-sm rounded-none', viewMode === 'list' ? 'bg-blue-600 text-white hover:bg-blue-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800')}
+                        >
+                            Lista
                         </Button>
                     </div>
 
                     {/* New event */}
                     <Button
+                        leftIcon={<HiOutlinePlus className="w-4 h-4" />}
                         onClick={() => { setDefaultDate(undefined); setEditingEvent(null); setShowForm(true); }}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
                     >
-                        <HiOutlinePlus className="w-4 h-4" />
                         Novo Evento
                     </Button>
                 </div>
