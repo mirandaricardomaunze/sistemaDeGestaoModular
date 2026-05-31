@@ -31,15 +31,15 @@ export default function LanguageSelector() {
         <div className="relative" ref={dropdownRef}>
             <Button variant="ghost"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center gap-2 px-3 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ring-1 shadow-sm
-                    ${isOpen 
-                        ? 'bg-primary-50 text-primary-600 ring-primary-200 dark:bg-primary-900/20 dark:text-primary-400 dark:ring-primary-800' 
-                        : 'bg-white text-slate-700 dark:bg-transparent dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-dark-800 ring-slate-300 dark:ring-dark-700/50'}
+                className={`flex items-center justify-center h-10 w-10 rounded-xl transition-all duration-300
+                    ${isOpen
+                        ? 'bg-primary-50 dark:bg-primary-900/20'
+                        : 'hover:bg-slate-100 dark:hover:bg-dark-800'}
                 `}
-                title="Change language"
+                title={`Idioma: ${currentLang.name}`}
+                aria-label="Change language"
             >
-                <span className="text-base">{currentLang.flag}</span>
-                <span className="hidden md:inline">{currentLang.name}</span>
+                <span className="text-xl leading-none">{currentLang.flag}</span>
             </Button>
 
             {isOpen && (

@@ -68,34 +68,34 @@ export default function NotificationBadge({ className = '' }: NotificationBadgeP
         <div className={`relative ${className}`}>
             <Button variant="ghost"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`relative p-2.5 rounded-xl transition-all duration-300 ring-1 shadow-sm
+                className={`relative p-2.5 rounded-xl transition-all duration-300
                     ${isOpen
-                        ? 'bg-primary-50 text-primary-600 ring-primary-200 dark:bg-primary-900/30 dark:text-primary-400 dark:ring-primary-800 shadow-inner'
-                        : 'text-gray-500 hover:bg-gray-100 ring-gray-200/50 dark:text-gray-400 dark:hover:bg-dark-800 dark:ring-dark-700/50 hover:shadow-md hover:scale-105'}
+                        ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400 shadow-inner'
+                        : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-dark-800 hover:scale-105'}
                     ${hasCritical ? 'animate-pulse' : ''}`}
                 title="Notificações"
             >
                 <HiOutlineBell className="w-5 h-5" />
-
-                {/* Badge counter */}
-                {total > 0 && (
-                    <span
-                        className={`absolute -top-1 -right-1 min-w-[20px] h-[20px] 
-                            flex items-center justify-center text-[10px] font-black text-white 
-                            rounded-full px-1 border-2 border-white dark:border-dark-900 shadow-sm
-                            ${hasCritical
-                                ? 'bg-red-500 animate-bounce'
-                                : 'bg-primary-600'}`}
-                    >
-                        {total > 99 ? '99+' : total}
-                    </span>
-                )}
-
-                {/* Critical indicator ring */}
-                {hasCritical && (
-                    <span className="absolute inset-0 rounded-xl border-2 border-red-500 animate-ping opacity-75" />
-                )}
             </Button>
+
+            {/* Badge counter — sibling of Button to escape Button's overflow-hidden */}
+            {total > 0 && (
+                <span
+                    className={`pointer-events-none absolute -top-1 -right-1 min-w-[20px] h-[20px]
+                        flex items-center justify-center text-[10px] font-black text-white
+                        rounded-full px-1 ring-2 ring-white dark:ring-dark-900 shadow-md z-10
+                        ${hasCritical
+                            ? 'bg-red-500 animate-bounce'
+                            : 'bg-primary-600'}`}
+                >
+                    {total > 99 ? '99+' : total}
+                </span>
+            )}
+
+            {/* Critical indicator ring — also sibling so it doesn't get clipped */}
+            {hasCritical && (
+                <span className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-red-500 animate-ping opacity-75" />
+            )}
 
             <NotificationCenter
                 isOpen={isOpen}

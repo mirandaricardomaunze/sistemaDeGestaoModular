@@ -172,15 +172,23 @@ export default function ChatWidget({ initiallyOpen = false, onClose }: ChatWidge
         <>
             {/* Botão Flutuante */}
             {!isOpen && !isCommercialInsightsPage && (
-                <Button variant="ghost"
-                    type="button"
-                    onClick={() => setIsOpen(true)}
-                    aria-label="Abrir assistente IA"
-                    className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 rounded-full shadow-2xl hover:shadow-primary-500/50 transition-all duration-300 flex items-center justify-center text-white z-50 group hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-300"
-                >
-                    <HiOutlineSparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-                    <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-green-400 rounded-full animate-pulse border-2 border-white" />
-                </Button>
+                <div className="fixed bottom-6 right-6 z-50">
+                    <div className="relative">
+                        <Button variant="ghost"
+                            type="button"
+                            onClick={() => setIsOpen(true)}
+                            aria-label="Abrir assistente IA"
+                            className="w-14 h-14 bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 rounded-full shadow-2xl hover:shadow-primary-500/50 transition-all duration-300 flex items-center justify-center text-white group hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-300"
+                        >
+                            <HiOutlineSparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+                        </Button>
+                        {/* Online dot — sibling do Button para escapar ao overflow-hidden + rounded-full */}
+                        <span className="pointer-events-none absolute top-0 right-0 flex h-4 w-4">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex h-4 w-4 rounded-full bg-emerald-500 ring-2 ring-white shadow-md" />
+                        </span>
+                    </div>
+                </div>
             )}
 
             {/* Janela de Chat */}

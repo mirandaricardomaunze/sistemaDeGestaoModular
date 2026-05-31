@@ -109,12 +109,12 @@ export default function Header() {
                         ) : (
                             <Button variant="ghost"
                                 onClick={() => setShowSyncPanel(true)}
-                                className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all ${
+                                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
                                     isOnline
-                                        ? 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'
+                                        ? 'bg-emerald-100/60 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300'
                                         : !networkOnline
-                                            ? 'text-amber-500 bg-amber-50/60 dark:bg-amber-900/20 hover:bg-amber-100'
-                                            : 'text-orange-600 bg-orange-50/60 dark:bg-orange-900/20 hover:bg-orange-100'
+                                            ? 'bg-amber-100/60 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/20 dark:text-amber-300'
+                                            : 'bg-orange-100/60 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/20 dark:text-orange-300'
                                 }`}
                                 title={
                                     isOnline ? 'Sistema online - clique para ver fila' :
@@ -123,12 +123,20 @@ export default function Header() {
                                 }
                             >
                                 {isOnline ? (
-                                    <div className="relative flex h-2.5 w-2.5">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
-                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                                    </div>
+                                    <>
+                                        <span className="relative flex h-3 w-3 shrink-0">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70"></span>
+                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 ring-2 ring-white dark:ring-dark-900"></span>
+                                        </span>
+                                        <span className="hidden sm:inline">Sincronizado</span>
+                                    </>
                                 ) : (
-                                    <MdCloudOff className="w-4 h-4" />
+                                    <>
+                                        <MdCloudOff className="w-4 h-4 shrink-0" />
+                                        <span className="hidden sm:inline">
+                                            {!networkOnline ? 'Offline' : 'Sem servidor'}
+                                        </span>
+                                    </>
                                 )}
                             </Button>
                         )}
