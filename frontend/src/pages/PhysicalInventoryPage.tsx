@@ -91,6 +91,7 @@ export default function PhysicalInventoryPage() {
                     <Button
                         variant="outline"
                         size="sm"
+                        className="w-full h-11 sm:h-9"
                         leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
                         onClick={() => {
                             inventoriesQuery.refetch();
@@ -128,6 +129,7 @@ export default function PhysicalInventoryPage() {
                         isLoading={createMutation.isPending}
                         disabled={!warehouseId}
                         onClick={handleCreate}
+                        className="w-full h-11 sm:h-9 lg:w-auto"
                     >
                         Nova contagem
                     </Button>
@@ -174,10 +176,11 @@ export default function PhysicalInventoryPage() {
                                 Diferenca total: <span className={totalDifference === 0 ? 'text-emerald-600' : 'text-amber-600'}>{totalDifference}</span>
                             </p>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                             <Button
                                 size="sm"
                                 variant="outline"
+                                className="w-full h-11 sm:w-auto sm:h-9"
                                 disabled={!detail || detail.status !== 'DRAFT' && detail.status !== 'COUNTING' || changedLines.length === 0}
                                 isLoading={submitMutation.isPending}
                                 onClick={handleSubmitCounts}
@@ -187,6 +190,7 @@ export default function PhysicalInventoryPage() {
                             <Button
                                 size="sm"
                                 variant="success"
+                                className="w-full h-11 sm:w-auto sm:h-9"
                                 leftIcon={<HiOutlineCheckCircle className="w-4 h-4" />}
                                 disabled={!detail || detail.status !== 'REVIEW'}
                                 isLoading={approveMutation.isPending}
