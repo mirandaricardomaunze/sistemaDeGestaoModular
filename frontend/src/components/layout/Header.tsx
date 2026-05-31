@@ -161,58 +161,59 @@ export default function Header() {
 
                         {/* User Dropdown */}
                         {showUserMenu && (
-                            <div className="absolute right-0 mt-3 w-64 bg-white dark:bg-dark-800/95 backdrop-blur-xl rounded-2xl shadow-card-hover border border-slate-300/70 dark:border-dark-700/50 overflow-hidden animate-slide-up z-50">
-                                <div className="p-4 bg-slate-50 dark:bg-dark-900 border-b border-slate-200 dark:border-dark-700">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white text-lg font-bold shadow-inner">
+                            <div className="absolute right-0 mt-3 sm:mt-4 w-[calc(100vw-24px)] sm:w-80 max-w-[320px] bg-white dark:bg-dark-800/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border border-slate-200/80 dark:border-dark-700/50 overflow-hidden origin-top-right animate-in fade-in zoom-in-95 duration-200 z-50">
+                                <div className="p-4 sm:p-5 bg-gradient-to-b from-slate-50 to-white dark:from-dark-900/80 dark:to-dark-800/40 border-b border-slate-200 dark:border-dark-700">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white text-lg sm:text-xl font-black shadow-inner shadow-white/20 ring-4 ring-primary-50 dark:ring-primary-900/20">
                                             {getUserInitials(displayName)}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                            <p className="text-base font-bold text-gray-900 dark:text-white truncate">
                                                 {displayName}
                                             </p>
-                                            <p className="text-xs text-slate-600 dark:text-gray-400 truncate mb-1">
+                                            <p className="text-xs font-medium text-slate-500 dark:text-gray-400 truncate mb-1.5">
                                                 {user?.email || ''}
                                             </p>
                                             {user?.role && (
-                                                <span className="inline-flex px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-400 ring-1 ring-primary-200 dark:ring-primary-800">
+                                                <span className="inline-flex px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-400 ring-1 ring-primary-200 dark:ring-primary-800/80">
                                                     {roleLabels[user.role]}
                                                 </span>
                                             )}
                                         </div>
                                     </div>
                                 </div>
-                                <div className="p-2">
+                                <div className="p-2 sm:p-3 space-y-1">
                                     <Link
                                         to="/settings"
                                         onClick={() => setShowUserMenu(false)}
-                                        className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/10 hover:text-primary-600 dark:hover:text-primary-400 rounded-xl transition-all"
+                                        className="group w-full flex items-center gap-3 px-3 py-3 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-primary-400 rounded-xl transition-all"
                                     >
-                                        <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center group-hover:bg-white dark:group-hover:bg-dark-600 transition-colors">
-                                            <HiOutlineUser className="w-4 h-4" />
+                                        <div className="w-9 h-9 shrink-0 rounded-xl bg-slate-100 dark:bg-dark-700 flex items-center justify-center group-hover:bg-white dark:group-hover:bg-dark-600 group-hover:shadow-sm transition-all">
+                                            <HiOutlineUser className="w-5 h-5 text-slate-500 group-hover:text-primary-600 dark:text-slate-400 dark:group-hover:text-primary-400" />
                                         </div>
-                                        {t('auth.myProfile')}
+                                        <span className="flex-1 text-left">{t('auth.myProfile')}</span>
                                     </Link>
                                     <Link
                                         to="/settings"
                                         onClick={() => setShowUserMenu(false)}
-                                        className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/10 hover:text-primary-600 dark:hover:text-primary-400 rounded-xl transition-all"
+                                        className="group w-full flex items-center gap-3 px-3 py-3 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-primary-400 rounded-xl transition-all"
                                     >
-                                        <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center group-hover:bg-white dark:group-hover:bg-dark-600 transition-colors">
-                                            <HiOutlineCog6Tooth className="w-4 h-4" />
+                                        <div className="w-9 h-9 shrink-0 rounded-xl bg-slate-100 dark:bg-dark-700 flex items-center justify-center group-hover:bg-white dark:group-hover:bg-dark-600 group-hover:shadow-sm transition-all">
+                                            <HiOutlineCog6Tooth className="w-5 h-5 text-slate-500 group-hover:text-primary-600 dark:text-slate-400 dark:group-hover:text-primary-400" />
                                         </div>
-                                        {t('nav.settings')}
+                                        <span className="flex-1 text-left">{t('nav.settings')}</span>
                                     </Link>
-                                    <div className="my-2 border-t border-gray-100 dark:border-dark-700" />
-                                    <Button variant="danger"
+                                    <div className="my-2 border-t border-slate-100 dark:border-dark-700/80 mx-2" />
+                                    <button
+                                        type="button"
                                         onClick={handleLogout}
-                                        className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
+                                        className="group w-full flex items-center gap-3 px-3 py-3 text-sm font-black text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all outline-none focus:ring-2 focus:ring-red-500/20"
                                     >
-                                        <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-900/30 flex items-center justify-center">
-                                            <HiOutlineArrowRightOnRectangle className="w-4 h-4" />
+                                        <div className="w-9 h-9 shrink-0 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center group-hover:bg-white dark:group-hover:bg-red-900/50 group-hover:shadow-sm transition-all">
+                                            <HiOutlineArrowRightOnRectangle className="w-5 h-5 text-red-500 dark:text-red-400" />
                                         </div>
-                                        {t('auth.logout')}
-                                    </Button>
+                                        <span className="flex-1 text-left tracking-wide uppercase text-xs">{t('auth.logout')}</span>
+                                    </button>
                                 </div>
                             </div>
                         )}

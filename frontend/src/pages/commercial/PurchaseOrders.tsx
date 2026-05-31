@@ -700,35 +700,32 @@ export default function PurchaseOrders() {
             <Card padding="md" className="border-none shadow-none bg-gray-100/50 dark:bg-dark-800/50 rounded-lg">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div className="md:col-span-2">
-                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-1.5 uppercase tracking-widest pl-1">
-                            Pesquisar Ordem / Fornecedor
-                        </label>
-                        <div className="relative group">
-                            <HiOutlineClipboardDocumentList className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-primary-500 transition-colors" />
-                            <input 
-                                type="text" 
-                                placeholder="Nº OC ou Nome do fornecedor..."
-                                value={search}
-                                onChange={e => { setSearch(e.target.value); setPage(1); }}
-                                className="w-full h-11 sm:h-10 pl-10 pr-4 bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-gray-900 dark:text-white text-base sm:text-sm font-medium focus:ring-2 focus:ring-primary-500/20 outline-none transition-all"
-                            />
-                        </div>
+                        <Input
+                            label="Pesquisar Ordem / Fornecedor"
+                            size="sm"
+                            leftIcon={<HiOutlineClipboardDocumentList className="w-4 h-4" />}
+                            placeholder="Nº OC ou Nome do fornecedor..."
+                            value={search}
+                            onChange={e => { setSearch(e.target.value); setPage(1); }}
+                            className="bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg font-medium"
+                        />
                     </div>
                     <div>
-                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-1.5 uppercase tracking-widest pl-1">
-                            Estado
-                        </label>
                         <Select
+                            label="Estado"
                             options={statusOptions}
                             value={statusFilter}
                             onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
                             size="sm"
-                            className="w-full bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-sm font-medium"
+                            className="bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg font-medium"
                         />
                     </div>
                     <Button 
-                        onClick={refetch} 
-                        className="bg-primary-600 hover:bg-primary-700 text-white rounded-lg min-h-11 sm:h-10 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary-500/20"
+                        onClick={refetch}
+                        variant="primary"
+                        size="sm"
+                        fullWidth
+                        className="rounded-lg shadow-lg shadow-primary-500/20"
                     >
                         Filtrar Resultados
                     </Button>

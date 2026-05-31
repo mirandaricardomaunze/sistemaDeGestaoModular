@@ -802,7 +802,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                         <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="w-full sm:w-auto h-11 sm:h-10 flex items-center justify-center font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
+                            className="w-full sm:w-auto flex items-center justify-center font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
                             leftIcon={<HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />} 
                             onClick={() => refetch()}
                         >
@@ -811,7 +811,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                         <ExportInvoicesButton data={invoices} size="sm" className="w-full sm:w-auto" variant="outline" />
                         <Button 
                             size="sm" 
-                            className="w-full sm:w-auto h-11 sm:h-10 flex items-center justify-center font-black text-[10px] uppercase tracking-widest"
+                            className="w-full sm:w-auto flex items-center justify-center font-black text-[10px] uppercase tracking-widest"
                             leftIcon={<HiOutlinePlus className="w-5 h-5" />} 
                             onClick={() => setShowFormModal(true)}
                         >
@@ -964,19 +964,6 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                 <div className="contents">
                                     {/* Filters */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[180px_240px_160px_160px_auto] gap-3 items-end">
-                                        <div className="hidden">
-                                            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none z-10" />
-                                            <Input
-                                                placeholder="Buscar facturas por número ou cliente..."
-                                                value={search}
-                                                onChange={(e) => {
-                                                    setSearch(e.target.value);
-                                                    setPage(1);
-                                                }}
-                                                className="pl-10"
-                                                size="sm"
-                                            />
-                                        </div>
                                         <Select
                                             label="Status"
                                             options={statusOptions}
@@ -1032,119 +1019,12 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                                     setSelectedPeriod('all');
                                                     setPage(1);
                                                 }}
-                                                className="h-10 px-3 bg-white dark:bg-dark-800 text-[10px] font-black uppercase tracking-widest"
+                                                className="w-full bg-white dark:bg-dark-800 text-[10px] font-black uppercase tracking-widest shadow-sm rounded-lg"
                                             >
                                                 Limpar
                                             </Button>
                                         )}
                                     </div>
-
-                                    {/* Row 2: period + date range */}
-                                    <div className="hidden">
-                                        <div>
-                                            <label className="block text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2">Período</label>
-                                            <div className="flex items-center h-10 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
-                                                {periodOptions.map((option) => (
-                                                    <Button
-                                                        key={option.value}
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            setSelectedPeriod(option.value);
-                                                            setPage(1);
-                                                        }}
-                                                        className={cn(
-                                                            'h-8 px-3 rounded-md text-[10px] font-black uppercase tracking-widest',
-                                                            selectedPeriod === option.value
-                                                                ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm'
-                                                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                                                        )}
-                                                    >
-                                                        {option.label}
-                                                    </Button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2">De</label>
-                                            <Input
-                                                type="date"
-                                                value={customStartDate}
-                                                onChange={(e) => {
-                                                    setCustomStartDate(e.target.value);
-                                                    setPage(1);
-                                                }}
-                                                size="sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-1.5">Até</label>
-                                            <Input
-                                                type="date"
-                                                value={customEndDate}
-                                                onChange={(e) => {
-                                                    setCustomEndDate(e.target.value);
-                                                    setPage(1);
-                                                }}
-                                                size="sm"
-                                            />
-                                        </div>
-                                        {hasActiveFilters && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => {
-                                                    setSearch('');
-                                                    setStatusFilter('all');
-                                                    setWarehouseFilter('all');
-                                                    setCustomStartDate('');
-                                                    setCustomEndDate('');
-                                                    setSelectedPeriod('all');
-                                                    setPage(1);
-                                                }}
-                                                className="h-10 px-3 bg-white dark:bg-dark-800 text-[10px] font-black uppercase tracking-widest"
-                                            >
-                                                Limpar filtros
-                                            </Button>
-                                        )}
-                                    </div>
-
-                                    {/* Row 3: quick-status chips */}
-                                    <div className="hidden">
-                                        {[
-                                            { value: 'all', label: 'Todas', cls: 'bg-slate-100 text-slate-700 dark:bg-dark-700 dark:text-gray-300' },
-                                            { value: 'paid', label: 'Pagas', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
-                                            { value: 'partial', label: 'Parciais', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
-                                            { value: 'sent', label: 'Pendentes', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-                                            { value: 'overdue', label: 'Vencidas', cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
-                                            { value: 'draft', label: 'Rascunho', cls: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' },
-                                        ].map(chip => {
-                                            const active = statusFilter === chip.value;
-                                            return (
-                                                <button
-                                                    key={chip.value}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setStatusFilter(chip.value);
-                                                        setPage(1);
-                                                    }}
-                                                    className={cn(
-                                                        'h-7 px-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all',
-                                                        active
-                                                            ? chip.cls + ' ring-2 ring-offset-1 ring-current/40 dark:ring-offset-dark-900 shadow-sm'
-                                                            : 'bg-gray-50 text-gray-500 dark:bg-dark-800 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-dark-700'
-                                                    )}
-                                                >
-                                                    {chip.label}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-
-                                    <p className="hidden">
-                                        {pagination?.total || invoices.length} facturas encontradas{hasCustomDates ? ' (datas personalizadas)' : ' no período'}
-                                    </p>
                                 </div>
                             }
                             pagination={{

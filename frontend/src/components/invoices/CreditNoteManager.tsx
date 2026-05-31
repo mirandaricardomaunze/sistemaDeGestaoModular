@@ -222,7 +222,7 @@ export default function CreditNoteManager({ invoices }: CreditNoteManagerProps) 
                         onClick={() => setShowCreateModal(true)} 
                         size="sm" 
                         leftIcon={<HiOutlinePlus className="w-5 h-5" />}
-                        className="w-full sm:w-auto h-11 sm:h-10 flex items-center justify-center font-black text-[10px] uppercase tracking-widest"
+                        className="w-full sm:w-auto flex items-center justify-center font-black text-[10px] uppercase tracking-widest"
                     >
                         Emitir Nota de Credito
                     </Button>
