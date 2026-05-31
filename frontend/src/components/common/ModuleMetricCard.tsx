@@ -80,35 +80,39 @@ export function MetricCard({
         )}>
             {/* Subtle inner glow */}
             <div className="absolute inset-0 bg-gradient-to-br from-white/55 via-transparent to-transparent dark:from-white/5 pointer-events-none" />
-            <div className={cn('absolute left-0 top-0 h-full w-1 opacity-90', p.accent)} />
+            <div className={cn('absolute left-0 top-0 h-full w-1.5 opacity-90', p.accent)} />
             
-            <div className="relative z-10 flex min-w-0 items-start justify-between gap-3 p-3 sm:gap-4 sm:p-5">
-                <div className="min-w-0 flex-1 space-y-0.5 sm:space-y-1">
-                    <div className="flex min-w-0 items-start justify-between gap-2">
-                        <p className="text-xl sm:text-2xl font-black text-slate-950 dark:text-white tracking-normal tabular-nums truncate">
-                            {formattedValue}
-                        </p>
-                        {growth !== undefined ? (
-                            <div className={cn(
-                                'shrink-0 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-tighter flex items-center gap-0.5 sm:gap-1',
-                                growth >= 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'
-                            )}>
-                                {growth >= 0
-                                    ? <HiOutlineArrowTrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                    : <HiOutlineArrowTrendingDown className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
-                                {Math.abs(growth)}%
-                            </div>
-                        ) : badge ? (
-                            <div className="shrink-0 scale-75 sm:scale-90 origin-right">{badge}</div>
-                        ) : null}
-                    </div>
-                    <p className="text-[9px] sm:text-[10px] text-slate-600 dark:text-gray-400 uppercase tracking-widest font-black truncate">
+            <div className="relative z-10 flex min-w-0 items-start justify-between gap-3 p-4 sm:gap-5 sm:p-5 min-h-[110px]">
+                <div className="min-w-0 flex-1 flex flex-col justify-center">
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-gray-400 uppercase tracking-widest font-black truncate mb-1">
                         {label}
                     </p>
+                    
+                    <p className="text-2xl sm:text-3xl font-black text-slate-950 dark:text-white tracking-tight tabular-nums break-words leading-none mb-1.5">
+                        {formattedValue}
+                    </p>
+                    
+                    {(growth !== undefined || badge) && (
+                        <div className="flex items-center">
+                            {growth !== undefined ? (
+                                <div className={cn(
+                                    'w-fit px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter flex items-center gap-1',
+                                    growth >= 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                                )}>
+                                    {growth >= 0
+                                        ? <HiOutlineArrowTrendingUp className="w-3 h-3" />
+                                        : <HiOutlineArrowTrendingDown className="w-3 h-3" />}
+                                    {Math.abs(growth)}%
+                                </div>
+                            ) : badge ? (
+                                <div className="w-fit scale-90 origin-left">{badge}</div>
+                            ) : null}
+                        </div>
+                    )}
                 </div>
 
                 <div className={cn(
-                    'w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex shrink-0 items-center justify-center shadow-md transition-all duration-300 group-hover:scale-105',
+                    'w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex shrink-0 items-center justify-center shadow-md transition-all duration-300 group-hover:scale-105',
                     p.iconBg, p.iconColor
                 )}>
                     <div className="scale-90 sm:scale-100 flex items-center justify-center">{icon}</div>

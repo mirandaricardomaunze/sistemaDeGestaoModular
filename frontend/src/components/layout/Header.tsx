@@ -67,10 +67,10 @@ export default function Header() {
 
                 {/* Right Section */}
                 <div className="flex items-center gap-1 sm:gap-2 lg:gap-3">
-                    {/* Theme Toggle — hidden on smallest screens to save space */}
+                    {/* Theme Toggle */}
                     <Button variant="ghost"
                         onClick={toggleTheme}
-                        className="hidden sm:flex p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-dark-800 text-slate-700 dark:text-gray-300 transition-all duration-200"
+                        className="flex p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-dark-800 text-slate-700 dark:text-gray-300 transition-all duration-200"
                         title={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')}
                     >
                         {theme === 'light' ? (

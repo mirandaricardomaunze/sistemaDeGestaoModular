@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, Badge, Button, Modal, Skeleton, Select, PageHeader } from '../../components/ui';
 import {
     HiOutlineCurrencyDollar,
@@ -272,24 +273,41 @@ export default function CommercialDashboard() {
                 </Button>
             </div>
 
-            {/* 1. Quick Actions Bar - More prominent at the top */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                {[
-                    { label: 'Nova Venda', path: '/commercial/pos', icon: HiOutlineShoppingCart, color: 'emerald' },
-                    { label: 'Nova OC', path: '/commercial/purchase-orders', icon: HiOutlineClipboardDocumentList, color: 'amber' },
-                    { label: 'Stock', path: '/commercial/inventory', icon: HiOutlineCube, color: 'primary' },
-                    { label: 'Relatórios', path: '/commercial/reports', icon: HiOutlineArrowTrendingUp, color: 'rose' },
-                    { label: 'Encomendas', path: '/commercial/orders', icon: HiOutlineQueueList, color: 'indigo' },
-                    { label: 'Faturas', path: '/commercial/invoices', icon: HiOutlineDocumentText, color: 'cyan' },
-                ].map((action) => (
-                    <QuickActionCard
-                        key={action.label}
-                        icon={action.icon}
-                        label={action.label}
-                        path={action.path}
-                        color={action.color as QuickActionColor}
-                    />
-                ))}
+            {/* 1. Quick Actions Bar */}
+            <div className="space-y-3">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-gray-400 pl-1 flex items-center gap-2">
+                    Acesso Rápido
+                    <div className="h-px flex-1 bg-slate-200 dark:bg-dark-700" />
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    {[
+                        { label: 'Nova Venda', path: '/commercial/pos', icon: HiOutlineShoppingCart, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 hover:bg-emerald-100 dark:hover:bg-emerald-500/20' },
+                        { label: 'Nova OC', path: '/commercial/purchase-orders', icon: HiOutlineClipboardDocumentList, color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 hover:bg-amber-100 dark:hover:bg-amber-500/20' },
+                        { label: 'Stock', path: '/commercial/inventory', icon: HiOutlineCube, color: 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-500/10 border-primary-200 dark:border-primary-500/20 hover:bg-primary-100 dark:hover:bg-primary-500/20' },
+                        { label: 'Relatórios', path: '/commercial/reports', icon: HiOutlineArrowTrendingUp, color: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20 hover:bg-rose-100 dark:hover:bg-rose-500/20' },
+                        { label: 'Encomendas', path: '/commercial/orders', icon: HiOutlineQueueList, color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20 hover:bg-indigo-100 dark:hover:bg-indigo-500/20' },
+                        { label: 'Faturas', path: '/commercial/invoices', icon: HiOutlineDocumentText, color: 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-500/10 border-cyan-200 dark:border-cyan-500/20 hover:bg-cyan-100 dark:hover:bg-cyan-500/20' },
+                    ].map((action) => {
+                        const Icon = action.icon;
+                        return (
+                            <Link
+                                key={action.label}
+                                to={action.path}
+                                className={cn(
+                                    "flex items-center gap-1.5 p-1.5 rounded-xl transition-all duration-200 border bg-white dark:bg-dark-800/40 hover:-translate-y-0.5 active:scale-95 shadow-sm hover:shadow",
+                                    "border-slate-200 dark:border-dark-700 hover:border-slate-300 dark:hover:border-dark-600 group"
+                                )}
+                            >
+                                <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border transition-colors", action.color)}>
+                                    <Icon className="w-3.5 h-3.5" />
+                                </div>
+                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-gray-300 group-hover:text-slate-900 dark:group-hover:text-white truncate transition-colors">
+                                    {action.label}
+                                </span>
+                            </Link>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* 2. Main Performance KPIs - Hero Section */}
@@ -690,8 +708,9 @@ export default function CommercialDashboard() {
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                         Estes clientes não realizam compras há algum tempo. Considere entrar em contacto.
                     </p>
-                    <div className="max-w-full overflow-x-auto overscroll-x-contain border border-gray-100 dark:border-dark-700 rounded-lg scrollbar-thin">
-                        <table className="w-full min-w-[520px] text-left text-sm">
+                    <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800">
+                        {/* Desktop Table */}
+                        <table className="hidden sm:table w-full text-left text-sm">
                             <thead className="bg-gray-50 dark:bg-dark-800 text-[10px] font-black uppercase tracking-widest text-gray-500">
                                 <tr>
                                     <th className="px-4 py-3">Cliente</th>
@@ -713,6 +732,26 @@ export default function CommercialDashboard() {
                                 ))}
                             </tbody>
                         </table>
+                        
+                        {/* Mobile Cards */}
+                        <div className="flex flex-col sm:hidden divide-y divide-gray-100 dark:divide-dark-700">
+                            {atRiskCustomers.map(customer => (
+                                <div key={customer.id} className="p-4 space-y-3">
+                                    <div className="flex justify-between items-start gap-3">
+                                        <span className="font-bold text-sm text-gray-900 dark:text-white uppercase leading-tight">
+                                            {customer.name}
+                                        </span>
+                                        <Badge variant={customer.riskLevel === 'critical' ? 'danger' : 'warning'} size="sm" className="shrink-0 text-[9px] px-2">
+                                            {customer.riskLevel.toUpperCase()}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs">
+                                        <span className="text-gray-500">Inactivo há:</span>
+                                        <span className="font-bold text-amber-600">{customer.daysSinceLastPurchase} dias</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </Modal>
