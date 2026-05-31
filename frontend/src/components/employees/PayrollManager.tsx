@@ -332,10 +332,10 @@ export default function PayrollManager() {
         <div className="space-y-6">
             {/* Controls */}
             <Card padding="md">
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div className="flex items-center gap-4">
+                <div className="flex flex-col items-stretch justify-between gap-4 lg:flex-row lg:items-start">
+                    <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:w-auto">
                         <select
-                            className="p-2 rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 font-medium"
+                            className="h-12 w-full rounded-lg border border-gray-300 bg-white p-2 text-base font-medium dark:border-dark-600 dark:bg-dark-700 sm:text-sm lg:w-40"
                             value={selectedMonth}
                             onChange={(e) => setSelectedMonth(Number(e.target.value))}
                         >
@@ -344,7 +344,7 @@ export default function PayrollManager() {
                             ))}
                         </select>
                         <select
-                            className="p-2 rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 font-medium"
+                            className="h-12 w-full rounded-lg border border-gray-300 bg-white p-2 text-base font-medium dark:border-dark-600 dark:bg-dark-700 sm:text-sm lg:w-32"
                             value={selectedYear}
                             onChange={(e) => setSelectedYear(Number(e.target.value))}
                         >
@@ -354,17 +354,14 @@ export default function PayrollManager() {
                         </select>
                     </div>
 
-                    <div className="flex gap-2 flex-wrap">
-                        <Button variant="outline" onClick={handleExportReport}>
-                            <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
+                    <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end">
+                        <Button variant="outline" onClick={handleExportReport} className="w-full sm:w-auto" leftIcon={<HiOutlineArrowDownTray className="w-4 h-4" />}>
                             Exportar Relatório
                         </Button>
-                        <Button variant="outline" onClick={handleRecalculate}>
-                            <HiOutlineArrowPath className="w-4 h-4 mr-2" />
+                        <Button variant="outline" onClick={handleRecalculate} className="w-full sm:w-auto" leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}>
                             Recalcular Valores
                         </Button>
-                        <Button onClick={handleSaveMonth}>
-                            <HiOutlineBookmarkSquare className="w-4 h-4 mr-2" />
+                        <Button onClick={handleSaveMonth} className="w-full sm:w-auto" leftIcon={<HiOutlineBookmarkSquare className="w-4 h-4" />}>
                             Fechar Processamento Mensal
                         </Button>
                     </div>
@@ -372,7 +369,7 @@ export default function PayrollManager() {
 
                 {/* Payroll engine indicator */}
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-700">
-                    <div className="flex flex-wrap items-center gap-4 text-sm">
+                    <div className="flex flex-col items-start gap-2 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
                         <span className="text-gray-500 dark:text-gray-400">Motor salarial:</span>
                         <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg font-medium">
                             INSS Trabalhador: {inssEmployeeRate}%
@@ -390,34 +387,34 @@ export default function PayrollManager() {
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card padding="md" className="bg-primary-50 dark:bg-primary-900/10 border-primary-100 dark:border-primary-800">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-row-reverse items-center justify-end gap-3">
                         <div>
                             <p className="text-sm text-primary-600 dark:text-primary-400 font-medium">Total Líquido a Pagar</p>
                             <p className="text-2xl font-bold text-primary-700 dark:text-primary-300">{formatCurrency(totals.totalNet)}</p>
                         </div>
-                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg backdrop-blur-sm">
+                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg backdrop-blur-sm shrink-0">
                             <HiOutlineBanknotes className="w-8 h-8 text-primary-500" />
                         </div>
                     </div>
                 </Card>
                 <Card padding="md" className="bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-row-reverse items-center justify-end gap-3">
                         <div>
                             <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Total INSS Retido ({inssEmployeeRate}%)</p>
                             <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">{formatCurrency(totals.totalINSS)}</p>
                         </div>
-                        <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-lg">
+                        <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-lg shrink-0">
                             <HiOutlineBuildingLibrary className="w-8 h-8 text-gray-500" />
                         </div>
                     </div>
                 </Card>
                 <Card padding="md" className="bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-row-reverse items-center justify-end gap-3">
                         <div>
                             <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Total IRPS Retido</p>
                             <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">{formatCurrency(totals.totalIRPS)}</p>
                         </div>
-                        <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-lg">
+                        <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-lg shrink-0">
                             <HiOutlineDocumentText className="w-8 h-8 text-gray-500" />
                         </div>
                     </div>
@@ -425,8 +422,101 @@ export default function PayrollManager() {
             </div>
 
 
+            <Card padding="none" className="md:hidden overflow-hidden">
+                <div className="divide-y divide-gray-200 dark:divide-dark-700">
+                    {paginatedPayroll.length === 0 ? (
+                        <div className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                            Nenhum registo salarial encontrado
+                        </div>
+                    ) : (
+                        paginatedPayroll.map((record) => (
+                            <div key={record.employeeId} className="space-y-4 bg-white p-4 dark:bg-dark-900">
+                                <div className="flex min-w-0 items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <p className="font-bold text-gray-900 dark:text-white truncate">
+                                            {record.employee.name}
+                                        </p>
+                                        <p className="text-xs text-gray-500 truncate">{record.employee.role}</p>
+                                    </div>
+                                    <div className="shrink-0">
+                                        {record.status === 'paid' && (
+                                            <Badge variant="success" size="sm">
+                                                <HiOutlineCheckBadge className="w-3 h-3 mr-1" /> Pago
+                                            </Badge>
+                                        )}
+                                        {record.status === 'processed' && (
+                                            <Badge variant="warning" size="sm">Processado</Badge>
+                                        )}
+                                        {record.status === 'draft' && (
+                                            <Badge variant="gray" size="sm">Rascunho</Badge>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Base</p>
+                                        <p className="mt-1 font-semibold text-gray-900 dark:text-white truncate">
+                                            {formatCurrency(record.baseSalary)}
+                                        </p>
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">INSS</p>
+                                        <p className="mt-1 font-semibold text-gray-900 dark:text-white truncate">
+                                            {formatCurrency(record.inssDeduction)}
+                                        </p>
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">IRPS</p>
+                                        <p className="mt-1 font-semibold text-gray-900 dark:text-white truncate">
+                                            {formatCurrency(record.irtDeduction)}
+                                        </p>
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Liquido</p>
+                                        <p className="mt-1 font-black text-gray-900 dark:text-white truncate">
+                                            {formatCurrency(record.netSalary)}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-500">
+                                        Bonus / Outros
+                                    </label>
+                                    <input
+                                        type="number"
+                                        className="h-11 w-full rounded-lg border border-gray-200 bg-transparent px-3 text-right text-base dark:border-dark-700"
+                                        value={record.bonus}
+                                        onChange={(e) => handleUpdateValues(record, 'bonus', Number(e.target.value))}
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-2 sm:flex-row">
+                                    <div className="w-full sm:w-auto [&>*]:w-full sm:[&>*]:w-auto">
+                                        <PayslipGenerator record={record} />
+                                    </div>
+                                    {record.status === 'processed' && (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="w-full sm:w-auto"
+                                            leftIcon={<HiOutlineCheck className="w-4 h-4 text-green-600" />}
+                                            title="Confirmar Pagamento"
+                                            onClick={() => handleOpenPaymentModal(record)}
+                                        >
+                                            Confirmar Pagamento
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </Card>
+
             {/* Table */}
-            <Card padding="none" className="overflow-hidden">
+            <Card padding="none" className="hidden overflow-hidden md:block">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-dark-700 dark:text-gray-400">
@@ -503,7 +593,7 @@ export default function PayrollManager() {
                     </table>
                 </div>
 
-                <div className="px-6">
+                <div className="px-4 sm:px-6">
                     <Pagination
                         currentPage={currentPage}
                         totalItems={totalPayrollItems}

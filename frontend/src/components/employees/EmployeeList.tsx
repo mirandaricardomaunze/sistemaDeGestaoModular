@@ -225,8 +225,8 @@ export default function EmployeeList({ onEdit, onAddEmployee, department, hideHe
         <div className="space-y-4">
             {/* Filters */}
             <Card variant="glass" padding="md">
-                <div className="flex flex-col lg:flex-row gap-4">
-                    <div className="flex-1">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+                    <div className="min-w-0 flex-1">
                         <Input
                             placeholder="Buscar colaboradores..."
                             value={globalFilter ?? ''}
@@ -252,15 +252,17 @@ export default function EmployeeList({ onEdit, onAddEmployee, department, hideHe
                         variant="ghost"
                         onClick={() => refetch()}
                         leftIcon={<HiOutlineArrowPath className="w-5 h-5" />}
-                        className="font-bold text-[11px] uppercase tracking-widest"
+                        className="w-full font-bold text-[11px] uppercase tracking-widest lg:w-auto"
                     >
                         Atualizar
                     </Button>
-                    <ExportEmployeesButton data={employees} />
+                    <div className="w-full lg:w-auto [&>*]:w-full lg:[&>*]:w-auto">
+                        <ExportEmployeesButton data={employees} />
+                    </div>
                     <Button 
                         leftIcon={<HiOutlinePlus className="w-5 h-5" />} 
                         onClick={onAddEmployee}
-                        className="shadow-lg shadow-primary-500/20 font-black text-[11px] uppercase tracking-widest px-6"
+                        className="w-full shadow-lg shadow-primary-500/20 font-black text-[11px] uppercase tracking-widest px-6 lg:w-auto"
                     >
                         Admitir Colaborador
                     </Button>
@@ -282,7 +284,7 @@ export default function EmployeeList({ onEdit, onAddEmployee, department, hideHe
             </Card>
 
             {/* Pagination */}
-            <div className="px-6 pb-4">
+            <div className="px-4 pb-4 sm:px-6">
                 <Pagination
                     currentPage={page}
                     totalItems={pagination?.total || 0}
@@ -314,4 +316,3 @@ export default function EmployeeList({ onEdit, onAddEmployee, department, hideHe
         </div>
     );
 }
-

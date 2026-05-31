@@ -125,7 +125,7 @@ export default function BonusConfigManager() {
                     </p>
                 </div>
                 {!showForm && (
-                    <Button variant="primary" leftIcon={<HiOutlinePlus />} onClick={() => setShowForm(true)}>
+                    <Button className="w-full md:w-auto" variant="primary" leftIcon={<HiOutlinePlus />} onClick={() => setShowForm(true)}>
                         Nova Regra
                     </Button>
                 )}
@@ -133,7 +133,7 @@ export default function BonusConfigManager() {
 
             {showForm && (
                 <Card variant="glass" className="overflow-visible animate-slide-up border-primary-500/20">
-                    <div className="p-6 space-y-6">
+                    <div className="p-4 space-y-6 sm:p-6">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <Select
                                 label="Aplicar a"
@@ -167,19 +167,25 @@ export default function BonusConfigManager() {
 
                         {newRule.type === 'tiered' && (
                             <div className="space-y-4 p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-100 dark:border-dark-600">
-                                <div className="flex justify-between items-center">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                     <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                         <HiOutlineArrowTrendingUp className="text-primary-500" />
                                         Escaloes
                                     </h4>
-                                    <Button variant="ghost" size="sm" onClick={handleAddTier}>
-                                        <HiOutlinePlus className="mr-1" /> Adicionar
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="w-full sm:w-auto"
+                                        leftIcon={<HiOutlinePlus className="w-4 h-4" />}
+                                        onClick={handleAddTier}
+                                    >
+                                        Adicionar
                                     </Button>
                                 </div>
                                 <div className="space-y-3">
                                     {(newRule.tiers || []).map((tier, index) => (
-                                        <div key={index} className="flex gap-4 items-end animate-fade-in">
-                                            <div className="flex-1">
+                                        <div key={index} className="flex flex-col gap-3 animate-fade-in sm:flex-row sm:items-end sm:gap-4">
+                                            <div className="w-full flex-1">
                                                 <Input
                                                     label={index === 0 ? 'Valor minimo' : ''}
                                                     type="number"
@@ -188,7 +194,7 @@ export default function BonusConfigManager() {
                                                     leftIcon={<span className="text-gray-400 text-xs text-nowrap">MT</span>}
                                                 />
                                             </div>
-                                            <div className="w-32">
+                                            <div className="w-full sm:w-32">
                                                 <Input
                                                     label={index === 0 ? 'Taxa (%)' : ''}
                                                     type="number"
@@ -201,7 +207,7 @@ export default function BonusConfigManager() {
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleRemoveTier(index)}
-                                                className="p-2.5 mb-1 text-red-500 hover:bg-red-50 active:scale-95"
+                                                className="mb-1 w-full p-2.5 text-red-500 hover:bg-red-50 active:scale-95 sm:w-auto"
                                             >
                                                 <HiOutlineTrash />
                                             </Button>
@@ -211,11 +217,11 @@ export default function BonusConfigManager() {
                             </div>
                         )}
 
-                        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-dark-700">
-                            <Button variant="ghost" onClick={() => setShowForm(false)}>
+                        <div className="flex flex-col justify-end gap-3 pt-4 border-t border-gray-100 dark:border-dark-700 sm:flex-row">
+                            <Button variant="ghost" className="w-full sm:w-auto" onClick={() => setShowForm(false)}>
                                 Cancelar
                             </Button>
-                            <Button variant="primary" leftIcon={<HiOutlineCheck />} onClick={handleSave} isLoading={isSaving}>
+                            <Button variant="primary" className="w-full sm:w-auto" leftIcon={<HiOutlineCheck />} onClick={handleSave} isLoading={isSaving}>
                                 Salvar Regra
                             </Button>
                         </div>
@@ -234,7 +240,7 @@ export default function BonusConfigManager() {
                         <HiOutlineExclamationCircle className="w-12 h-12 mx-auto text-gray-400 mb-3" />
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white">Nenhuma regra ativa</h3>
                         <p className="text-gray-500 mb-6">Comece por criar uma regra global ou individual.</p>
-                        <Button variant="outline" onClick={() => setShowForm(true)}>
+                        <Button variant="outline" className="w-full sm:w-auto" onClick={() => setShowForm(true)}>
                             Criar Primeira Regra
                         </Button>
                     </div>
@@ -242,11 +248,11 @@ export default function BonusConfigManager() {
                     rules.map((rule) => (
                         <Card key={rule.id} variant="glass" className="hover:shadow-md transition-shadow group">
                             <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div className="flex items-center gap-4">
+                                <div className="flex min-w-0 items-center gap-4">
                                     <div className="p-3 bg-primary-100 dark:bg-primary-900/30 rounded-lg text-primary-600">
                                         {rule.type === 'tiered' ? <HiOutlineArrowTrendingUp /> : <HiOutlineTicket />}
                                     </div>
-                                    <div>
+                                    <div className="min-w-0">
                                         <h4 className="font-bold text-gray-900 dark:text-white">
                                             {rule.employee?.name || employees.find((employee) => employee.id === rule.employeeId)?.name || 'Regra global da equipa'}
                                         </h4>
@@ -262,11 +268,11 @@ export default function BonusConfigManager() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                                    <Button variant="ghost" size="sm" onClick={() => { setNewRule(rule); setShowForm(true); }}>
+                                <div className="flex flex-col gap-2 sm:flex-row md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                    <Button variant="ghost" size="sm" className="w-full sm:w-auto" onClick={() => { setNewRule(rule); setShowForm(true); }}>
                                         Editar
                                     </Button>
-                                    <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleDelete(rule.id)}>
+                                    <Button variant="ghost" size="sm" className="w-full text-red-500 sm:w-auto" onClick={() => handleDelete(rule.id)}>
                                         Remover
                                     </Button>
                                 </div>
@@ -278,7 +284,7 @@ export default function BonusConfigManager() {
 
             <Card variant="glass" className="bg-gradient-to-br from-primary-600 to-primary-800 text-white border-none overflow-hidden relative shadow-2xl shadow-primary-500/20">
                 <div className="p-6 relative z-10">
-                    <div className="flex items-start justify-between">
+                    <div className="flex min-w-0 items-start justify-between">
                         <div className="space-y-2">
                             <h3 className="text-xl font-bold flex items-center gap-2">
                                 <HiOutlineCheckCircle className="text-primary-200" />

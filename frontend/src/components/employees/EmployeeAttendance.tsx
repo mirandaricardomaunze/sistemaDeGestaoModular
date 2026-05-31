@@ -224,6 +224,7 @@ export default function EmployeeAttendance() {
                             <Button
                                 variant="ghost"
                                 size="sm"
+                                leftIcon={<HiOutlineListBullet className="w-4 h-4" />}
                                 onClick={() => setViewMode('list')}
                                 className={cn(
                                     "p-1.5 rounded-md flex items-center gap-1 text-sm font-medium",
@@ -232,12 +233,12 @@ export default function EmployeeAttendance() {
                                         : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                                 )}
                             >
-                                <HiOutlineListBullet className="w-4 h-4" />
                                 Diário
                             </Button>
                             <Button
                                 variant="ghost"
                                 size="sm"
+                                leftIcon={<HiOutlineCalendar className="w-4 h-4" />}
                                 onClick={() => setViewMode('calendar')}
                                 className={cn(
                                     "p-1.5 rounded-md flex items-center gap-1 text-sm font-medium",
@@ -246,7 +247,6 @@ export default function EmployeeAttendance() {
                                         : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                                 )}
                             >
-                                <HiOutlineCalendar className="w-4 h-4" />
                                 Mensal
                             </Button>
                         </div>
@@ -257,8 +257,12 @@ export default function EmployeeAttendance() {
                             </Button>
                         )}
                         {viewMode === 'list' && (
-                            <Button variant="outline" size="sm" onClick={handleExport}>
-                                <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                leftIcon={<HiOutlineArrowDownTray className="w-4 h-4" />}
+                                onClick={handleExport}
+                            >
                                 Exportar
                             </Button>
                         )}

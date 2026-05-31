@@ -390,10 +390,10 @@ export default function PayslipGenerator({ record, variant = 'ghost', showLabel 
                 variant={variant} 
                 onClick={handlePrint} 
                 title="Imprimir Recibo Profissional"
+                leftIcon={<HiOutlinePrinter className="w-4 h-4" />}
                 className="group"
             >
-                <HiOutlinePrinter className="w-4 h-4" />
-                {showLabel && <span className="ml-2">Imprimir Recibo</span>}
+                {showLabel ? 'Imprimir Recibo' : undefined}
             </Button>
         </div>
     );

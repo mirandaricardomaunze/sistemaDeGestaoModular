@@ -122,25 +122,25 @@ function GlobalHRSummaryPanel() {
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
             {items.map((item) => {
                 const Icon = item.icon;
                 return (
-                    <Card key={item.label} variant="glass" padding="md">
-                        <div className="flex items-start justify-between gap-4">
+                    <Card key={item.label} variant="glass" padding="sm">
+                        <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+                            <div className={cn('w-9 h-9 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0', item.color)}>
+                                <Icon className="w-4 h-4 sm:w-6 sm:h-6" />
+                            </div>
                             <div className="min-w-0">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                                <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 line-clamp-2">
                                     {item.label}
                                 </p>
-                                <p className="text-3xl font-black tracking-tight text-gray-900 dark:text-white mt-2">
+                                <p className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white mt-2">
                                     {item.value}
                                 </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                                <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
                                     {item.detail}
                                 </p>
-                            </div>
-                            <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center shrink-0', item.color)}>
-                                <Icon className="w-6 h-6" />
                             </div>
                         </div>
                         <Badge variant="outline" size="sm" className="mt-4">
@@ -192,13 +192,13 @@ function GlobalPerformancePanel() {
                     const Icon = metric.icon;
                     return (
                         <Card key={metric.label} padding="md" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{metric.label}</p>
-                                    <p className="text-2xl font-black text-gray-900 dark:text-white mt-1 tabular-nums">{metric.value}</p>
-                                </div>
+                            <div className="flex min-w-0 items-center gap-3">
                                 <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center shrink-0', metric.color)}>
                                     <Icon className="w-5 h-5" />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{metric.label}</p>
+                                    <p className="text-2xl font-black text-gray-900 dark:text-white mt-1 tabular-nums">{metric.value}</p>
                                 </div>
                             </div>
                         </Card>
@@ -417,11 +417,12 @@ export default function HRHub() {
                 subtitle="Gestao estrategica de talentos, performance e processamento"
                 icon={<HiOutlineUsers className="text-primary-600 dark:text-primary-400" />}
                 actions={
-                    <div className="flex gap-2">
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                         {activeTab === 'team' && (
                             <Button
                                 variant="primary"
                                 size="sm"
+                                className="w-full sm:w-auto"
                                 leftIcon={<HiOutlinePlus />}
                                 onClick={handleAdd}
                             >
@@ -431,6 +432,7 @@ export default function HRHub() {
                         <Button
                             variant="ghost"
                             size="sm"
+                            className="w-full sm:w-auto"
                             leftIcon={<HiOutlineArrowPath className={cn('text-primary-600', isSyncing && 'animate-spin')} />}
                             onClick={handleSync}
                             isLoading={isSyncing}
@@ -444,26 +446,28 @@ export default function HRHub() {
 
             <GlobalHRSummaryPanel key={`summary-${refreshKey}`} />
 
-            <div className="flex p-1 bg-gray-100/80 dark:bg-dark-800/80 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-dark-700/50 shadow-inner overflow-x-auto scroller-hidden">
-                {TABS.map((tab) => {
-                    const Icon = tab.icon;
-                    const isActive = activeTab === tab.id;
-                    return (
-                        <Button variant="ghost"
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={cn(
-                                'flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex-1 justify-center whitespace-nowrap',
-                                isActive
-                                    ? 'bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-lg shadow-black/5 scale-[1.02]'
-                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                            )}
-                        >
-                            <Icon className={cn('w-4 h-4', isActive ? 'text-primary-600 dark:text-primary-400' : 'opacity-50')} />
-                            <span>{tab.label}</span>
-                        </Button>
-                    );
-                })}
+            <div className="w-full overflow-x-auto overscroll-x-contain scroller-hidden pb-1">
+                <div className="flex w-max min-w-full p-1 bg-gray-100/80 dark:bg-dark-800/80 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-dark-700/50 shadow-inner">
+                    {TABS.map((tab) => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <Button variant="ghost"
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                leftIcon={<Icon className={cn('w-4 h-4 shrink-0', isActive ? 'text-primary-600 dark:text-primary-400' : 'opacity-50')} />}
+                                className={cn(
+                                    'shrink-0 px-3 sm:px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap',
+                                    isActive
+                                        ? 'bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-lg shadow-black/5 scale-[1.02]'
+                                        : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                )}
+                            >
+                                {tab.label}
+                            </Button>
+                        );
+                    })}
+                </div>
             </div>
 
             <div key={`hr-tab-${activeTab}-${refreshKey}`} className="min-h-[600px] animate-fade-in transition-all duration-300">

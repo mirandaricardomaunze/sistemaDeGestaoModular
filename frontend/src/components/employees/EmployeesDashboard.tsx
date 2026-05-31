@@ -471,28 +471,30 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                 subtitle="Controlo de assiduidade, qualificações e folha salarial"
                 icon={<HiOutlineUsers />}
                 actions={
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex w-full min-w-0 flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
                         {/* Period Filter */}
-                        <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-800 p-1 rounded-xl border border-gray-200 dark:border-dark-700">
-                            {periodOptions.map((option) => (
-                                <Button variant="ghost"
-                                    key={option.value}
-                                    onClick={() => setSelectedPeriod(option.value)}
-                                    className={cn(
-                                        'px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all',
-                                        selectedPeriod === option.value
-                                            ? 'bg-white dark:bg-dark-700 text-primary-600 shadow-sm'
-                                            : 'text-gray-500 hover:text-gray-700'
-                                    )}
-                                >
-                                    {option.label}
-                                </Button>
-                            ))}
+                        <div className="w-full overflow-x-auto overscroll-x-contain scroller-hidden sm:w-auto">
+                            <div className="flex w-max min-w-full items-center gap-1 bg-gray-100 dark:bg-dark-800 p-1 rounded-xl border border-gray-200 dark:border-dark-700 sm:min-w-0">
+                                {periodOptions.map((option) => (
+                                    <Button variant="ghost"
+                                        key={option.value}
+                                        onClick={() => setSelectedPeriod(option.value)}
+                                        className={cn(
+                                            'shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all',
+                                            selectedPeriod === option.value
+                                                ? 'bg-white dark:bg-dark-700 text-primary-600 shadow-sm'
+                                                : 'text-gray-500 hover:text-gray-700'
+                                        )}
+                                    >
+                                        {option.label}
+                                    </Button>
+                                ))}
+                            </div>
                         </div>
                         <Button
                             variant="primary"
                             size="sm"
-                            className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 rounded-xl font-black uppercase text-[10px] tracking-widest border-none"
+                            className="h-11 w-full px-6 bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 rounded-xl font-black uppercase text-[10px] tracking-widest border-none sm:h-10 sm:w-auto"
                             leftIcon={<HiOutlineUserPlus className="w-4 h-4" />}
                             onClick={onAddEmployee}
                         >
@@ -514,16 +516,16 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                             <p className="text-xs text-gray-500 dark:text-gray-400">Padrões de assiduidade e performance da equipa</p>
                         </div>
                     </div>
-                    <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden">
+                    <div className="grid grid-cols-1 gap-4 md:flex md:overflow-x-auto md:overscroll-x-contain md:pb-4 md:scrollbar-hidden">
                         {insights.map((insight) => (
-                            <SmartInsightCard key={insight.id} insight={insight} className="min-w-[320px] max-w-[400px] flex-shrink-0" />
+                            <SmartInsightCard key={insight.id} insight={insight} className="min-w-0 md:min-w-[260px] md:max-w-[400px] md:flex-shrink-0" />
                         ))}
                     </div>
                 </div>
             )}
 
             {/* Metric Cards Row 1 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
                 <MetricCard
                     icon={<HiOutlineUsers />}
                     color="primary"
@@ -564,7 +566,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
             </div>
 
             {/* Metric Cards Row 2 - HR Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                 <MetricCard
                     icon={<HiOutlineUsers />}
                     color="cyan"
@@ -599,25 +601,25 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
             </div>
 
             {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 {/* Role Distribution */}
                 <Card padding="md">
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4 break-words">
                         Distribuição por Cargo
                     </h3>
-                    <div className="h-64">
+                    <div className="h-56 sm:h-64">
                         {roleDistribution.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={256}>
+                            <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
                                         data={roleDistribution}
                                         cx="50%"
                                         cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={90}
+                                        innerRadius={45}
+                                        outerRadius={70}
                                         paddingAngle={5}
                                         dataKey="value"
-                                        label={({ name, value }) => `${name}: ${value}`}
+                                        label={({ value }) => String(value)}
                                     >
                                         {roleDistribution.map((_, index) => (
                                             <Cell
@@ -639,15 +641,15 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
 
                 {/* Qualification Distribution */}
                 <Card padding="md">
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4 break-words">
                         Distribuição por Qualificação
                     </h3>
-                    <div className="h-64">
+                    <div className="h-56 sm:h-64">
                         {qualificationDistribution.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={256}>
+                            <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={qualificationDistribution} layout="vertical">
                                     <XAxis type="number" allowDecimals={false} />
-                                    <YAxis dataKey="nivel" type="category" width={100} />
+                                    <YAxis dataKey="nivel" type="category" width={82} tick={{ fontSize: 11 }} />
                                     <Tooltip />
                                     <Bar dataKey="funcionarios" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
                                 </BarChart>
@@ -663,10 +665,10 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
 
             {/* Filters and Table */}
             <Card padding="none">
-                <div className="p-6 space-y-4 border-b border-gray-200 dark:border-dark-700">
+                <div className="p-4 sm:p-6 space-y-4 border-b border-gray-200 dark:border-dark-700">
                     {/* Filters */}
-                    <div className="flex flex-col lg:flex-row gap-4">
-                        <div className="flex-1">
+                    <div className="flex flex-col gap-4 lg:flex-row">
+                        <div className="min-w-0 flex-1">
                             <Input
                                 placeholder="Buscar por nome, email ou código..."
                                 value={searchTerm}
@@ -674,7 +676,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                 leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                             />
                         </div>
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div className="grid w-full grid-cols-1 sm:grid-cols-2 lg:w-[min(52rem,100%)] lg:grid-cols-4 gap-3">
                             <Select
                                 options={roleOptions}
                                 value={roleFilter}
@@ -699,8 +701,79 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                     </div>
                 </div>
 
+                <div className="md:hidden divide-y divide-gray-200 dark:divide-dark-700">
+                    {table.getRowModel().rows.length === 0 ? (
+                        <div className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                            Nenhum funcionario encontrado
+                        </div>
+                    ) : (
+                        table.getRowModel().rows.map((row) => {
+                            const employee = row.original;
+                            const highestQualification = getHighestQualification(employee);
+
+                            return (
+                                <div key={employee.id} className="p-4 space-y-3 bg-white dark:bg-dark-900">
+                                    <div className="flex min-w-0 items-start justify-between gap-3">
+                                        <div className="flex min-w-0 items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
+                                                <span className="text-sm font-bold text-primary-600 dark:text-primary-400">
+                                                    {employee.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
+                                                </span>
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="font-bold text-gray-900 dark:text-white truncate">
+                                                    {employee.name}
+                                                </p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                    {employee.code} - {employee.department || roleConfig[employee.role]?.label || employee.role}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Button variant="ghost"
+                                            onClick={() => onEditEmployee(employee)}
+                                            className="min-h-10 w-10 shrink-0 p-0 rounded-lg bg-slate-50 dark:bg-dark-700 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-slate-400 hover:text-primary-600 transition-all border border-slate-100 dark:border-dark-600 hover:border-primary-200"
+                                            title="Editar funcionario"
+                                        >
+                                            <HiOutlinePencilSquare className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-2">
+                                        <Badge variant={(roleConfig[employee.role]?.color as BadgeVariant) || 'gray'} size="sm">
+                                            {roleConfig[employee.role]?.label || employee.role}
+                                        </Badge>
+                                        <Badge variant={employee.isActive ? 'success' : 'danger'} size="sm">
+                                            {employee.isActive ? 'Ativo' : 'Inativo'}
+                                        </Badge>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3 text-xs">
+                                        <div className="min-w-0">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Qualificacao</p>
+                                            <p className="mt-1 font-semibold text-gray-900 dark:text-white truncate">
+                                                {highestQualification ? educationLevelLabels[highestQualification] : 'Nao informada'}
+                                            </p>
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Salario</p>
+                                            <p className="mt-1 font-semibold text-gray-900 dark:text-white truncate">
+                                                {formatCurrency(employee.salary)}
+                                            </p>
+                                        </div>
+                                        <div className="col-span-2 min-w-0">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Contacto</p>
+                                            <p className="mt-1 font-medium text-gray-700 dark:text-gray-300 truncate">{employee.email}</p>
+                                            <p className="text-gray-500 truncate">{employee.phone}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
                 {/* Table */}
-                <div className="overflow-x-auto">
+                <div className="hidden overflow-x-auto overscroll-x-contain md:block">
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
                         <thead>
                             {table.getHeaderGroups().map((headerGroup) => (
@@ -753,7 +826,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                 </div>
 
                 {/* Pagination */}
-                <div className="px-6 pb-4">
+                <div className="px-4 pb-4 sm:px-6">
                     <Pagination
                         currentPage={table.getState().pagination.pageIndex + 1}
                         totalItems={filteredEmployees.length}

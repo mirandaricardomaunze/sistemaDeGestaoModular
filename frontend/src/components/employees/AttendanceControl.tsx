@@ -132,9 +132,9 @@ export default function AttendanceControl() {
 
             {/* Action Bar */}
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
 
-                <div className="flex flex-col flex-1 max-w-md gap-2">
+                <div className="flex min-w-0 flex-1 flex-col gap-2 md:max-w-md">
 
                     <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
 
@@ -154,7 +154,7 @@ export default function AttendanceControl() {
 
                             placeholder="Pesquisar funcionário na lista..."
 
-                            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+                            className="h-12 w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-4 text-base outline-none transition-all focus:ring-2 focus:ring-primary-500 dark:border-dark-700 dark:bg-dark-800 sm:text-sm"
 
                             value={searchTerm}
 
@@ -173,6 +173,8 @@ export default function AttendanceControl() {
                     leftIcon={<HiOutlinePlus className="w-5 h-5" />}
 
                     onClick={() => setIsAddModalOpen(true)}
+
+                    className="w-full md:w-auto"
 
                 >
 
@@ -224,7 +226,7 @@ export default function AttendanceControl() {
 
                                     onClick={() => removeFromRoster(emp.id)}
 
-                                    className="absolute top-2 right-2 p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                                    className="absolute top-2 right-2 p-2 text-gray-400 hover:text-red-500 opacity-100 transition-all rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 md:opacity-0 md:group-hover:opacity-100"
 
                                     title="Remover da lista"
 
@@ -280,7 +282,7 @@ export default function AttendanceControl() {
 
 
 
-                                <div className="flex flex-row gap-2 mt-auto">
+                                <div className="flex flex-col gap-2 mt-auto sm:flex-row">
 
                                     <Button
 
@@ -348,7 +350,7 @@ export default function AttendanceControl() {
 
                 <div className="space-y-6 pt-4">
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
 
                         <Button
 
@@ -512,7 +514,7 @@ export default function AttendanceControl() {
 
 
 
-                    <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 dark:border-dark-800">
+                    <div className="flex flex-col justify-end gap-3 pt-6 border-t border-gray-100 dark:border-dark-800 sm:flex-row">
 
                         <Button variant="outline" onClick={() => setIsAddModalOpen(false)} size="lg">
 
@@ -549,6 +551,5 @@ export default function AttendanceControl() {
     );
 
 }
-
 
 

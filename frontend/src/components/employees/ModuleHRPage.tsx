@@ -855,6 +855,7 @@ export function ModuleHRPage({ config }: { config: ModuleHRConfig }) {
                         key={tab.id}
                         variant="ghost"
                         size="sm"
+                        leftIcon={tab.icon}
                         onClick={() => setActiveTab(tab.id)}
                         className={`flex items-center gap-2 px-4 py-3 text-[11px] font-black uppercase tracking-widest whitespace-nowrap border-b-2 rounded-none ${
                             activeTab === tab.id
@@ -862,7 +863,6 @@ export function ModuleHRPage({ config }: { config: ModuleHRConfig }) {
                                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                         }`}
                     >
-                        {tab.icon}
                         {tab.label}
                     </Button>
                 ))}

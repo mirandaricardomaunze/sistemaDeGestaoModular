@@ -319,8 +319,14 @@ export default function EmployeeForm({ isOpen, onClose, employee }: EmployeeForm
                 {/* ═══ 5. QUALIFICAÇÕES ACADÊMICAS ═══ */}
                 <SectionHeader icon={HiOutlineAcademicCap} title="Qualificações Acadêmicas" />
                 <div className="flex justify-end">
-                    <Button type="button" variant="outline" size="sm" onClick={addQualification}>
-                        <HiOutlinePlus className="mr-1" /> Adicionar Qualificação
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        leftIcon={<HiOutlinePlus className="w-4 h-4" />}
+                        onClick={addQualification}
+                    >
+                        Adicionar Qualificação
                     </Button>
                 </div>
 

@@ -239,40 +239,40 @@ export default function VacationManager() {
             {/* Header Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card padding="md" className="bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-row-reverse items-center justify-end gap-3">
                         <div>
                             <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Férias Agendadas ({selectedYear})</p>
                             <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                                 {activeVacations.length}
                             </p>
                         </div>
-                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg backdrop-blur-sm">
+                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg backdrop-blur-sm shrink-0">
                             <HiOutlineCalendar className="w-8 h-8 text-blue-500" />
                         </div>
                     </div>
                 </Card>
                 <Card padding="md" className="bg-green-50 dark:bg-green-900/10 border-green-100 dark:border-green-800">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-row-reverse items-center justify-end gap-3">
                         <div>
                             <p className="text-sm text-green-600 dark:text-green-400 font-medium">Colaboradores em Férias Hoje</p>
                             <p className="text-2xl font-bold text-green-700 dark:text-green-300">
                                 {vacationsTodayCount}
                             </p>
                         </div>
-                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg backdrop-blur-sm">
+                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg backdrop-blur-sm shrink-0">
                             <HiOutlineSun className="w-8 h-8 text-green-500" />
                         </div>
                     </div>
                 </Card>
                 <Card padding="md">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-row-reverse items-center justify-end gap-3">
                         <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Dias Gozados</p>
                             <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">
                                 {activeEmployees.reduce((acc, curr) => acc + (curr.vacationDaysUsed || 0), 0)}
                             </p>
                         </div>
-                        <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                        <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg shrink-0">
                             <HiOutlineClock className="w-8 h-8 text-gray-500" />
                         </div>
                     </div>
@@ -281,9 +281,9 @@ export default function VacationManager() {
 
             {/* Actions */}
             <Card padding="md">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white">Mapa de Férias</h3>
-                    <Button onClick={() => setShowRequestModal(true)} leftIcon={<HiOutlinePlus className="w-5 h-5" />}>
+                    <Button className="w-full sm:w-auto" onClick={() => setShowRequestModal(true)} leftIcon={<HiOutlinePlus className="w-5 h-5" />}>
                         Agendar Férias
                     </Button>
                 </div>
@@ -315,7 +315,7 @@ export default function VacationManager() {
                         const employee = employees.find(e => e.id === vacation.employeeId);
                         return (
                             <Card key={vacation.id} padding="md" className="relative group">
-                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute top-2 right-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                                     <Button variant="ghost"
                                         onClick={() => handleDeleteVacation(vacation.id, vacation.employeeId, vacation.days)}
                                         className="p-1 text-red-500 hover:bg-red-50 rounded"
@@ -381,7 +381,7 @@ export default function VacationManager() {
                         required
                     />
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <Input
                             label="Data Início"
                             type="date"
@@ -405,7 +405,7 @@ export default function VacationManager() {
                         placeholder="Ex: Viagem familiar"
                     />
 
-                    <div className="flex gap-4 pt-4">
+                    <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:gap-4">
                         <Button type="button" variant="outline" className="flex-1" onClick={() => setShowRequestModal(false)}>
                             Cancelar
                         </Button>
@@ -433,4 +433,3 @@ export default function VacationManager() {
         </div>
     );
 }
-
