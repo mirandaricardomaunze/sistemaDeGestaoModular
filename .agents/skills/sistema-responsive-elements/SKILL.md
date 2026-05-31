@@ -67,3 +67,18 @@ Inputs e dropdowns selects devem adaptar-se dinamicamente ao espaço horizontal 
   ```tsx
   <div className="flex flex-col sm:flex-row gap-2 [&>*]:w-full sm:[&>*]:w-auto">
   ```
+
+### Proibição de Alturas Fixas (Hardcoded) em Botões e Inputs
+* **Nunca use `h-10` ou `h-11` manual:** Os componentes de UI do Multicore (`Button`, `Input`, `Select`) possuem a propriedade genérica `size` (ex: `size="sm"`) que já incorpora toda a lógica de adaptação e toque responsivo entre plataformas (mobile 44px vs desktop 40px).
+* **Consequência:** A injecção de alturas fixas através de Tailwind (como `h-11 sm:h-10`) na `className` quebra a consistência do sistema de Design e o alinhamento com campos adjacentes. Use **apenas** `size="sm"` (ou a ausência deste para tamanho padrão).
+
+### Grelhas Expansíveis de Ação (Header Actions)
+* **Preenchimento do Espaço:** Contentores de botões no cabeçalho das páginas (ao lado de títulos) devem ocupar o espaço horizontal livre para evitar agrupamentos espremidos.
+* Utilize grelhas fluidas com `flex-1` ou definições de `grid-cols` onde o botão tem sempre `w-full` dentro da sua célula:
+  ```tsx
+  <div className="grid w-full md:w-auto md:flex-1 max-w-[600px] grid-cols-2 sm:grid-cols-3 gap-2 ...">
+      <Button className="w-full" size="sm">Actualizar</Button>
+      <Button className="w-full" size="sm">Relatório</Button>
+      <Button className="w-full col-span-2 sm:col-span-1" size="sm">Novo</Button>
+  </div>
+  ```

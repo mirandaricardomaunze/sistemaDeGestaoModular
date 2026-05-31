@@ -88,18 +88,20 @@ export default function PhysicalInventoryPage() {
                 subtitle="Contagem ciclica com ajuste automatico de stock apos aprovacao."
                 icon={<HiOutlineClipboardDocumentList />}
                 actions={
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full h-11 sm:h-9"
-                        leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
-                        onClick={() => {
-                            inventoriesQuery.refetch();
-                            detailQuery.refetch();
-                        }}
-                    >
-                        Actualizar
-                    </Button>
+                    <div className="w-full md:w-auto md:flex-1 max-w-[200px] ml-auto">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
+                            onClick={() => {
+                                inventoriesQuery.refetch();
+                                detailQuery.refetch();
+                            }}
+                        >
+                            Actualizar
+                        </Button>
+                    </div>
                 }
             />
 
@@ -129,7 +131,7 @@ export default function PhysicalInventoryPage() {
                         isLoading={createMutation.isPending}
                         disabled={!warehouseId}
                         onClick={handleCreate}
-                        className="w-full h-11 sm:h-9 lg:w-auto"
+                        className="w-full lg:w-auto"
                     >
                         Nova contagem
                     </Button>
@@ -180,7 +182,7 @@ export default function PhysicalInventoryPage() {
                             <Button
                                 size="sm"
                                 variant="outline"
-                                className="w-full h-11 sm:w-auto sm:h-9"
+                                className="w-full sm:w-auto"
                                 disabled={!detail || detail.status !== 'DRAFT' && detail.status !== 'COUNTING' || changedLines.length === 0}
                                 isLoading={submitMutation.isPending}
                                 onClick={handleSubmitCounts}
@@ -190,7 +192,7 @@ export default function PhysicalInventoryPage() {
                             <Button
                                 size="sm"
                                 variant="success"
-                                className="w-full h-11 sm:w-auto sm:h-9"
+                                className="w-full sm:w-auto"
                                 leftIcon={<HiOutlineCheckCircle className="w-4 h-4" />}
                                 disabled={!detail || detail.status !== 'REVIEW'}
                                 isLoading={approveMutation.isPending}
@@ -229,7 +231,7 @@ export default function PhysicalInventoryPage() {
                                                     <input
                                                         type="number"
                                                         min={0}
-                                                        className="h-10 w-28 rounded-xl border border-slate-300 dark:border-dark-700 bg-white dark:bg-dark-800 px-3 text-right text-sm font-mono"
+                                                        className="py-1.5 w-28 rounded-xl border border-slate-300 dark:border-dark-700 bg-white dark:bg-dark-800 px-3 text-right text-sm font-mono focus:ring-2 focus:ring-primary-500 focus:outline-none"
                                                         value={counted}
                                                         disabled={detail.status !== 'DRAFT' && detail.status !== 'COUNTING'}
                                                         onChange={(event) => setCounts((previous) => ({

@@ -206,10 +206,11 @@ export default function RestaurantFinance() {
                 subtitle="Controle de CMV, custos de insumos e receitas operacionais"
                 icon={<HiOutlineCurrencyDollar className="text-primary-600 dark:text-primary-400" />}
                 actions={
-                    <>
+                    <div className="grid w-full sm:w-auto grid-cols-2 gap-2">
                         <Button 
                             variant="ghost" 
                             size="sm" 
+                            className="w-full"
                             onClick={fetchData}
                             leftIcon={<HiOutlineArrowPath className={cn('w-4 h-4 text-primary-600 dark:text-primary-400', loading && 'animate-spin')} />}
                         >
@@ -217,7 +218,8 @@ export default function RestaurantFinance() {
                         </Button>
                         <Button 
                             variant="primary"
-                            size="sm" 
+                            size="sm"
+                            className="w-full"
                             leftIcon={<HiOutlinePlus className="w-4 h-4" />} 
                             onClick={() => {
                                 setEditingTransaction(null);
@@ -227,7 +229,7 @@ export default function RestaurantFinance() {
                         >
                             Novo Lançamento
                         </Button>
-                    </>
+                    </div>
                 }
             />
 
@@ -303,13 +305,13 @@ export default function RestaurantFinance() {
                     ))}
                 </div>
 
-                <div className="flex items-center gap-2 w-full lg:w-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 w-full lg:w-auto">
                     <Input
                         placeholder="Pesquisar..."
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                         leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
-                        className="bg-white dark:bg-dark-800 border-none shadow-sm h-10 min-w-[280px]"
+                        className="bg-white dark:bg-dark-800 border-none shadow-sm w-full min-w-[280px]"
                     />
                     <Select
                         options={[
@@ -319,7 +321,7 @@ export default function RestaurantFinance() {
                         ]}
                         value={filterType}
                         onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
-                        className="w-40 border-none shadow-sm h-10"
+                        className="w-full sm:w-40 border-none shadow-sm"
                     />
                 </div>
             </div>

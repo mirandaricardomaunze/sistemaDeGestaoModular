@@ -109,7 +109,7 @@ export default function CommercialInventory() {
                     </p>
                 </div>
 
-                <div className="grid w-full grid-cols-2 gap-2 bg-white/40 dark:bg-dark-900/40 p-2 rounded-2xl border border-slate-200/60 dark:border-white/5 backdrop-blur-md sm:grid-cols-3 md:w-auto md:flex md:flex-wrap md:items-center md:gap-3">
+                <div className="grid w-full md:w-auto md:flex-1 max-w-[600px] grid-cols-2 sm:grid-cols-3 gap-2 bg-white/40 dark:bg-dark-900/40 p-2 rounded-2xl border border-slate-200/60 dark:border-white/5 backdrop-blur-md">
                     <Button
                         variant="ghost"
                         size="sm"
@@ -118,7 +118,7 @@ export default function CommercialInventory() {
                             refetchBasic();
                         }}
                         disabled={basicLoading || advancedLoading}
-                        className="w-full md:w-auto h-11 sm:h-10"
+                        className="w-full"
                         leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-primary-600", (basicLoading || advancedLoading) && "animate-spin")} />}
                     >
                         Actualizar
@@ -127,7 +127,7 @@ export default function CommercialInventory() {
                     <Button
                         size="sm"
                         variant="outline"
-                        className="w-full md:w-auto h-11 sm:h-10"
+                        className="w-full"
                         leftIcon={<HiOutlinePrinter className="w-4 h-4" />}
                         onClick={() => setShowPrintReport(true)}
                     >
@@ -137,7 +137,7 @@ export default function CommercialInventory() {
                     <Button
                         size="sm"
                         variant="primary"
-                        className="w-full md:w-auto h-11 sm:h-10 col-span-2 sm:col-span-1"
+                        className="w-full col-span-2 sm:col-span-1"
                         leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />}
                         onClick={handleAddProduct}
                     >

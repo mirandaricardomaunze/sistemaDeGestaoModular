@@ -173,7 +173,7 @@ export default function InventoryTable({
     };
 
     // Define columns
-    const columns = useMemo<ColumnDef<Product, unknown>[]>(
+    const columns = useMemo<ColumnDef<Product, any>[]>(
         () => [
             columnHelper.accessor('barcode', {
                 header: 'Código de Barras',
@@ -368,7 +368,7 @@ export default function InventoryTable({
             size="sm" 
             onClick={onAddProduct}
             leftIcon={<HiOutlinePlusCircle className="w-4 h-4" />}
-            className="h-10 px-6 bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-500/20 rounded-xl font-black uppercase text-[10px] tracking-widest border-none"
+            className="px-6 bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-500/20 rounded-xl font-black uppercase text-[10px] tracking-widest border-none"
         >
             Novo Produto
         </Button>
@@ -421,7 +421,7 @@ export default function InventoryTable({
                                 onChange={(e) => handleCategoryChange(e.target.value)}
                                 disabled={categoriesLoading}
                                 size="sm"
-                                className="h-10 text-[10px] font-black uppercase tracking-widest border-slate-200 dark:border-dark-700 shadow-sm rounded-xl"
+                                className="text-[10px] font-black uppercase tracking-widest border-slate-200 dark:border-dark-700 shadow-sm rounded-xl"
                             />
                         </div>
 
@@ -432,7 +432,7 @@ export default function InventoryTable({
                                 value={selectedStatus}
                                 onChange={(e) => handleStatusChange(e.target.value)}
                                 size="sm"
-                                className="h-10 text-[10px] font-black uppercase tracking-widest border-slate-200 dark:border-dark-700 shadow-sm rounded-xl"
+                                className="text-[10px] font-black uppercase tracking-widest border-slate-200 dark:border-dark-700 shadow-sm rounded-xl"
                             />
                         </div>
 
@@ -443,7 +443,7 @@ export default function InventoryTable({
                                 value={selectedWarehouse}
                                 onChange={(e) => handleWarehouseChange(e.target.value)}
                                 size="sm"
-                                className="h-10 text-[10px] font-black uppercase tracking-widest border-slate-200 dark:border-dark-700 shadow-sm rounded-xl"
+                                className="text-[10px] font-black uppercase tracking-widest border-slate-200 dark:border-dark-700 shadow-sm rounded-xl"
                             />
                         </div>
                     </div>

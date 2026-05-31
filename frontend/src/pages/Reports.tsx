@@ -311,22 +311,26 @@ function SalesReports() {
                         Análise detalhada das vendas e desempenho
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <ShareButton
-                        title="Relatório de Vendas"
-                        description={`Total: ${formatCurrency(metrics.totalSales)} | Transações: ${metrics.transactionCount} | IVA: ${formatCurrency(metrics.totalTax)}`}
-                        fileName={`relatorio-vendas-${formatDate(new Date(), 'yyyy-MM-dd')}`}
-                        companyName={companySettings?.companyName ?? 'Empresa'}
-                        onGeneratePDF={generatePDF}
-                    />
-                    <ExportSalesButton data={filteredSales} />
-                    <Button variant="outline" onClick={() => handleExport('excel')}>
-                        <HiOutlineArrowDownTray className="w-5 h-5 mr-2 text-primary-600 dark:text-primary-400" />
-                        Gerar XLSX
+                <div className="grid w-full md:w-auto grid-cols-2 lg:grid-cols-4 gap-2">
+                    <div className="w-full">
+                        <ShareButton
+                            title="Relatório de Vendas"
+                            description={`Total: ${formatCurrency(metrics.totalSales)} | Transações: ${metrics.transactionCount} | IVA: ${formatCurrency(metrics.totalTax)}`}
+                            fileName={`relatorio-vendas-${formatDate(new Date(), 'yyyy-MM-dd')}`}
+                            companyName={companySettings?.companyName ?? 'Empresa'}
+                            onGeneratePDF={generatePDF}
+                        />
+                    </div>
+                    <div className="w-full">
+                        <ExportSalesButton data={filteredSales} />
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full text-xs font-bold uppercase tracking-widest" onClick={() => handleExport('excel')}>
+                        <HiOutlineArrowDownTray className="w-4 h-4 mr-1 text-primary-600 dark:text-primary-400" />
+                        XLSX
                     </Button>
-                    <Button onClick={() => handleExport('pdf')}>
-                        <HiOutlineDocumentArrowDown className="w-5 h-5 mr-2 text-white" />
-                        Exportar PDF Profissional
+                    <Button size="sm" className="w-full text-xs font-bold uppercase tracking-widest" onClick={() => handleExport('pdf')}>
+                        <HiOutlineDocumentArrowDown className="w-4 h-4 mr-1 text-white" />
+                        PDF Profissional
                     </Button>
                 </div>
             </div>

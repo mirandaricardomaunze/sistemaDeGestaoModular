@@ -15,7 +15,7 @@ import {
     HiOutlineChartBar, HiOutlineTableCells as HiOutlineTableCells, HiOutlineUsers, HiOutlineTruck,
     HiOutlineExclamationCircle,
 } from 'react-icons/hi2';
-import { Card, Button, Input, LoadingSpinner, TableContainer, PageHeader } from '../../components/ui';
+import { Card, Button, LoadingSpinner, TableContainer, PageHeader } from '../../components/ui';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
 import Pagination from '../../components/ui/Pagination';
 import { formatCurrency, formatDate, cn } from '../../utils/helpers';
@@ -344,48 +344,52 @@ export default function PharmacyReports() {
 
             {/* Filters */}
             <Card className="p-4 print:hidden">
-                <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex items-center h-10 gap-2 bg-gray-50 dark:bg-dark-700/50 p-1.5 rounded-lg border border-gray-100 dark:border-dark-600">
-                        <Input type="date" value={period.start} onChange={e => setPeriod({ ...period, start: e.target.value })} className="w-36 border-none bg-transparent shadow-none focus:ring-0 h-full" />
+                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                    {/* Period */}
+                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-dark-700/50 p-1.5 rounded-lg border border-gray-100 dark:border-dark-600 overflow-x-auto w-full lg:w-auto">
+                        <input type="date" value={period.start} onChange={e => setPeriod({ ...period, start: e.target.value })} className="min-w-[120px] py-1.5 border-none bg-transparent shadow-none focus:ring-0 text-sm" />
                         <span className="text-[10px] font-black uppercase tracking-tighter text-gray-400 px-1">até</span>
-                        <Input type="date" value={period.end} onChange={e => setPeriod({ ...period, end: e.target.value })} className="w-36 border-none bg-transparent shadow-none focus:ring-0 h-full" />
+                        <input type="date" value={period.end} onChange={e => setPeriod({ ...period, end: e.target.value })} className="min-w-[120px] py-1.5 border-none bg-transparent shadow-none focus:ring-0 text-sm" />
                     </div>
 
                     {/* Report type selector */}
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full lg:w-auto lg:flex-1">
                         {REPORT_OPTIONS.map(opt => {
                             const Icon = opt.icon;
                             return (
                                 <Button variant="ghost"
+                                    size="sm"
                                     key={opt.value}
                                     onClick={() => { setReportType(opt.value as ReportType); setIsReportGenerated(false); }}
                                     className={cn(
-                                        'flex items-center gap-1.5 px-3 h-10 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm',
+                                        'flex-1 items-center justify-center sm:justify-start gap-1.5 px-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm',
                                         reportType === opt.value
                                             ? 'bg-teal-500 text-white border-teal-500 shadow-teal-500/20 scale-105'
                                             : 'bg-white dark:bg-dark-800 text-gray-500 dark:text-gray-400 border-gray-100 dark:border-dark-700 hover:border-teal-400'
                                     )}
                                 >
-                                    <Icon className="w-4 h-4" />
-                                    {opt.label}
+                                    <Icon className="w-4 h-4 shrink-0" />
+                                    <span className="truncate">{opt.label}</span>
                                 </Button>
                             );
                         })}
                     </div>
 
-                    {/* View toggle */}
-                    <div className="flex items-center h-10 gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1 ml-auto">
-                        <Button variant="ghost" onClick={() => setViewMode('charts')} className={cn('p-2 h-full aspect-square rounded-md flex items-center justify-center', viewMode === 'charts' ? 'bg-white dark:bg-dark-600 shadow' : 'hover:bg-gray-200')}>
-                            <HiOutlineChartBar className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" onClick={() => setViewMode('table')} className={cn('p-2 h-full aspect-square rounded-md flex items-center justify-center', viewMode === 'table' ? 'bg-white dark:bg-dark-600 shadow' : 'hover:bg-gray-200')}>
-                            <HiOutlineTableCells className="w-4 h-4" />
+                    {/* Controls */}
+                    <div className="flex items-center gap-2 w-full lg:w-auto mt-2 lg:mt-0">
+                        <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
+                            <Button variant="ghost" size="sm" onClick={() => setViewMode('charts')} className={cn('p-2 aspect-square rounded-md flex items-center justify-center', viewMode === 'charts' ? 'bg-white dark:bg-dark-600 shadow' : 'hover:bg-gray-200')}>
+                                <HiOutlineChartBar className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => setViewMode('table')} className={cn('p-2 aspect-square rounded-md flex items-center justify-center', viewMode === 'table' ? 'bg-white dark:bg-dark-600 shadow' : 'hover:bg-gray-200')}>
+                                <HiOutlineTableCells className="w-4 h-4" />
+                            </Button>
+                        </div>
+
+                        <Button variant="primary" size="sm" className="px-6 flex-1 lg:flex-none h-full" onClick={() => handleGenerateReport(1)} disabled={isGenerating}>
+                            {isGenerating ? <><LoadingSpinner size="sm" /> A gerar...</> : 'Gerar Relatório'}
                         </Button>
                     </div>
-
-                    <Button variant="primary" className="h-10 px-6" onClick={() => handleGenerateReport(1)} disabled={isGenerating}>
-                        {isGenerating ? <><LoadingSpinner size="sm" /> A gerar...</> : 'Gerar Relatório'}
-                    </Button>
                 </div>
             </Card>
 

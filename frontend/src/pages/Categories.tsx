@@ -302,14 +302,16 @@ export default function Categories({ hideHeader = false, originModule }: Categor
                     subtitle={`Gestão de categorias de produtos ${moduleName ? 'da ' + moduleName : ''}`}
                     icon={<HiOutlineTag className="text-primary-600 dark:text-primary-400" />}
                     actions={
-                        <Button 
-                            size="sm"
-                            className="font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
-                            onClick={() => setShowFormModal(true)} 
-                            leftIcon={<HiOutlinePlus className="w-4 h-4" />}
-                        >
-                            Nova Categoria
-                        </Button>
+                        <div className="w-full md:w-auto md:flex-1 max-w-[200px] ml-auto">
+                            <Button 
+                                size="sm"
+                                className="w-full font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
+                                onClick={() => setShowFormModal(true)} 
+                                leftIcon={<HiOutlinePlus className="w-4 h-4" />}
+                            >
+                                Nova Categoria
+                            </Button>
+                        </div>
                     }
                 />
             )}

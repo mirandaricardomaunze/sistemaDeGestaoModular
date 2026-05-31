@@ -343,24 +343,27 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
                     subtitle={`Gestão de Entidades ${moduleName ? 'da ' + moduleName : ''} e Encomendas de Compra`}
                     icon={<HiOutlineTruck className="text-primary-600 dark:text-primary-400" />}
                     actions={
-                        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+                        <div className={cn(
+                            "grid w-full gap-2 md:w-auto md:flex-1",
+                            activeTab === 'directory' ? "grid-cols-2 sm:grid-cols-3 max-w-[600px]" : "grid-cols-1 max-w-[200px] ml-auto"
+                        )}>
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="w-full sm:w-auto h-11 sm:h-9 font-black text-[10px] uppercase tracking-widest text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10"
-                                leftIcon={<HiOutlineArrowPath className="w-5 h-5" />}
+                                className="w-full font-black text-[10px] uppercase tracking-widest text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10"
+                                leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
                                 onClick={() => refetch()}
                             >
                                 Actualizar
                             </Button>
                             {activeTab === 'directory' && (
                                 <>
-                                    <ExportSuppliersButton data={suppliers} size="sm" className="w-full sm:w-auto h-11 sm:h-9" variant="outline" />
+                                    <ExportSuppliersButton data={suppliers} size="sm" className="w-full" variant="outline" />
                                     <Button
                                         size="sm"
-                                        className="w-full sm:w-auto h-11 sm:h-9 font-black text-[10px] uppercase tracking-widest"
+                                        className="w-full col-span-2 sm:col-span-1 font-black text-[10px] uppercase tracking-widest"
                                         onClick={() => setShowFormModal(true)}
-                                        leftIcon={<HiOutlinePlus className="w-5 h-5" />}
+                                        leftIcon={<HiOutlinePlus className="w-4 h-4" />}
                                     >
                                         Novo Fornecedor
                                     </Button>

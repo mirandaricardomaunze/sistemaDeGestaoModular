@@ -161,7 +161,7 @@ export default function Header() {
 
                         {/* User Dropdown */}
                         {showUserMenu && (
-                            <div className="absolute right-0 mt-3 sm:mt-4 w-[calc(100vw-24px)] sm:w-80 max-w-[320px] bg-white dark:bg-dark-800/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border border-slate-200/80 dark:border-dark-700/50 overflow-hidden origin-top-right animate-in fade-in zoom-in-95 duration-200 z-50">
+                            <div className="fixed inset-x-3 top-[72px] sm:absolute sm:inset-auto sm:right-0 sm:top-auto sm:mt-4 sm:w-80 bg-white dark:bg-dark-800/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border border-slate-200/80 dark:border-dark-700/50 overflow-hidden origin-top-right animate-in fade-in zoom-in-95 duration-200 z-50">
                                 <div className="p-4 sm:p-5 bg-gradient-to-b from-slate-50 to-white dark:from-dark-900/80 dark:to-dark-800/40 border-b border-slate-200 dark:border-dark-700">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white text-lg sm:text-xl font-black shadow-inner shadow-white/20 ring-4 ring-primary-50 dark:ring-primary-900/20">

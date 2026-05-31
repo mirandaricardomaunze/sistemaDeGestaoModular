@@ -19,11 +19,11 @@ export default function WarehousesPage() {
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">Armazéns</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Gestão de Armazéns e Depósitos</p>
                     </div>
-                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+                    <div className="grid w-full md:w-auto md:flex-1 max-w-[400px] grid-cols-2 gap-2">
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="w-full sm:w-auto h-11 sm:h-9 font-black text-[10px] uppercase tracking-widest text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10"
+                            className="w-full font-black text-[10px] uppercase tracking-widest text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10"
                             leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
                             onClick={() => setRefreshKey(prev => prev + 1)}
                         >
@@ -31,7 +31,7 @@ export default function WarehousesPage() {
                         </Button>
                         <Button
                             size="sm"
-                            className="w-full sm:w-auto h-11 sm:h-9 font-black text-[10px] uppercase tracking-widest"
+                            className="w-full font-black text-[10px] uppercase tracking-widest"
                             leftIcon={<HiOutlinePlus className="w-4 h-4" />}
                             onClick={handleNewWarehouse}
                         >

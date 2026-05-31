@@ -261,7 +261,7 @@ export default function RestaurantPOS() {
                         type="button"
                         onClick={() => setMobileView('catalog')}
                         className={cn(
-                            "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98]",
+                            "flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98]",
                             mobileView === 'catalog'
                                 ? 'bg-rose-600 text-white shadow-md'
                                 : 'text-slate-700 dark:text-gray-300 hover:bg-white/40 dark:hover:bg-dark-700/40'
@@ -273,7 +273,7 @@ export default function RestaurantPOS() {
                         type="button"
                         onClick={() => setMobileView('cart')}
                         className={cn(
-                            "flex-1 h-11 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98] relative",
+                            "flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98] relative",
                             mobileView === 'cart'
                                 ? 'bg-rose-600 text-white shadow-md'
                                 : 'text-slate-700 dark:text-gray-300 hover:bg-white/40 dark:hover:bg-dark-700/40'

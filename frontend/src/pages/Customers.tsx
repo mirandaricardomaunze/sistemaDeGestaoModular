@@ -372,26 +372,26 @@ export default function Customers({ originModule }: CustomersProps) {
                 subtitle={`Controlo de Entidades ${originModule === 'pharmacy' ? 'da Farmácia' : ''}, Histórico de Vendas e CRM`}
                 icon={<HiOutlineUsers className="text-primary-600 dark:text-primary-400" />}
                 actions={
-                    <>
+                    <div className="grid w-full md:w-auto md:flex-1 max-w-[600px] grid-cols-2 sm:grid-cols-3 gap-2">
                         <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="font-black text-[10px] uppercase tracking-widest text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10"
-                            leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} 
+                            className="w-full font-black text-[10px] uppercase tracking-widest text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10"
+                            leftIcon={<HiOutlineArrowPath className="w-4 h-4" />} 
                             onClick={() => refetch()}
                         >
                             Actualizar
                         </Button>
-                        <ExportCustomersButton data={customers} size="sm" className="w-full sm:w-auto" variant="outline" />
+                        <ExportCustomersButton data={customers} size="sm" className="w-full" variant="outline" />
                         <Button 
                             size="sm" 
-                            className="font-black text-[10px] uppercase tracking-widest"
-                            leftIcon={<HiOutlinePlus className="w-5 h-5" />} 
+                            className="w-full col-span-2 sm:col-span-1 font-black text-[10px] uppercase tracking-widest"
+                            leftIcon={<HiOutlinePlus className="w-4 h-4" />} 
                             onClick={() => setShowFormModal(true)}
                         >
-                            Adicionar Cliente
+                            Novo Cliente
                         </Button>
-                    </>
+                    </div>
                 }
             />
 

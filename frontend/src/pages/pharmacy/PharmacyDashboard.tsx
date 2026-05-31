@@ -196,8 +196,8 @@ export default function PharmacyDashboard() {
                 subtitle="Gestão Inteligente de Medicamentos e Vendas"
                 icon={<HiOutlineBeaker />}
                 actions={
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex items-center bg-slate-100 dark:bg-dark-800 rounded-xl p-1 border border-slate-200 dark:border-white/5 shadow-inner h-10">
+                    <div className="grid w-full lg:w-auto grid-cols-2 lg:flex lg:flex-wrap items-center gap-2">
+                        <div className="col-span-2 lg:col-span-1 flex items-center justify-center bg-slate-100 dark:bg-dark-800 rounded-xl p-1 border border-slate-200 dark:border-white/5 shadow-inner">
                             <ModulePeriodFilter value={selectedPeriod} onChange={setSelectedPeriod} />
                         </div>
 
@@ -206,17 +206,17 @@ export default function PharmacyDashboard() {
                             size="sm"
                             onClick={handleRefresh}
                             disabled={isRefreshing}
-                            className="h-10 px-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-teal-600 transition-all"
+                            className="w-full lg:w-auto text-xs font-black uppercase tracking-widest text-slate-500 hover:text-teal-600 transition-all"
                             leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-teal-600", isRefreshing && "animate-spin")} />}
                         >
                             {isRefreshing ? 'Actualizando...' : 'Actualizar'}
                         </Button>
 
-                        <Link to="/pharmacy/pos">
+                        <Link to="/pharmacy/pos" className="w-full lg:w-auto">
                             <Button 
                                 size="sm" 
                                 variant="primary"
-                                className="h-10 px-6 bg-teal-600 hover:bg-teal-700 shadow-lg shadow-teal-500/20 rounded-xl font-black uppercase text-[10px] tracking-widest border-none" 
+                                className="w-full lg:w-auto px-6 bg-teal-600 hover:bg-teal-700 shadow-lg shadow-teal-500/20 rounded-xl font-black uppercase text-[10px] tracking-widest border-none" 
                                 leftIcon={<HiOutlinePlus className="w-4 h-4" />}
                             >
                                 Nova Venda
