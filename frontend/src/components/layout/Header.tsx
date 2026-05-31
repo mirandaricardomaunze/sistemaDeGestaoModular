@@ -80,9 +80,7 @@ export default function Header() {
                     </Button>
 
                     {/* Language Selector */}
-                    <div className="hidden md:block">
-                        <LanguageSelector />
-                    </div>
+                    <LanguageSelector />
 
                     <div className="flex items-center">
                         {(pendingCount > 0 || failedCount > 0) ? (
