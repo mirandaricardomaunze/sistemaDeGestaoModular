@@ -189,13 +189,13 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-0 sm:p-4" onClick={onClose}>
             <form
-                className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-lg p-6 space-y-4"
+                className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col bg-white shadow-2xl dark:bg-gray-900 sm:min-h-0 sm:max-h-[calc(100dvh-2rem)] sm:rounded-xl"
                 onClick={e => e.stopPropagation()}
                 onSubmit={handleSubmit}
             >
-                <div className="flex items-center justify-between">
+                <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700 sm:p-6 sm:pb-4">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                         {initial?.id ? 'Editar Evento' : 'Novo Evento'}
                     </h2>
@@ -204,6 +204,7 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
                     </Button>
                 </div>
 
+                <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-6 sm:pt-4">
                 <Input
                     label="Título *"
                     value={form.title}
@@ -216,7 +217,7 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição</label>
                     <textarea
-                        className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                        className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none sm:text-sm"
                         rows={2}
                         value={form.description}
                         onChange={e => set('description', e.target.value)}
@@ -225,7 +226,7 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
                 </div>
 
                 {/* Dates */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <Input
                         label="Início *"
                         type={form.allDay ? 'date' : 'datetime-local'}
@@ -243,7 +244,7 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
                 </div>
 
                 {/* All day + Module badge row */}
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2">
                         <input
                             id="allDay"
@@ -255,14 +256,14 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
                         <label htmlFor="allDay" className="text-sm text-gray-700 dark:text-gray-300">Dia inteiro</label>
                     </div>
                     {form.module && (
-                        <span className="text-xs px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+                        <span className="w-fit text-xs px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
                             {MODULE_OPTIONS.find(m => m.value === form.module)?.label || form.module}
                         </span>
                     )}
                 </div>
 
                 {/* Color + Notify row */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cor</label>
                         <div className="flex gap-2 flex-wrap">
@@ -320,15 +321,17 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
                     </div>
                 )}
 
+                </div>
+
                 {/* Actions */}
-                <div className="flex justify-end gap-3 pt-2">
-                    <Button variant="outline" type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg">
+                <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-gray-200 p-4 dark:border-gray-700 sm:flex-row sm:justify-end sm:p-6 sm:pt-4">
+                    <Button variant="outline" type="button" onClick={onClose} className="w-full px-4 py-2 text-sm rounded-lg sm:w-auto">
                         Cancelar
                     </Button>
                     <Button
                         type="submit"
                         disabled={loading}
-                        className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 flex items-center gap-2"
+                        className="w-full px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 flex items-center gap-2 sm:w-auto"
                     >
                         {loading && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                         {initial?.id ? 'Guardar' : 'Criar Evento'}
