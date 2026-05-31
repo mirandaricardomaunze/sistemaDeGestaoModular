@@ -109,7 +109,7 @@ export default function CommercialInventory() {
                     </p>
                 </div>
 
-                <div className="grid w-full grid-cols-1 gap-2 bg-white/40 dark:bg-dark-900/40 p-2 rounded-2xl border border-slate-200/60 dark:border-white/5 backdrop-blur-md sm:grid-cols-3 md:w-auto md:flex md:flex-wrap md:items-center md:gap-3">
+                <div className="grid w-full grid-cols-2 gap-2 bg-white/40 dark:bg-dark-900/40 p-2 rounded-2xl border border-slate-200/60 dark:border-white/5 backdrop-blur-md sm:grid-cols-3 md:w-auto md:flex md:flex-wrap md:items-center md:gap-3">
                     <Button
                         variant="ghost"
                         size="sm"
@@ -118,6 +118,7 @@ export default function CommercialInventory() {
                             refetchBasic();
                         }}
                         disabled={basicLoading || advancedLoading}
+                        className="w-full h-11 sm:h-9"
                         leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-primary-600", (basicLoading || advancedLoading) && "animate-spin")} />}
                     >
                         Actualizar
@@ -126,6 +127,7 @@ export default function CommercialInventory() {
                     <Button
                         size="sm"
                         variant="outline"
+                        className="w-full h-11 sm:h-9"
                         leftIcon={<HiOutlinePrinter className="w-4 h-4" />}
                         onClick={() => setShowPrintReport(true)}
                     >
@@ -135,6 +137,7 @@ export default function CommercialInventory() {
                     <Button
                         size="sm"
                         variant="primary"
+                        className="w-full h-11 sm:h-9 col-span-2 sm:col-span-1"
                         leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />}
                         onClick={handleAddProduct}
                     >
@@ -144,7 +147,7 @@ export default function CommercialInventory() {
             </div>
 
             {/* Metrics Dashboard */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
                     label="Valor em Inventário"
                     value={formatCurrency(metrics.inventoryValue)}
@@ -187,13 +190,13 @@ export default function CommercialInventory() {
 
             {/* Tabs */}
             <div className="border-b border-gray-100 dark:border-dark-700 overflow-hidden">
-                <nav className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain scrollbar-none sm:gap-4">
+                <nav className="flex w-full gap-2 overflow-x-auto overscroll-x-contain scrollbar-none sm:gap-4">
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setActiveTab('products')}
                         className={cn(
-                            "group flex min-w-max items-center gap-2 py-4 text-xs font-black uppercase tracking-widest sm:tracking-[0.2em] border-b-2 rounded-none focus:ring-0",
+                            "group flex flex-1 sm:flex-none justify-center sm:min-w-max items-center gap-2 py-4 text-xs font-black uppercase tracking-widest sm:tracking-[0.2em] border-b-2 rounded-none focus:ring-0",
                             activeTab === 'products'
                                 ? "border-primary-500 text-primary-600"
                                 : "border-transparent text-gray-400 hover:text-gray-600"
@@ -212,7 +215,7 @@ export default function CommercialInventory() {
                         size="sm"
                         onClick={() => setActiveTab('batches')}
                         className={cn(
-                            "group flex min-w-max items-center gap-2 py-4 text-xs font-black uppercase tracking-widest sm:tracking-[0.2em] border-b-2 rounded-none focus:ring-0",
+                            "group flex flex-1 sm:flex-none justify-center sm:min-w-max items-center gap-2 py-4 text-xs font-black uppercase tracking-widest sm:tracking-[0.2em] border-b-2 rounded-none focus:ring-0",
                             activeTab === 'batches'
                                 ? "border-amber-500 text-amber-600"
                                 : "border-transparent text-gray-400 hover:text-gray-600"
@@ -224,7 +227,10 @@ export default function CommercialInventory() {
                         )}>
                             <HiOutlineClock className={cn("w-4 h-4 transition-transform group-hover:scale-110")} />
                         </div>
-                        Lotes & Validades
+                        <span>
+                            <span className="hidden sm:inline">Lotes & Validades</span>
+                            <span className="inline sm:hidden">Lotes</span>
+                        </span>
                     </Button>
                 </nav>
             </div>
