@@ -82,14 +82,7 @@ export function MetricCard({
             <div className="absolute inset-0 bg-gradient-to-br from-white/55 via-transparent to-transparent dark:from-white/5 pointer-events-none" />
             <div className={cn('absolute left-0 top-0 h-full w-1 opacity-90', p.accent)} />
             
-            <div className="relative z-10 flex min-w-0 items-center gap-3 p-3 sm:gap-4 sm:p-5">
-                <div className={cn(
-                    'w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex shrink-0 items-center justify-center shadow-md transition-all duration-300 group-hover:scale-105',
-                    p.iconBg, p.iconColor
-                )}>
-                    <div className="scale-90 sm:scale-100 flex items-center justify-center">{icon}</div>
-                </div>
-
+            <div className="relative z-10 flex min-w-0 items-start justify-between gap-3 p-3 sm:gap-4 sm:p-5">
                 <div className="min-w-0 flex-1 space-y-0.5 sm:space-y-1">
                     <div className="flex min-w-0 items-start justify-between gap-2">
                         <p className="text-xl sm:text-2xl font-black text-slate-950 dark:text-white tracking-normal tabular-nums truncate">
@@ -112,6 +105,13 @@ export function MetricCard({
                     <p className="text-[9px] sm:text-[10px] text-slate-600 dark:text-gray-400 uppercase tracking-widest font-black truncate">
                         {label}
                     </p>
+                </div>
+
+                <div className={cn(
+                    'w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex shrink-0 items-center justify-center shadow-md transition-all duration-300 group-hover:scale-105',
+                    p.iconBg, p.iconColor
+                )}>
+                    <div className="scale-90 sm:scale-100 flex items-center justify-center">{icon}</div>
                 </div>
             </div>
             
@@ -143,14 +143,14 @@ export function StatCard({ icon, color = 'success', value, label, sublabel, clas
             'relative group overflow-hidden rounded-xl shadow-card hover:shadow-card-hover transition-all duration-300 active:scale-[0.99]',
             p.cardBg, p.cardBorder, className
         )}>
-            <div className="p-3 sm:p-5 flex items-center gap-2 sm:gap-4">
-                <div className={cn('w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm transition-all duration-300', p.iconBg, p.iconColor)}>
-                    <div className="scale-75 sm:scale-100 flex items-center justify-center">{icon}</div>
-                </div>
+            <div className="p-3 sm:p-5 flex min-w-0 items-center justify-between gap-2 sm:gap-4">
                 <div className="min-w-0">
                     <p className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-[0.15em] font-black truncate">{label}</p>
                     <p className="text-base sm:text-2xl font-black text-gray-900 dark:text-white tracking-normal truncate">{value}</p>
                     {sublabel && <p className="text-[9px] sm:text-[10px] text-gray-400 font-bold italic mt-0.5 truncate">{sublabel}</p>}
+                </div>
+                <div className={cn('w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm transition-all duration-300', p.iconBg, p.iconColor)}>
+                    <div className="scale-75 sm:scale-100 flex items-center justify-center">{icon}</div>
                 </div>
             </div>
             <div className={cn('absolute bottom-0 left-0 h-0.5 transition-all duration-500 group-hover:w-full w-8', p.accent)} />

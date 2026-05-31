@@ -126,11 +126,8 @@ function GlobalHRSummaryPanel() {
             {items.map((item) => {
                 const Icon = item.icon;
                 return (
-                    <Card key={item.label} variant="glass" padding="sm">
-                        <div className="flex min-w-0 items-start gap-3 sm:gap-4">
-                            <div className={cn('w-9 h-9 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0', item.color)}>
-                                <Icon className="w-4 h-4 sm:w-6 sm:h-6" />
-                            </div>
+                    <Card key={item.label} variant="glass" padding="md">
+                        <div className="flex min-w-0 items-start justify-between gap-4">
                             <div className="min-w-0">
                                 <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 line-clamp-2">
                                     {item.label}
@@ -141,6 +138,9 @@ function GlobalHRSummaryPanel() {
                                 <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
                                     {item.detail}
                                 </p>
+                            </div>
+                            <div className={cn('w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0', item.color)}>
+                                <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                             </div>
                         </div>
                         <Badge variant="outline" size="sm" className="mt-4">
@@ -192,13 +192,13 @@ function GlobalPerformancePanel() {
                     const Icon = metric.icon;
                     return (
                         <Card key={metric.label} padding="md" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
-                            <div className="flex min-w-0 items-center gap-3">
-                                <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center shrink-0', metric.color)}>
-                                    <Icon className="w-5 h-5" />
-                                </div>
+                            <div className="flex min-w-0 items-center justify-between gap-3">
                                 <div className="min-w-0">
                                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{metric.label}</p>
                                     <p className="text-2xl font-black text-gray-900 dark:text-white mt-1 tabular-nums">{metric.value}</p>
+                                </div>
+                                <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center shrink-0', metric.color)}>
+                                    <Icon className="w-5 h-5" />
                                 </div>
                             </div>
                         </Card>

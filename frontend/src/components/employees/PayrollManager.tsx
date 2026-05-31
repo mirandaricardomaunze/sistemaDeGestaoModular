@@ -387,8 +387,8 @@ export default function PayrollManager() {
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card padding="md" className="bg-primary-50 dark:bg-primary-900/10 border-primary-100 dark:border-primary-800">
-                    <div className="flex flex-row-reverse items-center justify-end gap-3">
-                        <div>
+                    <div className="flex min-w-0 items-center justify-between gap-3">
+                        <div className="min-w-0">
                             <p className="text-sm text-primary-600 dark:text-primary-400 font-medium">Total Líquido a Pagar</p>
                             <p className="text-2xl font-bold text-primary-700 dark:text-primary-300">{formatCurrency(totals.totalNet)}</p>
                         </div>
@@ -398,8 +398,8 @@ export default function PayrollManager() {
                     </div>
                 </Card>
                 <Card padding="md" className="bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700">
-                    <div className="flex flex-row-reverse items-center justify-end gap-3">
-                        <div>
+                    <div className="flex min-w-0 items-center justify-between gap-3">
+                        <div className="min-w-0">
                             <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Total INSS Retido ({inssEmployeeRate}%)</p>
                             <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">{formatCurrency(totals.totalINSS)}</p>
                         </div>
@@ -409,8 +409,8 @@ export default function PayrollManager() {
                     </div>
                 </Card>
                 <Card padding="md" className="bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700">
-                    <div className="flex flex-row-reverse items-center justify-end gap-3">
-                        <div>
+                    <div className="flex min-w-0 items-center justify-between gap-3">
+                        <div className="min-w-0">
                             <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Total IRPS Retido</p>
                             <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">{formatCurrency(totals.totalIRPS)}</p>
                         </div>
