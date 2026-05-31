@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HiCheck } from 'react-icons/hi2';
+import { HiCheck, HiOutlineLanguage } from 'react-icons/hi2';
 import { languages, type LanguageCode } from '../../i18n';
 import { Button } from '../ui/Button';
 
@@ -33,13 +33,13 @@ export default function LanguageSelector() {
                 onClick={() => setIsOpen(!isOpen)}
                 className={`flex items-center justify-center h-10 w-10 rounded-xl transition-all duration-300
                     ${isOpen
-                        ? 'bg-primary-50 dark:bg-primary-900/20'
-                        : 'hover:bg-slate-100 dark:hover:bg-dark-800'}
+                        ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400'
+                        : 'text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-dark-800'}
                 `}
                 title={`Idioma: ${currentLang.name}`}
                 aria-label="Change language"
             >
-                <span className="text-xl leading-none">{currentLang.flag}</span>
+                <HiOutlineLanguage className="w-5 h-5" />
             </Button>
 
             {isOpen && (

@@ -124,10 +124,7 @@ export default function Header() {
                             >
                                 {isOnline ? (
                                     <>
-                                        <span className="relative flex h-3 w-3 shrink-0">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70"></span>
-                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 ring-2 ring-white dark:ring-dark-900"></span>
-                                        </span>
+                                        <span className="relative inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_0_2px_rgba(255,255,255,0.6)] dark:shadow-[0_0_0_2px_rgba(15,23,42,0.6)] animate-pulse"></span>
                                         <span className="hidden sm:inline">Sincronizado</span>
                                     </>
                                 ) : (
