@@ -58,7 +58,7 @@ export default function CommercialHistoryHub() {
 
             {/* Premium Segmented Tabs */}
             <div className="w-full overflow-x-auto overscroll-x-contain scrollbar-none pb-1">
-                <div className="flex gap-1 bg-gray-100/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-xl p-1.5 w-max border border-gray-200 dark:border-dark-700 shadow-sm">
+                <div className="flex gap-1 bg-gray-100/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-xl p-1.5 border border-gray-200 dark:border-dark-700 shadow-sm w-full min-w-[520px] sm:min-w-0">
                     {TABS.map(tab => {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
@@ -69,19 +69,35 @@ export default function CommercialHistoryHub() {
                                 variant="ghost"
                                 size="sm"
                                 className={cn(
-                                    'h-10 px-5 rounded-lg text-sm font-bold normal-case tracking-normal whitespace-nowrap',
+                                    'h-10 flex-1 rounded-lg text-xs sm:text-sm font-bold normal-case tracking-normal whitespace-nowrap flex items-center justify-center gap-1.5 px-2 sm:px-4 transition-all duration-200',
                                     isActive
                                         ? 'bg-white dark:bg-dark-700 text-primary-600 dark:text-primary-400 shadow-md transform scale-[1.02]'
                                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-dark-700/30'
                                 )}
                             >
                                 <Icon className={cn(
-                                    "w-4.5 h-4.5 transition-transform duration-300",
-                                    isActive ? "text-primary-600 dark:text-primary-400 scale-110" : "text-gray-400 group-hover:text-gray-600"
+                                    "w-4.5 h-4.5 flex-shrink-0 transition-transform duration-300",
+                                    isActive ? "text-primary-600 dark:text-primary-400 scale-110" : "text-gray-400"
                                 )} />
-                                {tab.label}
+                                <span>
+                                    {tab.id === 'sales' && 'Vendas'}
+                                    {tab.id === 'voids' && (
+                                        <>
+                                            <span className="hidden sm:inline">Anulações Pendentes</span>
+                                            <span className="inline sm:hidden">Anulações</span>
+                                        </>
+                                    )}
+                                    {tab.id === 'shifts' && 'Turnos'}
+                                    {tab.id === 'stock' && (
+                                        <>
+                                            <span className="hidden sm:inline">Movimentos de Stock</span>
+                                            <span className="inline sm:hidden">Stock</span>
+                                        </>
+                                    )}
+                                    {tab.id === 'audit' && 'Auditoria'}
+                                </span>
                                 {tab.id === 'voids' && pendingCount > 0 && (
-                                    <span className="ml-1 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-black rounded-full bg-red-500 text-white">
+                                    <span className="ml-0.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-black rounded-full bg-red-500 text-white animate-pulse">
                                         {pendingCount}
                                     </span>
                                 )}
