@@ -218,8 +218,12 @@ export default function CreditNoteManager({ invoices }: CreditNoteManagerProps) 
                     placeholder: 'Buscar por numero, cliente ou fatura...',
                 }}
                 actions={
-                    <Button onClick={() => setShowCreateModal(true)} size="sm">
-                        <HiOutlinePlus className="w-5 h-5 mr-2" />
+                    <Button 
+                        onClick={() => setShowCreateModal(true)} 
+                        size="sm" 
+                        leftIcon={<HiOutlinePlus className="w-5 h-5" />}
+                        className="w-full sm:w-auto h-11 sm:h-10 flex items-center justify-center font-black text-[10px] uppercase tracking-widest"
+                    >
                         Emitir Nota de Credito
                     </Button>
                 }

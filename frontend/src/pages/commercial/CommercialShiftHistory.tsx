@@ -1,7 +1,6 @@
 import React, { useState, useEffect, Fragment, useCallback } from 'react';
 import { Menu, Transition } from '@headlessui/react';
 import { 
-    HiOutlineClock,
     HiOutlineArrowDownTray,
     HiOutlinePrinter, 
     HiOutlineEye, 
@@ -18,7 +17,7 @@ import {
 import { shiftAPI, warehousesAPI, type ShiftSession as CashSession, type ShiftZReport } from '../../services/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Card, Badge, Button, Input, Select, SimpleTable } from '../../components/ui';
+import { Card, Badge, Button, Input, Select, SmartTable } from '../../components/ui';
 import Pagination from '../../components/ui/Pagination';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -609,7 +608,7 @@ const CommercialShiftHistory: React.FC = () => {
                         <Button 
                             onClick={applyFilters} 
                             size="sm"
-                            className="w-full h-11 lg:h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-500/20 border-none"
+                            className="w-full h-11 lg:h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-500/20 border-none"
                         >
                             Filtrar
                         </Button>
@@ -675,7 +674,7 @@ const CommercialShiftHistory: React.FC = () => {
             </Card>
 
             {/* Quick Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
                     icon={<HiOutlineCurrencyDollar className="w-5 h-5" />}
                     color="primary"
@@ -704,112 +703,199 @@ const CommercialShiftHistory: React.FC = () => {
 
             {/* Main Data Table */}
             <Card padding="none" className="overflow-hidden border-gray-100 dark:border-dark-700 shadow-xl shadow-black/5">
-                <SimpleTable
+                <SmartTable
+                    data={sessions}
                     columns={[
-                        { key: 'session', label: 'Sessão (Abertura/Fecho)' },
-                        { key: 'responsible', label: 'Responsável' },
-                        { key: 'fund', label: 'Fundo / Vendas', className: 'text-right' },
-                        { key: 'balance', label: 'Saldo Final', className: 'text-right' },
-                        { key: 'audit', label: 'Auditoria', className: 'text-center' },
-                        { key: 'actions', label: 'Acções', className: 'text-right pr-10' },
+                        {
+                            id: 'session',
+                            header: 'Sessão (Abertura/Fecho)',
+                            cell: ({ row }) => {
+                                const session = row.original;
+                                return (
+                                    <div className="flex flex-col font-mono">
+                                        <span className="text-xs font-black text-gray-900 dark:text-white">
+                                            {format(new Date(session.openedAt), "dd MMM yy, HH:mm", { locale: ptBR }).toUpperCase()}
+                                        </span>
+                                        {session.closedAt ? (
+                                            <span className="text-[9px] text-gray-400 font-bold uppercase">
+                                                FECHADO ÀS {format(new Date(session.closedAt), "HH:mm", { locale: ptBR })}
+                                            </span>
+                                        ) : (
+                                            <Badge variant="warning" className="text-[8px] mt-1 w-fit px-1.5 py-0">EM ABERTO</Badge>
+                                        )}
+                                    </div>
+                                );
+                            }
+                        },
+                        {
+                            id: 'responsible',
+                            header: 'Responsável',
+                            cell: ({ row }) => {
+                                const session = row.original;
+                                return (
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase">
+                                            {session.openedBy?.name?.charAt(0) || '?'}
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-xs font-black text-gray-800 dark:text-gray-200 uppercase truncate">
+                                                {session.openedBy?.name || 'Desconhecido'}
+                                            </span>
+                                            <span className="text-[9px] text-gray-400 font-medium">OP #{(session.id as string).slice(-4).toUpperCase()}</span>
+                                            {session.warehouse?.name && (
+                                                <span className="text-[9px] text-gray-400 font-medium uppercase truncate">
+                                                    {session.warehouse.name}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            }
+                        },
+                        {
+                            id: 'fund',
+                            header: 'Fundo / Vendas',
+                            meta: { align: 'right' },
+                            cell: ({ row }) => {
+                                const session = row.original;
+                                return (
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-xs font-black text-gray-700 dark:text-gray-300">{formatCurrency(session.openingBalance)}</span>
+                                        <span className="text-[10px] font-black text-emerald-500 tracking-tighter">+{formatCurrency(session.totalSales)}</span>
+                                    </div>
+                                );
+                            }
+                        },
+                        {
+                            id: 'balance',
+                            header: 'Saldo Final',
+                            meta: { align: 'right' },
+                            cell: ({ row }) => {
+                                const session = row.original;
+                                return (
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-sm font-black text-indigo-600 dark:text-indigo-400 tracking-tighter">
+                                            {formatCurrency(session.closingBalance || 0)}
+                                        </span>
+                                        <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">{session._count?.sales || 0} VENDAS</span>
+                                    </div>
+                                );
+                            }
+                        },
+                        {
+                            id: 'audit',
+                            header: 'Auditoria',
+                            meta: { align: 'center' },
+                            cell: ({ row }) => getStatusBadge(row.original)
+                        },
+                        {
+                            id: 'actions',
+                            header: 'Acções',
+                            meta: { align: 'right' },
+                            cell: ({ row }) => {
+                                const session = row.original;
+                                return (
+                                    <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleViewDetails(session)}
+                                            title="Ver Detalhes do Turno"
+                                            className="p-2 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg shadow-sm active:scale-95"
+                                        >
+                                            <HiOutlineEye className="w-5 h-5" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handlePrintZReport(session)}
+                                            title="Re-imprimir Relatório Z"
+                                            className="p-2 text-gray-500 hover:bg-gray-800 hover:text-white rounded-lg shadow-sm active:scale-95"
+                                        >
+                                            <HiOutlinePrinter className="w-5 h-5" />
+                                        </Button>
+                                    </div>
+                                );
+                            }
+                        }
                     ]}
                     isLoading={loading}
-                    isEmpty={!loading && sessions.length === 0}
+                    onRefresh={() => loadHistory(page)}
                     emptyTitle="Sem registos de turnos"
                     emptyDescription="Os turnos aparecerão aqui assim que forem registados."
-                    minHeight="460px"
-                    loadingRows={8}
-                    loadingMessage="A carregar turnos..."
-                    headerRowClassName="text-gray-400 border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-900/50"
-                    tbodyClassName="divide-y divide-gray-100 dark:divide-dark-700"
-                >
-                            {!loading && sessions.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-20 text-center">
-                                        <div className="flex flex-col items-center gap-3 opacity-20">
-                                            <HiOutlineClock className="w-16 h-16 text-gray-300" />
-                                            <p className="text-sm font-bold uppercase tracking-widest">Sem registos de turnos</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : !loading && (
-                                sessions.map((session) => (
-                                    <tr key={session.id} className="hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-all group">
-                                        <td className="px-6 py-4 font-mono">
-                                            <div className="flex flex-col">
-                                                <span className="text-xs font-black text-gray-900 dark:text-white">
-                                                    {format(new Date(session.openedAt), "dd MMM yy, HH:mm", { locale: ptBR }).toUpperCase()}
-                                                </span>
-                                                {session.closedAt ? (
-                                                    <span className="text-[9px] text-gray-400 font-bold uppercase">
-                                                        FECHADO ÀS {format(new Date(session.closedAt), "HH:mm", { locale: ptBR })}
-                                                    </span>
-                                                ) : (
-                                                    <Badge variant="warning" className="text-[8px] mt-1 w-fit px-1.5 py-0">EM ABERTO</Badge>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase">
-                                                    {session.openedBy?.name.charAt(0)}
-                                                </div>
-                                                <div className="flex flex-col min-w-0">
-                                                    <span className="text-xs font-black text-gray-800 dark:text-gray-200 uppercase truncate">
-                                                        {session.openedBy?.name}
-                                                    </span>
-                                                    <span className="text-[9px] text-gray-400 font-medium">OP #{(session.id as string).slice(-4).toUpperCase()}</span>
-                                                    {session.warehouse?.name && (
-                                                        <span className="text-[9px] text-gray-400 font-medium uppercase truncate">
-                                                            {session.warehouse.name}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-xs font-black text-gray-700 dark:text-gray-300">{formatCurrency(session.openingBalance)}</span>
-                                                <span className="text-[10px] font-black text-emerald-500 tracking-tighter">+{formatCurrency(session.totalSales)}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-sm font-black text-indigo-600 dark:text-indigo-400 tracking-tighter">
-                                                    {formatCurrency(session.closingBalance || 0)}
-                                                </span>
-                                                <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">{session._count?.sales || 0} VENDAS</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            {getStatusBadge(session)}
-                                        </td>
-                                        <td className="px-6 py-4 pr-10">
-                                            <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => handleViewDetails(session)}
-                                                    title="Ver Detalhes do Turno"
-                                                    className="p-2 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg shadow-sm active:scale-95"
-                                                >
-                                                    <HiOutlineEye className="w-5 h-5" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => handlePrintZReport(session)}
-                                                    title="Re-imprimir Relatório Z"
-                                                    className="p-2 text-gray-500 hover:bg-gray-800 hover:text-white rounded-lg shadow-sm active:scale-95"
-                                                >
-                                                    <HiOutlinePrinter className="w-5 h-5" />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                </SimpleTable>
+                    mobileCardRender={(session) => (
+                        <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-3">
+                            {/* 1. Header: Responsável + Status */}
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
+                                        <span className="text-indigo-600 dark:text-indigo-400 font-black text-sm uppercase">{session.openedBy?.name?.charAt(0) || '?'}</span>
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{session.openedBy?.name || 'Desconhecido'}</p>
+                                        <p className="text-[10px] text-gray-500 font-mono">
+                                            {format(new Date(session.openedAt), "dd MMM yy, HH:mm", { locale: ptBR }).toUpperCase()}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                    {getStatusBadge(session)}
+                                    {!session.closedAt && (
+                                        <Badge variant="warning" size="sm" className="w-fit text-[8px] animate-pulse">
+                                            EM ABERTO
+                                        </Badge>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* 2. Corpo: Vendas e Saldos */}
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div className="bg-gray-50 dark:bg-dark-900/30 p-2 rounded-lg text-center">
+                                    <p className="text-[9px] font-black uppercase text-gray-400">Fundo Fixo</p>
+                                    <p className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(session.openingBalance)}</p>
+                                </div>
+                                <div className="bg-emerald-50 dark:bg-emerald-900/10 p-2 rounded-lg text-center">
+                                    <p className="text-[9px] font-black uppercase text-emerald-600/70 dark:text-emerald-500/70">Vendas Totais</p>
+                                    <p className="font-bold text-emerald-600 dark:text-emerald-400">+{formatCurrency(session.totalSales)}</p>
+                                </div>
+                            </div>
+
+                            {/* 3. Rodapé: Saldo Final */}
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
+                                <div>
+                                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Saldo Final Declarado</p>
+                                    <p className="text-sm font-black text-indigo-600 dark:text-indigo-400">{formatCurrency(session.closingBalance || 0)}</p>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-[9px] font-black uppercase tracking-widest bg-gray-100 dark:bg-dark-700 px-2 py-0.5 rounded text-gray-500">
+                                        {session._count?.sales || 0} VENDAS
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* 4. Ações — Espaço Total */}
+                            <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-white/5 w-full">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleViewDetails(session)}
+                                    className="flex-1 p-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-500/20 font-black tracking-widest text-[10px] uppercase"
+                                >
+                                    <HiOutlineEye className="w-4 h-4 mr-2" /> Detalhes
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handlePrintZReport(session)}
+                                    className="flex-1 p-2 rounded-lg bg-gray-50 dark:bg-dark-900/30 text-gray-600 dark:text-gray-400 border border-gray-200/50 dark:border-dark-700 font-black tracking-widest text-[10px] uppercase"
+                                >
+                                    <HiOutlinePrinter className="w-4 h-4 mr-2" /> Relatório Z
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                />
+
 
                 {!loading && total > 0 && (
                     <div className="px-6 pb-4">

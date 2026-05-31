@@ -320,8 +320,7 @@ export default function DebitNoteManager({ invoices }: DebitNoteManagerProps) {
                     placeholder: 'Buscar por número, cliente ou fatura...',
                 }}
                 actions={
-                    <Button onClick={() => setShowCreateModal(true)} size="sm">
-                        <HiOutlinePlus className="w-5 h-5 mr-2" />
+                    <Button onClick={() => setShowCreateModal(true)} size="sm" leftIcon={<HiOutlinePlus className="w-5 h-5" />}>
                         Emitir Nota de Débito
                     </Button>
                 }

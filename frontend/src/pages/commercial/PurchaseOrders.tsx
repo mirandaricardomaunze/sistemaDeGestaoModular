@@ -6,7 +6,7 @@ import {
     HiOutlineArrowDownTray, HiOutlineCurrencyDollar, HiOutlineSparkles,
     HiOutlineExclamationTriangle,
 } from 'react-icons/hi2';
-import { Card, Badge, Button, Input, Select, Textarea, Modal, Pagination, PageHeader, SimpleTable, ConfirmationModal } from '../../components/ui';
+import { Card, Badge, Button, Input, Select, Textarea, Modal, Pagination, PageHeader, SmartTable, ConfirmationModal } from '../../components/ui';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { ProductSearchInput, type ProductOption } from '../../components/commercial/ProductSearchInput';
 import { formatCurrency, cn } from '../../utils/helpers';
@@ -482,6 +482,119 @@ export default function PurchaseOrders() {
         return { pending, totalVal, received, overdue };
     }, [orders]);
 
+    const columns = [
+        {
+            key: 'order',
+            header: 'Ordem #',
+            render: (order: PurchaseOrder) => (
+                <div className="flex flex-col">
+                    <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                        {order.orderNumber}
+                    </span>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase">
+                        {new Date(order.createdAt).toLocaleDateString('pt-MZ')}
+                    </span>
+                </div>
+            )
+        },
+        {
+            key: 'supplier',
+            header: 'Fornecedor',
+            render: (order: PurchaseOrder) => (
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 text-[10px] font-black uppercase">
+                        {order.supplier?.name?.charAt(0)}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-black text-gray-800 dark:text-gray-200 uppercase truncate max-w-[200px]">
+                            {order.supplier?.name}
+                        </span>
+                        <span className="text-[9px] text-gray-400 font-medium">
+                            ENTREGA: {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString('pt-MZ') : 'N/A'}
+                        </span>
+                    </div>
+                </div>
+            )
+        },
+        {
+            key: 'status',
+            header: 'Estado',
+            render: (order: PurchaseOrder) => {
+                const { config: cfg } = getDocumentWorkflow(order.status as OrderStatus, STATUS_CONFIG, STATUS_TRANSITIONS, 'draft');
+                const Icon = cfg.icon as React.ElementType;
+                const isOverdue = order.expectedDeliveryDate
+                    && new Date(order.expectedDeliveryDate) < new Date()
+                    && !['received', 'cancelled'].includes(order.status);
+                return (
+                    <div className="flex flex-col gap-1">
+                        <Badge variant={cfg.variant} size="sm" className="w-fit text-[9px] uppercase tracking-tighter">
+                            <Icon className="w-3 h-3 mr-1" />
+                            {cfg.label}
+                        </Badge>
+                        {isOverdue && (
+                            <Badge variant="danger" size="sm" className="w-fit text-[8px] animate-pulse">
+                                ATRASADA
+                            </Badge>
+                        )}
+                    </div>
+                );
+            }
+        },
+        {
+            key: 'total',
+            header: 'Total',
+            align: 'right' as const,
+            render: (order: PurchaseOrder) => (
+                <div className="flex flex-col items-end">
+                    <span className="text-sm font-black text-primary-600 dark:text-primary-400 tracking-tighter">
+                        {formatCurrency(Number(order.total))}
+                    </span>
+                    <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">
+                        {order.items?.length || 0} ITENS
+                    </span>
+                </div>
+            )
+        },
+        {
+            key: 'actions',
+            header: 'Acções',
+            align: 'right' as const,
+            render: (order: PurchaseOrder) => {
+                const isExpanded = expandedId === order.id;
+                const canReceive = ['ordered', 'partial'].includes(order.status);
+                return (
+                    <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
+                        {canReceive && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setReceivingOrder(order)}
+                                className="h-9 w-9 p-0 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg shadow-sm"
+                                title="Receber Stock"
+                            >
+                                <HiOutlineArrowDownTray className="w-5 h-5" />
+                            </Button>
+                        )}
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setExpandedId(isExpanded ? null : order.id)}
+                            className={cn(
+                                "h-9 w-9 p-0 rounded-lg shadow-sm",
+                                isExpanded ? "bg-primary-600 text-white" : "text-primary-600 hover:bg-primary-600 hover:text-white"
+                            )}
+                            title="Ver Detalhes"
+                        >
+                            <HiOutlineChevronDown className={cn("w-5 h-5 transition-transform", isExpanded && "rotate-180")} />
+                        </Button>
+                    </div>
+                );
+            }
+        }
+    ];
+
     return (
         <div className="space-y-6 pb-10">
             <PageHeader
@@ -489,12 +602,12 @@ export default function PurchaseOrders() {
                 subtitle="Gestão de aprovisionamento e receção de stock profissional"
                 icon={<HiOutlineClipboardDocumentList className="text-primary-600" />}
                 actions={
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                         <Button 
                             variant="ghost" 
                             size="sm" 
                             onClick={refetch}
-                            className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-primary-600"
+                            className="w-full h-11 sm:w-auto sm:h-10 font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-primary-600"
                             leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4", isLoading && "animate-spin")} />}
                         >
                             Actualizar
@@ -503,7 +616,7 @@ export default function PurchaseOrders() {
                             variant="primary" 
                             size="sm"
                             onClick={() => setShowCreateModal(true)} 
-                            className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
+                            className="w-full h-11 sm:w-auto sm:h-10 flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
                             leftIcon={<HiOutlinePlus className="w-4 h-4" />}
                         >
                             Nova Ordem
@@ -512,22 +625,24 @@ export default function PurchaseOrders() {
                 }
             />
 
-            {/* Tab Navigation */}
-            <div className="flex max-w-full overflow-x-auto overscroll-x-contain p-1 bg-gray-100/50 dark:bg-dark-800/50 rounded-xl border border-gray-200/30 dark:border-dark-700/30 shadow-inner scrollbar-none">
+            <div className="flex w-full overflow-x-auto overscroll-x-contain p-1 bg-gray-100/50 dark:bg-dark-800/50 rounded-xl border border-gray-200/30 dark:border-dark-700/30 shadow-inner scrollbar-none">
                 <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => setActiveTab('list')}
                     className={cn(
-                        "min-w-max flex-1 min-h-11 sm:h-10 px-3 text-[10px] font-black uppercase tracking-widest rounded-lg",
+                        "flex-1 sm:flex-none justify-center sm:min-w-max min-h-11 sm:h-10 px-3 text-[10px] font-black uppercase tracking-widest rounded-lg",
                         activeTab === 'list'
                             ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
                             : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                     )}
                 >
                     <HiOutlineClipboardDocumentList className="w-4 h-4" />
-                    Lista de Ordens
+                    <span>
+                        <span className="hidden sm:inline">Lista de Ordens</span>
+                        <span className="inline sm:hidden">Lista</span>
+                    </span>
                 </Button>
                 <Button
                     type="button"
@@ -535,14 +650,17 @@ export default function PurchaseOrders() {
                     size="sm"
                     onClick={() => setActiveTab('predictive')}
                     className={cn(
-                        "min-w-max flex-1 min-h-11 sm:h-10 px-3 text-[10px] font-black uppercase tracking-widest rounded-lg",
+                        "flex-1 sm:flex-none justify-center sm:min-w-max min-h-11 sm:h-10 px-3 text-[10px] font-black uppercase tracking-widest rounded-lg",
                         activeTab === 'predictive'
                             ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
                             : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                     )}
                 >
                     <HiOutlineSparkles className={cn("w-4 h-4", activeTab === 'predictive' ? "text-amber-500" : "text-amber-500 opacity-50")} />
-                    IA Preditiva & Reposição
+                    <span>
+                        <span className="hidden sm:inline">IA Preditiva & Reposição</span>
+                        <span className="inline sm:hidden">Preditiva</span>
+                    </span>
                 </Button>
             </div>
 
@@ -619,200 +737,195 @@ export default function PurchaseOrders() {
 
             {/* Orders Data Table */}
             <Card padding="none" className="overflow-hidden border-gray-100 dark:border-dark-700 shadow-xl shadow-black/5">
-                <SimpleTable
-                    columns={[
-                        { key: 'order', label: 'Ordem #' },
-                        { key: 'supplier', label: 'Fornecedor' },
-                        { key: 'status', label: 'Estado' },
-                        { key: 'total', label: 'Total', className: 'text-right' },
-                        { key: 'actions', label: 'Acções', className: 'text-right pr-10' },
-                    ]}
+                <SmartTable
+                    data={orders}
+                    columns={columns}
                     isLoading={isLoading}
-                    isEmpty={!isLoading && orders.length === 0}
+                    onRefresh={refetch}
+                    expandedId={expandedId}
+                    expandedRowRender={(order) => {
+                        const { transitions } = getDocumentWorkflow(order.status as OrderStatus, STATUS_CONFIG, STATUS_TRANSITIONS, 'draft');
+                        return (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-white dark:bg-dark-900 p-4 rounded-xl border border-gray-100 dark:border-dark-700 shadow-sm">
+                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Itens da Ordem</h4>
+                                        <div className="space-y-2">
+                                            {order.items.map((item) => (
+                                                <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-dark-700/50 last:border-0">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase">{item.product?.name}</span>
+                                                        <span className="text-[9px] text-gray-400 font-mono">{item.product?.code}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="text-right">
+                                                            <p className="text-[9px] text-gray-400 uppercase font-bold">Qtd / Rec</p>
+                                                            <p className="text-xs font-black text-gray-700 dark:text-gray-300">
+                                                                {item.quantity} / <span className={cn(item.receivedQty >= item.quantity ? "text-emerald-500" : "text-amber-500")}>{item.receivedQty}</span>
+                                                            </p>
+                                                        </div>
+                                                        <div className="text-right min-w-[80px]">
+                                                            <p className="text-[9px] text-gray-400 uppercase font-bold">Total</p>
+                                                            <p className="text-xs font-black text-primary-600">{formatCurrency(Number(item.total))}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-4">
+                                        {order.notes && (
+                                            <div className="bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-xl border border-amber-100 dark:border-amber-900/20">
+                                                <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] mb-2 flex items-center gap-1">
+                                                    <HiOutlineExclamationCircle className="w-3 h-3" /> Notas
+                                                </h4>
+                                                <p className="text-xs text-amber-800 dark:text-amber-200 font-medium italic">{order.notes}</p>
+                                            </div>
+                                        )}
+                                        <div className="bg-white dark:bg-dark-900 p-4 rounded-xl border border-gray-100 dark:border-dark-700 shadow-sm flex-1">
+                                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Acções de Estado</h4>
+                                            <div className="flex flex-wrap gap-2">
+                                                {transitions.map(action => (
+                                                    <Button
+                                                        key={action.next}
+                                                        size="sm"
+                                                        variant={action.variant}
+                                                        onClick={() => handleStatusUpdate(order, action.next as OrderStatus)}
+                                                        className="font-black text-[9px] uppercase tracking-widest px-4"
+                                                    >
+                                                        {action.label}
+                                                    </Button>
+                                                ))}
+                                                {order.status === 'draft' && (
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="ghost" 
+                                                        onClick={() => handleDelete(order.id)}
+                                                        className="font-black text-[9px] uppercase tracking-widest text-red-500 hover:bg-red-50"
+                                                    >
+                                                        Eliminar Rascunho
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    }}
                     emptyTitle="Sem registos de ordens"
                     emptyDescription="As ordens de compra aparecerão aqui assim que forem registadas."
-                    minHeight="480px"
-                    loadingRows={8}
-                    loadingMessage="A carregar ordens..."
-                    headerRowClassName="text-gray-400 border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-900/50"
-                    tbodyClassName="divide-y divide-gray-100 dark:divide-dark-700"
-                >
-                            {!isLoading && orders.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-20 text-center">
-                                        <div className="flex flex-col items-center gap-3 opacity-20">
-                                            <HiOutlineClipboardDocumentList className="w-16 h-16 text-gray-300" />
-                                            <p className="text-sm font-bold uppercase tracking-widest">Sem registos de ordens</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : !isLoading && (
-                                orders.map(order => {
-                                    const { config: cfg, transitions } = getDocumentWorkflow(order.status as OrderStatus, STATUS_CONFIG, STATUS_TRANSITIONS, 'draft');
-                                    const Icon       = cfg.icon as React.ElementType;
-                                    const isExpanded = expandedId === order.id;
-                                    const isOverdue  = order.expectedDeliveryDate
-                                        && new Date(order.expectedDeliveryDate) < new Date()
-                                        && !['received', 'cancelled'].includes(order.status);
-                                    const canReceive = ['ordered', 'partial'].includes(order.status);
+                    mobileCardRender={(order) => {
+                        const { config: cfg, transitions } = getDocumentWorkflow(order.status as OrderStatus, STATUS_CONFIG, STATUS_TRANSITIONS, 'draft');
+                        const isExpanded = expandedId === order.id;
+                        const canReceive = ['ordered', 'partial'].includes(order.status);
+                        const isOverdue = order.expectedDeliveryDate
+                            && new Date(order.expectedDeliveryDate) < new Date()
+                            && !['received', 'cancelled'].includes(order.status);
 
-                                    return (
-                                        <React.Fragment key={order.id}>
-                                            <tr className="hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-all group">
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
-                                                            {order.orderNumber}
-                                                        </span>
-                                                        <span className="text-[9px] text-gray-400 font-bold uppercase">
-                                                            {new Date(order.createdAt).toLocaleDateString('pt-MZ')}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 text-[10px] font-black uppercase">
-                                                            {order.supplier?.name?.charAt(0)}
-                                                        </div>
-                                                        <div className="flex flex-col min-w-0">
-                                                            <span className="text-xs font-black text-gray-800 dark:text-gray-200 uppercase truncate max-w-[200px]">
-                                                                {order.supplier?.name}
-                                                            </span>
-                                                            <span className="text-[9px] text-gray-400 font-medium">
-                                                                ENTREGA: {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString('pt-MZ') : 'N/A'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col gap-1">
-                                                        <Badge variant={cfg.variant} size="sm" className="w-fit text-[9px] uppercase tracking-tighter">
-                                                            <Icon className="w-3 h-3 mr-1" />
-                                                            {cfg.label}
-                                                        </Badge>
-                                                        {isOverdue && (
-                                                            <Badge variant="danger" size="sm" className="w-fit text-[8px] animate-pulse">
-                                                                ATRASADA
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="text-sm font-black text-primary-600 dark:text-primary-400 tracking-tighter">
-                                                            {formatCurrency(Number(order.total))}
-                                                        </span>
-                                                        <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">
-                                                            {order.items?.length || 0} ITENS
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 pr-10">
-                                                    <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
-                                                        {canReceive && (
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => setReceivingOrder(order)}
-                                                                className="h-9 w-9 p-0 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg shadow-sm"
-                                                                title="Receber Stock"
-                                                            >
-                                                                <HiOutlineArrowDownTray className="w-5 h-5" />
-                                                            </Button>
-                                                        )}
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => setExpandedId(isExpanded ? null : order.id)}
-                                                            className={cn(
-                                                                "h-9 w-9 p-0 rounded-lg shadow-sm",
-                                                                isExpanded ? "bg-primary-600 text-white" : "text-primary-600 hover:bg-primary-600 hover:text-white"
-                                                            )}
-                                                            title="Ver Detalhes"
-                                                        >
-                                                            <HiOutlineChevronDown className={cn("w-5 h-5 transition-transform", isExpanded && "rotate-180")} />
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            {isExpanded && (
-                                                <tr>
-                                                    <td colSpan={5} className="px-6 py-4 bg-gray-50/50 dark:bg-dark-900/30">
-                                                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                <div className="bg-white dark:bg-dark-900 p-4 rounded-xl border border-gray-100 dark:border-dark-700 shadow-sm">
-                                                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Itens da Ordem</h4>
-                                                                    <div className="space-y-2">
-                                                                        {order.items.map((item) => (
-                                                                            <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-dark-700/50 last:border-0">
-                                                                                <div className="flex flex-col">
-                                                                                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase">{item.product?.name}</span>
-                                                                                    <span className="text-[9px] text-gray-400 font-mono">{item.product?.code}</span>
-                                                                                </div>
-                                                                                <div className="flex items-center gap-4">
-                                                                                    <div className="text-right">
-                                                                                        <p className="text-[9px] text-gray-400 uppercase font-bold">Qtd / Rec</p>
-                                                                                        <p className="text-xs font-black text-gray-700 dark:text-gray-300">
-                                                                                            {item.quantity} / <span className={cn(item.receivedQty >= item.quantity ? "text-emerald-500" : "text-amber-500")}>{item.receivedQty}</span>
-                                                                                        </p>
-                                                                                    </div>
-                                                                                    <div className="text-right min-w-[80px]">
-                                                                                        <p className="text-[9px] text-gray-400 uppercase font-bold">Total</p>
-                                                                                        <p className="text-xs font-black text-primary-600">{formatCurrency(Number(item.total))}</p>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex flex-col gap-4">
-                                                                    {order.notes && (
-                                                                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-xl border border-amber-100 dark:border-amber-900/20">
-                                                                            <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] mb-2 flex items-center gap-1">
-                                                                                <HiOutlineExclamationCircle className="w-3 h-3" /> Notas
-                                                                            </h4>
-                                                                            <p className="text-xs text-amber-800 dark:text-amber-200 font-medium italic">{order.notes}</p>
-                                                                        </div>
-                                                                    )}
-                                                                    <div className="bg-white dark:bg-dark-900 p-4 rounded-xl border border-gray-100 dark:border-dark-700 shadow-sm flex-1">
-                                                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Acções de Estado</h4>
-                                                                        <div className="flex flex-wrap gap-2">
-                                                                            {transitions.map(action => (
-                                                                                <Button
-                                                                                    key={action.next}
-                                                                                    size="sm"
-                                                                                    variant={action.variant}
-                                                                                    onClick={() => handleStatusUpdate(order, action.next as OrderStatus)}
-                                                                                    className="font-black text-[9px] uppercase tracking-widest px-4"
-                                                                                >
-                                                                                    {action.label}
-                                                                                </Button>
-                                                                            ))}
-                                                                            {order.status === 'draft' && (
-                                                                                <Button 
-                                                                                    size="sm" 
-                                                                                    variant="ghost" 
-                                                                                    onClick={() => handleDelete(order.id)}
-                                                                                    className="font-black text-[9px] uppercase tracking-widest text-red-500 hover:bg-red-50"
-                                                                                >
-                                                                                    Eliminar Rascunho
-                                                                                </Button>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </React.Fragment>
-                                    );
-                                })
-                            )}
-                </SimpleTable>
+                        return (
+                            <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-3">
+                                {/* 1. Header: Nome + Código */}
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center shrink-0">
+                                            <span className="text-primary-600 dark:text-primary-400 font-black text-sm uppercase">{order.supplier?.name?.charAt(0)}</span>
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{order.supplier?.name}</p>
+                                            <p className="text-[10px] text-gray-500 font-mono">OC: {order.orderNumber}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <Badge variant={cfg.variant} size="sm" className="w-fit text-[9px] uppercase tracking-tighter">
+                                            {cfg.label}
+                                        </Badge>
+                                        {isOverdue && (
+                                            <Badge variant="danger" size="sm" className="w-fit text-[8px] animate-pulse">
+                                                ATRASADA
+                                            </Badge>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* 2. Corpo: Entrega e Itens */}
+                                <div className="space-y-1.5 text-sm">
+                                    <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
+                                        <div className="flex items-center gap-2">
+                                            <HiOutlineTruck className="w-4 h-4 text-primary-500 shrink-0" />
+                                            <span className="text-xs">Entrega: {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString('pt-MZ') : 'N/A'}</span>
+                                        </div>
+                                        <span className="text-[9px] font-black uppercase tracking-widest bg-gray-100 dark:bg-dark-700 px-2 py-0.5 rounded text-gray-500">
+                                            {order.items?.length || 0} ITENS
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Expand details in card */}
+                                {isExpanded && (
+                                    <div className="pt-2">
+                                        <div className="bg-gray-50/50 dark:bg-dark-900/30 rounded-lg p-3">
+                                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Acções de Estado</h4>
+                                            <div className="flex flex-wrap gap-2">
+                                                {transitions.map(action => (
+                                                    <Button
+                                                        key={action.next}
+                                                        size="sm"
+                                                        variant={action.variant}
+                                                        onClick={() => handleStatusUpdate(order, action.next as OrderStatus)}
+                                                        className="font-black text-[9px] uppercase tracking-widest flex-1 px-2"
+                                                    >
+                                                        {action.label}
+                                                    </Button>
+                                                ))}
+                                                {order.status === 'draft' && (
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="ghost" 
+                                                        onClick={() => handleDelete(order.id)}
+                                                        className="font-black text-[9px] uppercase tracking-widest text-red-500 hover:bg-red-50 flex-1 px-2 border border-red-200"
+                                                    >
+                                                        Eliminar Rascunho
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 3. Rodapé: Total */}
+                                <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
+                                    <div>
+                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total</p>
+                                        <p className="text-sm font-bold text-primary-600 dark:text-primary-400">{formatCurrency(Number(order.total))}</p>
+                                    </div>
+                                </div>
+
+                                {/* 4. Ações — Espaço Total */}
+                                <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-white/5 w-full">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setExpandedId(isExpanded ? null : order.id)}
+                                        className="flex-1 p-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-500/20 font-black tracking-widest text-[10px] uppercase"
+                                    >
+                                        <HiOutlineChevronDown className={cn("w-4 h-4 mr-2 transition-transform", isExpanded && "rotate-180")} /> {isExpanded ? 'Ocultar' : 'Detalhes'}
+                                    </Button>
+                                    {canReceive && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setReceivingOrder(order)}
+                                            className="flex-1 p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-500/20 font-black tracking-widest text-[10px] uppercase"
+                                        >
+                                            <HiOutlineArrowDownTray className="w-4 h-4 mr-2" /> Receber Stock
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    }}
+                />
 
                 {!isLoading && pagination && pagination.totalPages > 1 && (
                     <div className="px-3 sm:px-6 py-4 border-t border-gray-100 dark:border-dark-700">

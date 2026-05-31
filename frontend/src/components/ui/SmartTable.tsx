@@ -1,10 +1,11 @@
 import { type ReactNode, useMemo } from 'react';
-import { 
-    useReactTable, 
-    getCoreRowModel, 
-    getSortedRowModel, 
-    type ColumnDef, 
-    type SortingState, 
+import {
+    useReactTable,
+    getCoreRowModel,
+    getSortedRowModel,
+    flexRender,
+    type ColumnDef,
+    type SortingState,
     type OnChangeFn,
     type Table as TanStackTable
 } from '@tanstack/react-table';
@@ -181,10 +182,10 @@ export function SmartTable<TData extends { id?: string | number }>({
             {/* Toolbar: Search, Filters & Actions */}
             {!hideToolbar && (
                 <Card padding="md" className="relative z-20 overflow-visible bg-white dark:bg-dark-900/50 border border-slate-300/70 dark:border-white/10 shadow-card">
-                    <div className="flex min-w-0 flex-col items-stretch gap-3 lg:flex-row lg:items-end lg:gap-4">
+                    <div className="flex min-w-0 flex-col items-stretch gap-3 lg:flex-row lg:flex-wrap lg:items-end lg:gap-4">
                         {/* Pesquisa */}
                         {search && (
-                            <div className="min-w-0 flex-1">
+                            <div className="min-w-0 flex-1 lg:min-w-[250px]">
                                 <Input
                                     placeholder={search.placeholder || "Pesquisar..."}
                                     value={search.value}
@@ -204,7 +205,7 @@ export function SmartTable<TData extends { id?: string | number }>({
                         )}
 
                         {/* Acções, Refresh & Exportação */}
-                        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 lg:ml-auto lg:w-auto lg:justify-end [&>*]:w-full sm:[&>*]:w-auto">
+                        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 lg:ml-auto lg:w-auto lg:justify-end [&>*]:w-full lg:[&>*]:w-auto">
                             {actions}
                             
                             {onRefresh && (
@@ -245,23 +246,67 @@ export function SmartTable<TData extends { id?: string | number }>({
                 </Card>
             )}
 
-            {/* Mobile card list — < md (only when mobileCardRender provided) */}
-            {mobileCardRender && !isLoading && !isError && data.length > 0 && (
+            {/* Mobile card list — < md
+                - When `mobileCardRender` is provided, the consumer controls the card.
+                - Otherwise, fall back to an auto-generated card from the column defs
+                  so every SmartTable consumer gets cards-on-mobile for free. */}
+            {!isLoading && !isError && data.length > 0 && (
                 <div className="md:hidden space-y-2">
-                    {data.map((row) => (
-                        <div key={(row.id as string | number | undefined) ?? Math.random()}>
-                            {mobileCardRender(row)}
-                        </div>
-                    ))}
+                    {mobileCardRender
+                        ? data.map((row) => (
+                            <div key={(row.id as string | number | undefined) ?? Math.random()}>
+                                {mobileCardRender(row)}
+                            </div>
+                        ))
+                        : table.getRowModel().rows.map((row) => {
+                            const cells = row.getVisibleCells();
+                            const fieldCells = cells.filter((c) => {
+                                const h = c.column.columnDef.header;
+                                return typeof h === 'string' && h.trim().length > 0 && c.column.id !== 'actions';
+                            });
+                            const actionCells = cells.filter((c) => {
+                                const h = c.column.columnDef.header;
+                                return c.column.id === 'actions' || !(typeof h === 'string' && h.trim().length > 0);
+                            });
+                            return (
+                                <Card
+                                    key={row.id}
+                                    padding="sm"
+                                    className="border border-slate-200 dark:border-white/10 bg-white dark:bg-dark-900/60 shadow-sm"
+                                >
+                                    <div className="divide-y divide-slate-100 dark:divide-white/5">
+                                        {fieldCells.map((cell) => (
+                                            <div key={cell.id} className="flex items-start justify-between gap-3 py-2 text-sm first:pt-0 last:pb-0">
+                                                <span className="shrink-0 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">
+                                                    {String(cell.column.columnDef.header)}
+                                                </span>
+                                                <div className="min-w-0 flex-1 text-right text-gray-900 dark:text-white">
+                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {actionCells.length > 0 && (
+                                        <div className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 dark:border-white/10 pt-3">
+                                            {actionCells.map((cell) => (
+                                                <div key={cell.id}>
+                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </Card>
+                            );
+                        })}
                 </div>
             )}
 
-            {/* Table Container — hidden on mobile when mobileCardRender provided */}
+            {/* Table Container — hidden on mobile whenever a card list is being shown */}
             <Card
                 padding="none"
                 className={cn(
                     "border border-slate-300/70 dark:border-white/10 shadow-card overflow-hidden",
-                    mobileCardRender && data.length > 0 && !isLoading && !isError && "hidden md:block"
+                    data.length > 0 && !isLoading && !isError && "hidden md:block"
                 )}
             >
                 <div className="max-w-full overflow-x-auto overscroll-x-contain scrollbar-thin">

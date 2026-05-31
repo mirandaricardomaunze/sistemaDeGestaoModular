@@ -7,7 +7,7 @@ import {
 } from 'react-icons/hi2';
 import {
     Card, Badge, Button, Input, Select, Textarea, Modal,
-    Pagination, PageHeader, ConfirmationModal, EmptyState, SimpleTable,
+    Pagination, PageHeader, ConfirmationModal, SmartTable,
 } from '../../components/ui';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { RequestApprovalModal } from '../../components/common/RequestApprovalModal';
@@ -361,6 +361,161 @@ export default function SupplierInvoices() {
         ...(Object.entries(STATUS_CONFIG) as Array<[SupplierInvoiceStatus, { label: string }]>).map(([k, v]) => ({ value: k, label: v.label })),
     ];
 
+    const columns = [
+        { 
+            key: 'invoiceNumber', 
+            header: 'Nº Factura', 
+            render: (invoice: SupplierInvoice) => (
+                <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                    {invoice.invoiceNumber}
+                </span>
+            )
+        },
+        { 
+            key: 'supplier', 
+            header: 'Fornecedor', 
+            render: (invoice: SupplierInvoice) => (
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 text-[10px] font-black uppercase">
+                        {invoice.supplier?.name?.charAt(0)}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-black text-gray-800 dark:text-gray-200 uppercase truncate max-w-[200px]">
+                            {invoice.supplier?.name}
+                        </span>
+                        {invoice.supplier?.nuit && (
+                            <span className="text-[9px] text-gray-400 font-medium">
+                                NUIT: {invoice.supplier.nuit}
+                            </span>
+                        )}
+                    </div>
+                </div>
+            )
+        },
+        { 
+            key: 'order', 
+            header: 'Ordem', 
+            render: (invoice: SupplierInvoice) => (
+                <span className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                    {invoice.purchaseOrder?.orderNumber || '—'}
+                </span>
+            )
+        },
+        { 
+            key: 'issueDate', 
+            header: 'Emissão', 
+            render: (invoice: SupplierInvoice) => (
+                <span className="text-xs text-gray-500">
+                    {format(parseISO(invoice.issueDate), 'dd/MM/yyyy')}
+                </span>
+            )
+        },
+        { 
+            key: 'dueDate', 
+            header: 'Vencimento', 
+            render: (invoice: SupplierInvoice) => (
+                <span className="text-xs text-gray-500">
+                    {invoice.dueDate ? format(parseISO(invoice.dueDate), 'dd/MM/yyyy') : '—'}
+                </span>
+            )
+        },
+        { 
+            key: 'status', 
+            header: 'Estado', 
+            render: (invoice: SupplierInvoice) => {
+                const cfg = STATUS_CONFIG[invoice.status];
+                const Icon = cfg.icon;
+                const isOverdue = (invoice.status === 'registered' || invoice.status === 'partial')
+                    && invoice.dueDate
+                    && new Date(invoice.dueDate) < new Date();
+                return (
+                    <div className="flex flex-col gap-1">
+                        <Badge variant={cfg.variant} size="sm" className="w-fit text-[9px] uppercase tracking-tighter">
+                            <Icon className="w-3 h-3 mr-1" />
+                            {cfg.label}
+                        </Badge>
+                        {isOverdue && (
+                            <Badge variant="danger" size="sm" className="w-fit text-[8px] animate-pulse">
+                                VENCIDA
+                            </Badge>
+                        )}
+                    </div>
+                );
+            }
+        },
+        { 
+            key: 'total', 
+            header: 'Total', 
+            align: 'right' as const,
+            render: (invoice: SupplierInvoice) => (
+                <div className="flex flex-col items-end">
+                    <span className="text-sm font-black text-primary-600 dark:text-primary-400 tracking-tighter">
+                        {formatCurrency(Number(invoice.total))}
+                    </span>
+                    {Number(invoice.amountDue) > 0 && invoice.status !== 'cancelled' ? (
+                        <span className="text-[9px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-tight">
+                            Dívida: {formatCurrency(Number(invoice.amountDue))}
+                        </span>
+                    ) : (
+                        <span className="text-[9px] text-gray-400 font-bold">
+                            IVA: {formatCurrency(Number(invoice.tax))}
+                        </span>
+                    )}
+                </div>
+            )
+        },
+        { 
+            key: 'actions', 
+            header: 'Acções', 
+            align: 'right' as const,
+            render: (invoice: SupplierInvoice) => {
+                const isExpanded = expandedId === invoice.id;
+                const canPay = invoice.status === 'registered' || invoice.status === 'partial';
+                return (
+                    <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
+                        {canPay && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setPayingInvoice(invoice)}
+                                className="h-9 w-9 p-0 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg shadow-sm"
+                                title="Registar Pagamento"
+                            >
+                                <HiOutlineBanknotes className="w-5 h-5" />
+                            </Button>
+                        )}
+                        {invoice.status !== 'cancelled' && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setConfirmAction({ id: invoice.id, status: 'cancelled', invoiceNumber: invoice.invoiceNumber })}
+                                className="h-9 w-9 p-0 text-red-500 hover:bg-red-600 hover:text-white rounded-lg shadow-sm"
+                                title="Cancelar Factura"
+                            >
+                                <HiOutlineXCircle className="w-5 h-5" />
+                            </Button>
+                        )}
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setExpandedId(isExpanded ? null : invoice.id)}
+                            className={cn(
+                                'h-9 w-9 p-0 rounded-lg shadow-sm',
+                                isExpanded ? 'bg-primary-600 text-white' : 'text-primary-600 hover:bg-primary-600 hover:text-white'
+                            )}
+                            title="Ver Itens"
+                        >
+                            <HiOutlineChevronDown className={cn('w-5 h-5 transition-transform', isExpanded && 'rotate-180')} />
+                        </Button>
+                    </div>
+                );
+            }
+        }
+    ];
+
     return (
         <div className="space-y-6 pb-10">
             <PageHeader
@@ -368,12 +523,12 @@ export default function SupplierInvoices() {
                 subtitle="Registo de facturas de compras e controlo de IVA dedutível"
                 icon={<HiOutlineDocumentText className="text-primary-600" />}
                 actions={
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={refetch}
-                            className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-primary-600"
+                            className="w-full h-11 sm:w-auto sm:h-10 font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-primary-600"
                             leftIcon={<HiOutlineArrowPath className={cn('w-4 h-4', isLoading && 'animate-spin')} />}
                         >
                             Actualizar
@@ -382,7 +537,7 @@ export default function SupplierInvoices() {
                             variant="primary"
                             size="sm"
                             onClick={() => setShowCreateModal(true)}
-                            className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
+                            className="w-full h-11 sm:w-auto sm:h-10 flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
                             leftIcon={<HiOutlinePlus className="w-4 h-4" />}
                         >
                             Nova Factura
@@ -453,168 +608,128 @@ export default function SupplierInvoices() {
             </Card>
 
             <Card padding="none" className="overflow-hidden border-gray-100 dark:border-dark-700 shadow-xl shadow-black/5">
-                <SimpleTable
-                    columns={[
-                        { key: 'invoice', label: 'Nº Factura' },
-                        { key: 'supplier', label: 'Fornecedor' },
-                        { key: 'order', label: 'Ordem' },
-                        { key: 'issue', label: 'Emissão' },
-                        { key: 'due', label: 'Vencimento' },
-                        { key: 'status', label: 'Estado' },
-                        { key: 'total', label: 'Total', className: 'text-right' },
-                        { key: 'actions', label: 'Acções', className: 'text-right pr-10' },
-                    ]}
+                <SmartTable
+                    data={invoices}
+                    columns={columns}
                     isLoading={isLoading}
-                    isEmpty={!isLoading && invoices.length === 0}
+                    onRefresh={refetch}
+                    expandedRowRender={(invoice) => (
+                        <ExpandedInvoiceDetails
+                            invoice={invoice}
+                            onDeletePayment={(paymentId) => handleDeletePayment(invoice.id, paymentId)}
+                        />
+                    )}
+                    expandedId={expandedId}
                     emptyTitle="Sem facturas registadas"
                     emptyDescription="Registe a primeira factura a partir de uma ordem de compra recebida."
-                    emptyIcon={<HiOutlineDocumentText className="w-12 h-12" />}
-                    minHeight="480px"
-                    loadingRows={8}
-                    loadingMessage="A carregar facturas..."
-                    headerRowClassName="text-gray-400 border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-900/50"
-                    tbodyClassName="divide-y divide-gray-100 dark:divide-dark-700"
-                >
-                            {!isLoading && invoices.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8} className="px-6 py-12">
-                                        <EmptyState
-                                            icon={<HiOutlineDocumentText className="w-12 h-12" />}
-                                            title="Sem facturas registadas"
-                                            description="Registe a primeira factura a partir de uma ordem de compra recebida."
-                                        />
-                                    </td>
-                                </tr>
-                            ) : !isLoading && (
-                                invoices.map(invoice => {
-                                    const cfg = STATUS_CONFIG[invoice.status];
-                                    const Icon = cfg.icon;
-                                    const isExpanded = expandedId === invoice.id;
-                                    const isOverdue = (invoice.status === 'registered' || invoice.status === 'partial')
-                                        && invoice.dueDate
-                                        && new Date(invoice.dueDate) < new Date();
-                                    const canPay = invoice.status === 'registered' || invoice.status === 'partial';
+                    mobileCardRender={(invoice) => {
+                        const cfg = STATUS_CONFIG[invoice.status];
+                        const Icon = cfg.icon;
+                        const isOverdue = (invoice.status === 'registered' || invoice.status === 'partial')
+                            && invoice.dueDate
+                            && new Date(invoice.dueDate) < new Date();
+                        const canPay = invoice.status === 'registered' || invoice.status === 'partial';
+                        const isExpanded = expandedId === invoice.id;
 
-                                    return (
-                                        <React.Fragment key={invoice.id}>
-                                            <tr className="hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-all group">
-                                                <td className="px-6 py-4">
-                                                    <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
-                                                        {invoice.invoiceNumber}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 text-[10px] font-black uppercase">
-                                                            {invoice.supplier?.name?.charAt(0)}
-                                                        </div>
-                                                        <div className="flex flex-col min-w-0">
-                                                            <span className="text-xs font-black text-gray-800 dark:text-gray-200 uppercase truncate max-w-[200px]">
-                                                                {invoice.supplier?.name}
-                                                            </span>
-                                                            {invoice.supplier?.nuit && (
-                                                                <span className="text-[9px] text-gray-400 font-medium">
-                                                                    NUIT: {invoice.supplier.nuit}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-xs font-mono text-gray-600 dark:text-gray-400">
-                                                    {invoice.purchaseOrder?.orderNumber || '—'}
-                                                </td>
-                                                <td className="px-6 py-4 text-xs text-gray-500">
-                                                    {format(parseISO(invoice.issueDate), 'dd/MM/yyyy')}
-                                                </td>
-                                                <td className="px-6 py-4 text-xs text-gray-500">
-                                                    {invoice.dueDate ? format(parseISO(invoice.dueDate), 'dd/MM/yyyy') : '—'}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col gap-1">
-                                                        <Badge variant={cfg.variant} size="sm" className="w-fit text-[9px] uppercase tracking-tighter">
-                                                            <Icon className="w-3 h-3 mr-1" />
-                                                            {cfg.label}
-                                                        </Badge>
-                                                        {isOverdue && (
-                                                            <Badge variant="danger" size="sm" className="w-fit text-[8px] animate-pulse">
-                                                                VENCIDA
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="text-sm font-black text-primary-600 dark:text-primary-400 tracking-tighter">
-                                                            {formatCurrency(Number(invoice.total))}
-                                                        </span>
-                                                        {Number(invoice.amountDue) > 0 && invoice.status !== 'cancelled' ? (
-                                                            <span className="text-[9px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-tight">
-                                                                Dívida: {formatCurrency(Number(invoice.amountDue))}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-[9px] text-gray-400 font-bold">
-                                                                IVA: {formatCurrency(Number(invoice.tax))}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 pr-10">
-                                                    <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
-                                                        {canPay && (
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => setPayingInvoice(invoice)}
-                                                                className="h-9 w-9 p-0 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg shadow-sm"
-                                                                title="Registar Pagamento"
-                                                            >
-                                                                <HiOutlineBanknotes className="w-5 h-5" />
-                                                            </Button>
-                                                        )}
-                                                        {invoice.status !== 'cancelled' && (
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => setConfirmAction({ id: invoice.id, status: 'cancelled', invoiceNumber: invoice.invoiceNumber })}
-                                                                className="h-9 w-9 p-0 text-red-500 hover:bg-red-600 hover:text-white rounded-lg shadow-sm"
-                                                                title="Cancelar Factura"
-                                                            >
-                                                                <HiOutlineXCircle className="w-5 h-5" />
-                                                            </Button>
-                                                        )}
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => setExpandedId(isExpanded ? null : invoice.id)}
-                                                            className={cn(
-                                                                'h-9 w-9 p-0 rounded-lg shadow-sm',
-                                                                isExpanded ? 'bg-primary-600 text-white' : 'text-primary-600 hover:bg-primary-600 hover:text-white'
-                                                            )}
-                                                            title="Ver Itens"
-                                                        >
-                                                            <HiOutlineChevronDown className={cn('w-5 h-5 transition-transform', isExpanded && 'rotate-180')} />
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            {isExpanded && (
-                                                <tr>
-                                                    <td colSpan={8} className="px-6 py-4 bg-gray-50/50 dark:bg-dark-900/30">
-                                                        <ExpandedInvoiceDetails
-                                                            invoice={invoice}
-                                                            onDeletePayment={(paymentId) => handleDeletePayment(invoice.id, paymentId)}
-                                                        />
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </React.Fragment>
-                                    );
-                                })
-                            )}
-                </SimpleTable>
+                        return (
+                            <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-3">
+                                {/* 1. Header: Nome + Código */}
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center shrink-0">
+                                            <span className="text-primary-600 dark:text-primary-400 font-black text-sm uppercase">{invoice.supplier?.name?.charAt(0)}</span>
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{invoice.supplier?.name}</p>
+                                            <p className="text-[10px] text-gray-500 font-mono">Factura: {invoice.invoiceNumber}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <Badge variant={cfg.variant} size="sm" className="w-fit text-[9px] uppercase tracking-tighter">
+                                            <Icon className="w-3 h-3 mr-1" />
+                                            {cfg.label}
+                                        </Badge>
+                                        {isOverdue && (
+                                            <Badge variant="danger" size="sm" className="w-fit text-[8px] animate-pulse">
+                                                VENCIDA
+                                            </Badge>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* 2. Corpo: Datas e Ordem */}
+                                <div className="space-y-1.5 text-sm">
+                                    <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
+                                        <div className="flex items-center gap-2">
+                                            <HiOutlineDocumentText className="w-4 h-4 text-primary-500 shrink-0" />
+                                            <span className="text-xs">Emissão: {format(parseISO(invoice.issueDate), 'dd/MM/yyyy')}</span>
+                                        </div>
+                                        {invoice.dueDate && (
+                                            <div className="flex items-center gap-2">
+                                                <HiOutlineClock className="w-4 h-4 text-primary-500 shrink-0" />
+                                                <span className="text-xs">Venc.: {format(parseISO(invoice.dueDate), 'dd/MM/yyyy')}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Expand details in card */}
+                                {isExpanded && (
+                                    <div className="pt-2">
+                                        <ExpandedInvoiceDetails
+                                            invoice={invoice}
+                                            onDeletePayment={(paymentId) => handleDeletePayment(invoice.id, paymentId)}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* 3. Rodapé: Financeiro */}
+                                <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
+                                    <div>
+                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total</p>
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(Number(invoice.total))}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Dívida</p>
+                                        <p className="text-sm font-bold text-amber-600 dark:text-amber-400">{formatCurrency(Number(invoice.amountDue))}</p>
+                                    </div>
+                                </div>
+
+                                {/* 4. Ações — Espaço Total */}
+                                <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-white/5 w-full">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setExpandedId(isExpanded ? null : invoice.id)}
+                                        className="flex-1 p-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-500/20 font-black tracking-widest text-[10px] uppercase"
+                                    >
+                                        <HiOutlineChevronDown className={cn("w-4 h-4 mr-2 transition-transform", isExpanded && "rotate-180")} /> {isExpanded ? 'Ocultar' : 'Detalhes'}
+                                    </Button>
+                                    {canPay && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setPayingInvoice(invoice)}
+                                            className="flex-1 p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-500/20 font-black tracking-widest text-[10px] uppercase"
+                                        >
+                                            <HiOutlineBanknotes className="w-4 h-4 mr-2" /> Pagar
+                                        </Button>
+                                    )}
+                                    {invoice.status !== 'cancelled' && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setConfirmAction({ id: invoice.id, status: 'cancelled', invoiceNumber: invoice.invoiceNumber })}
+                                            className="flex-1 p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-100/50 dark:border-red-500/20 font-black tracking-widest text-[10px] uppercase"
+                                        >
+                                            <HiOutlineXCircle className="w-4 h-4 mr-2" /> Anular
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    }}
+                />
 
                 {!isLoading && pagination && pagination.totalPages > 1 && (
                     <div className="px-3 sm:px-6 py-4 border-t border-gray-100 dark:border-dark-700">

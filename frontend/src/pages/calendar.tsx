@@ -195,8 +195,8 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
                 onClick={e => e.stopPropagation()}
                 onSubmit={handleSubmit}
             >
-                <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700 sm:p-6 sm:pb-4">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <div className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 p-4 dark:border-gray-700 sm:p-6 sm:pb-4">
+                    <h2 className="min-w-0 truncate text-base font-semibold text-gray-900 dark:text-white sm:text-lg">
                         {initial?.id ? 'Editar Evento' : 'Novo Evento'}
                     </h2>
                     <Button variant="ghost" size="sm" type="button" onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 active:scale-90">
@@ -205,17 +205,17 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
                 </div>
 
                 <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-6 sm:pt-4">
-                <Input
-                    label="Título *"
-                    value={form.title}
-                    onChange={e => set('title', e.target.value)}
-                    placeholder="Nome do evento"
-                    required
-                />
+                    <Input
+                        label="Título *"
+                        value={form.title}
+                        onChange={e => set('title', e.target.value)}
+                        placeholder="Nome do evento"
+                        required
+                    />
 
                 {/* Description */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição</label>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 sm:text-sm">Descrição</label>
                     <textarea
                         className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none sm:text-sm"
                         rows={2}
@@ -253,7 +253,7 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
                             checked={form.allDay}
                             onChange={e => set('allDay', e.target.checked)}
                         />
-                        <label htmlFor="allDay" className="text-sm text-gray-700 dark:text-gray-300">Dia inteiro</label>
+                        <label htmlFor="allDay" className="text-xs text-gray-700 dark:text-gray-300 sm:text-sm">Dia inteiro</label>
                     </div>
                     {form.module && (
                         <span className="w-fit text-xs px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
@@ -281,7 +281,7 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
                         </div>
                     </div>
                     <Select
-                        label="Lembrete antes do evento"
+                        label="Lembrete"
                         value={form.notifyBefore}
                         onChange={e => set('notifyBefore', e.target.value)}
                         options={[
@@ -317,7 +317,7 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
                             checked={form.isCompleted}
                             onChange={e => set('isCompleted', e.target.checked)}
                         />
-                        <label htmlFor="isCompleted" className="text-sm text-gray-700 dark:text-gray-300">Marcar como concluído</label>
+                        <label htmlFor="isCompleted" className="min-w-0 text-xs text-gray-700 dark:text-gray-300 sm:text-sm">Marcar como concluído</label>
                     </div>
                 )}
 
@@ -334,7 +334,12 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
                         className="w-full px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 flex items-center gap-2 sm:w-auto"
                     >
                         {loading && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                        {initial?.id ? 'Guardar' : 'Criar Evento'}
+                        {initial?.id ? 'Guardar' : (
+                            <>
+                                <span className="sm:hidden">Criar</span>
+                                <span className="hidden sm:inline">Criar Evento</span>
+                            </>
+                        )}
                     </Button>
                 </div>
             </form>
@@ -707,11 +712,11 @@ export default function CalendarPage() {
     return (
         <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-950 overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 flex-wrap gap-3">
-                <div className="flex items-center gap-4">
-                    <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <HiOutlineCalendar className="w-6 h-6 text-blue-600" />
-                        Calendário
+            <div className="flex items-start justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900 sm:items-center sm:px-6 sm:py-4">
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:gap-4">
+                    <h1 className="flex shrink-0 items-center gap-2 whitespace-nowrap text-base font-bold text-gray-900 dark:text-white sm:text-xl">
+                        <HiOutlineCalendar className="h-5 w-5 shrink-0 text-blue-600 sm:h-6 sm:w-6" />
+                        <span>Calendário</span>
                     </h1>
 
                     {/* Navigation */}
@@ -727,15 +732,15 @@ export default function CalendarPage() {
                         </Button>
                     </div>
 
-                    <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                    <h2 className="max-w-full truncate text-sm font-semibold text-gray-800 dark:text-gray-200 sm:text-lg">
                         {MONTH_NAMES[month]} {year}
                     </h2>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
                     {/* Active module badge */}
                     {currentModule && (
-                        <span className="text-xs px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+                        <span className="max-w-24 truncate rounded-full bg-blue-100 px-2 py-1 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 sm:max-w-40 sm:px-2.5 sm:text-xs">
                             {MODULE_OPTIONS.find(m => m.value === currentModule)?.label || currentModule}
                         </span>
                     )}
@@ -747,7 +752,7 @@ export default function CalendarPage() {
                             size="sm"
                             leftIcon={<HiOutlineViewColumns className="w-4 h-4" />}
                             onClick={() => setViewMode('month')}
-                            className={cn('px-3 py-1.5 text-sm rounded-none', viewMode === 'month' ? 'bg-blue-600 text-white hover:bg-blue-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800')}
+                            className={cn('px-2 py-1.5 text-xs rounded-none sm:px-3 sm:text-sm', viewMode === 'month' ? 'bg-blue-600 text-white hover:bg-blue-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800')}
                         >
                             Mês
                         </Button>
@@ -756,7 +761,7 @@ export default function CalendarPage() {
                             size="sm"
                             leftIcon={<HiOutlineListBullet className="w-4 h-4" />}
                             onClick={() => setViewMode('list')}
-                            className={cn('px-3 py-1.5 text-sm rounded-none', viewMode === 'list' ? 'bg-blue-600 text-white hover:bg-blue-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800')}
+                            className={cn('px-2 py-1.5 text-xs rounded-none sm:px-3 sm:text-sm', viewMode === 'list' ? 'bg-blue-600 text-white hover:bg-blue-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800')}
                         >
                             Lista
                         </Button>
@@ -766,9 +771,10 @@ export default function CalendarPage() {
                     <Button
                         leftIcon={<HiOutlinePlus className="w-4 h-4" />}
                         onClick={() => { setDefaultDate(undefined); setEditingEvent(null); setShowForm(true); }}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium sm:px-4 sm:text-sm"
                     >
-                        Novo Evento
+                        <span className="sm:hidden">Novo</span>
+                        <span className="hidden sm:inline">Novo Evento</span>
                     </Button>
                 </div>
             </div>

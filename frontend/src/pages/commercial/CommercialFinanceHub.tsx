@@ -17,24 +17,28 @@ const TABS = [
     {
         id: 'overview',
         label: 'Fluxo de Caixa',
+        shortLabel: 'Fluxo',
         icon: HiOutlineChartBar,
         subtitle: 'Gestão de receitas, despesas e margens operacionais'
     },
     {
         id: 'receivables',
         label: 'Contas a Receber',
+        shortLabel: 'Receber',
         icon: HiOutlineDocumentText,
         subtitle: 'Controle de faturas em aberto e dívidas de clientes'
     },
     {
         id: 'returns',
         label: 'Devolucoes',
+        shortLabel: 'Devoluções',
         icon: HiOutlineArrowPathRoundedSquare,
         subtitle: 'Notas de credito, devolucoes parciais e reposicao de stock'
     },
     {
         id: 'debit-notes',
         label: 'Notas de Débito',
+        shortLabel: 'Débitos',
         icon: HiOutlineArrowTrendingUp,
         subtitle: 'Cobrança de juros, multas e correcções de valor sobre faturas',
     },
@@ -62,7 +66,7 @@ export default function CommercialFinanceHub() {
 
             {/* Premium Tab Navigation (Segmented Control style) */}
             <div className="w-full overflow-x-auto overscroll-x-contain scrollbar-none pb-1">
-                <div className="flex p-1 bg-gray-100/80 dark:bg-dark-800/80 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-dark-700/50 shadow-inner w-max lg:w-full">
+                <div className="flex p-1 bg-gray-100/80 dark:bg-dark-800/80 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-dark-700/50 shadow-inner w-full min-w-[340px]">
                     {TABS.map(tab => {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
@@ -73,14 +77,15 @@ export default function CommercialFinanceHub() {
                                 variant="ghost"
                                 size="sm"
                                 className={cn(
-                                    "h-10 px-6 rounded-lg text-[10px] font-black uppercase tracking-widest flex-1 whitespace-nowrap",
+                                    "h-10 px-2 sm:px-6 rounded-lg text-[10px] font-black uppercase tracking-widest flex-1 min-w-0",
                                     isActive
                                         ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-lg shadow-black/5 scale-[1.02]"
                                         : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                                 )}
+                                leftIcon={<Icon className={cn("w-4 h-4 hidden sm:block", isActive ? "text-primary-600 dark:text-primary-400" : "opacity-55")} />}
                             >
-                                <Icon className={cn("w-4 h-4", isActive ? "text-primary-600 dark:text-primary-400" : "opacity-50")} />
-                                <span>{tab.label}</span>
+                                <span className="hidden md:inline">{tab.label}</span>
+                                <span className="inline md:hidden">{tab.shortLabel}</span>
                             </Button>
                         );
                     })}

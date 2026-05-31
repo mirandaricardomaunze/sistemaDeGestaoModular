@@ -118,7 +118,7 @@ export default function CommercialInventory() {
                             refetchBasic();
                         }}
                         disabled={basicLoading || advancedLoading}
-                        className="w-full h-11 sm:h-9"
+                        className="w-full md:w-auto h-11 sm:h-10"
                         leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-primary-600", (basicLoading || advancedLoading) && "animate-spin")} />}
                     >
                         Actualizar
@@ -127,7 +127,7 @@ export default function CommercialInventory() {
                     <Button
                         size="sm"
                         variant="outline"
-                        className="w-full h-11 sm:h-9"
+                        className="w-full md:w-auto h-11 sm:h-10"
                         leftIcon={<HiOutlinePrinter className="w-4 h-4" />}
                         onClick={() => setShowPrintReport(true)}
                     >
@@ -137,7 +137,7 @@ export default function CommercialInventory() {
                     <Button
                         size="sm"
                         variant="primary"
-                        className="w-full h-11 sm:h-9 col-span-2 sm:col-span-1"
+                        className="w-full md:w-auto h-11 sm:h-10 col-span-2 sm:col-span-1"
                         leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />}
                         onClick={handleAddProduct}
                     >
@@ -147,7 +147,7 @@ export default function CommercialInventory() {
             </div>
 
             {/* Metrics Dashboard */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
                     label="Valor em Inventário"
                     value={formatCurrency(metrics.inventoryValue)}

@@ -798,26 +798,26 @@ export default function Invoices({ originModule }: InvoicesProps) {
                 subtitle={`Gestão de Facturas ${originModule === 'pharmacy' ? 'da Farmácia' : ''}, Notas de Crédito e Fluxos de Recebimento`}
                 icon={<HiOutlineDocumentText className="text-primary-600 dark:text-primary-400" />}
                 actions={
-                    <>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                         <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
+                            className="w-full sm:w-auto h-11 sm:h-10 flex items-center justify-center font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
                             leftIcon={<HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />} 
                             onClick={() => refetch()}
                         >
                             Actualizar
                         </Button>
-                        <ExportInvoicesButton data={invoices} size="sm" />
+                        <ExportInvoicesButton data={invoices} size="sm" className="w-full sm:w-auto" variant="outline" />
                         <Button 
                             size="sm" 
-                            className="font-black text-[10px] uppercase tracking-widest"
+                            className="w-full sm:w-auto h-11 sm:h-10 flex items-center justify-center font-black text-[10px] uppercase tracking-widest"
                             leftIcon={<HiOutlinePlus className="w-5 h-5" />} 
                             onClick={() => setShowFormModal(true)}
                         >
                             Nova Factura
                         </Button>
-                    </>
+                    </div>
                 }
                 tabs={
                     <div className="flex flex-nowrap w-max -mb-px gap-1">
@@ -848,8 +848,8 @@ export default function Invoices({ originModule }: InvoicesProps) {
                 {activeTab === 'invoices' && (
                     <div className="space-y-6 animate-in fade-in duration-500">
                         {/* Period Filter for Invoices */}
-                        <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700">
-                            <div className="flex flex-wrap items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700">
+                            <div className="grid grid-cols-5 gap-1 w-full sm:flex sm:w-auto bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
                                 {periodOptions.map((option) => (
                                     <Button
                                         key={option.value}
@@ -860,7 +860,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                             setPage(1);
                                         }}
                                         className={cn(
-                                            'px-3 sm:px-6 py-2 rounded-md text-xs font-bold uppercase tracking-widest active:scale-95',
+                                            'w-full sm:w-auto px-1 sm:px-6 py-2 rounded-md text-[10px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest active:scale-95 transition-all duration-150',
                                             selectedPeriod === option.value
                                                 ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm hover:bg-white'
                                                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
@@ -871,7 +871,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                 ))}
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <MetricCard 
                                 label="Total Facturado"
                                 value={formatCurrency(metrics.total)}
@@ -997,7 +997,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                             }}
                                             size="sm"
                                         />
-                                        <div className="grid grid-cols-2 gap-2 col-span-1 sm:col-span-2 xl:col-span-2">
+                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 col-span-1 sm:col-span-2 xl:col-span-2">
                                             <Input
                                                 label="De"
                                                 type="date"

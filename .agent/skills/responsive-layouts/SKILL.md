@@ -105,6 +105,43 @@ export function TableToolbar() {
 * **Mobile**: Botões como "Exportar PDF" ou "Novo Registo" devem ocupar a largura total do ecrã. Se houver mais do que dois botões, agrupe-os ou utilize um botão de menu/dropdown de ações ("Ações") para não poluir o ecrã.
 * **Tablet/Desktop**: Devem alinhar-se à direita ou ao lado da barra de pesquisa em linha horizontal (`sm:flex-row sm:w-auto`).
 
+### C1. Padrão Grid-2-Cols para Acções no `PageHeader` (3 botões)
+
+Quando o `PageHeader` recebe **3 botões de acção** (ex: *Actualizar*, *Exportar*, *Novo Registo*), envolva-os num `div` com grid 2-col no mobile e faça o botão primário ocupar as 2 colunas em baixo via `col-span-2`. Isto poupa espaço vertical face ao stacking 3-em-coluna e dá prioridade visual ao CTA principal.
+
+```tsx
+<PageHeader
+  ...
+  actions={
+    <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+      <Button variant="ghost" size="sm" className="w-full h-11 sm:h-9" leftIcon={<HiOutlineArrowPath />}>
+        Actualizar
+      </Button>
+      <ExportButton ... className="w-full sm:w-auto h-11 sm:h-9" />
+      <Button size="sm" className="w-full col-span-2 sm:col-span-1 sm:w-auto h-11 sm:h-9" leftIcon={<HiOutlinePlus />}>
+        Novo Registo
+      </Button>
+    </div>
+  }
+/>
+```
+
+> ⚠️ **Atenção**: o `PageHeader` aplica `[&>*]:w-full sm:[&>*]:w-auto` aos filhos directos do `actions`. Envolver os botões num único `div` "neutraliza" essa regra e permite ter o próprio grid interno.
+
+### C2. Toolbar do `SmartTable` (Atualizar + Exportar): empilhar até `lg:`
+
+A toolbar do [`SmartTable`](../../../frontend/src/components/ui/SmartTable.tsx) tem o container pai `lg:flex-row` — ou seja, só fica horizontal em desktop (≥ 1024px). Os botões internos (`Atualizar`, `Exportar`, custom `actions`) devem usar **o mesmo breakpoint** para passar a `w-auto`, senão ficam apertados lado-a-lado em tablet:
+
+```tsx
+// ✅ Correcto — alinhado ao breakpoint do pai
+<div className="flex w-full flex-wrap items-center gap-2 lg:ml-auto lg:w-auto lg:justify-end [&>*]:w-full lg:[&>*]:w-auto">
+
+// ❌ Errado — children passam a w-auto em sm: mas o pai ainda é flex-col até lg:
+[&>*]:w-full sm:[&>*]:w-auto
+```
+
+**Regra geral**: o breakpoint do `[&>*]:w-auto` deve **coincidir** com o breakpoint em que o contentor pai vira `flex-row`. Aplica-se a qualquer toolbar com `flex-col → flex-row`.
+
 ---
 
 ## 3. Comportamento e Responsividade de Abas (Tabs)
@@ -245,7 +282,88 @@ Em ecrãs pequenos (Mobile), o espaço horizontal é valioso. Podemos ocultar pa
 
 ---
 
-## 6. Checklist de Verificação de Layouts Responsivos
+## 6. Tabelas Responsivas: Mobile Card Render
+
+As tabelas tradicionais (com colunas em grid/tabela) esmagam a informação em ecrãs de telemóveis, criando uma péssima experiência de utilizador (scrolling horizontal excessivo ou texto imperceptível). O componente `SmartTable` resolve isto suportando uma propriedade opcional `mobileCardRender`, que permite renderizar cada linha como um cartão vertical (card) em ecrãs menores (`< md`).
+
+### A. Regras para o Mobile Card Render
+Para todos os ecrãs de listas/tabelas de dados pesados, **deve implementar a propriedade `mobileCardRender`** na `SmartTable`.
+O modelo canónico do "Mobile Card" para uma entidade segue esta estrutura:
+
+1. **Cabeçalho (Header)**:
+   - Ícone redondo com a cor da entidade (ou badge).
+   - Nome em destaque (`font-bold`, `text-sm`, `truncate`).
+   - Códigos e IDs num formato secundário por baixo do nome (`text-[10px]`, `font-mono`).
+
+2. **Corpo (Contactos / Dados principais)**:
+   - Apresentação empilhada com espaçamento leve (`space-y-1.5`).
+   - Uso de ícones para identificar campos (ex: telefone, email, localização).
+
+3. **Rodapé (Resumo Financeiro / Status)**:
+   - Valores totais ou status em baixo (`border-t`, `pt-2`).
+   - Labels minúsculas (`text-[9px] uppercase tracking-widest`).
+
+4. **Acções (Full Width Actions)**:
+   - Todos os botões de ação (Editar, Excluir, Perfil 360) **devem ocupar o espaço total disponível em baixo**.
+   - Coloque as acções numa *div* própria com `flex gap-2 pt-2 border-t w-full`.
+   - Utilize a classe `flex-1` nos botões para que estes estiquem simetricamente.
+   - Os botões no mobile devem ter texto (não apenas ícone) para que a área de toque seja o mais larga e descritiva possível, por exemplo, com `font-black tracking-widest text-[10px] uppercase`.
+
+### Exemplo de Implementação:
+```tsx
+<SmartTable
+  data={data}
+  columns={columns}
+  // Em desktop exibe a tabela, em mobile (<md) executa esta função por linha:
+  mobileCardRender={(item) => (
+    <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-3">
+      {/* 1. Header: Nome + Código */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center shrink-0">
+             <Icon className="w-5 h-5 text-primary-600" />
+          </div>
+          <div className="min-w-0">
+             <p className="font-bold text-sm truncate">{item.name}</p>
+             <p className="text-[10px] text-gray-500 font-mono">{item.code}</p>
+          </div>
+        </div>
+        <Badge variant="info" size="sm">{item.status}</Badge>
+      </div>
+
+      {/* 2. Corpo: Informações de Contacto ou Detalhes */}
+      <div className="space-y-1.5 text-sm">
+        <div className="flex items-center gap-2 text-gray-600">
+           <HiOutlinePhone className="w-4 h-4 shrink-0" />
+           <span>{item.phone}</span>
+        </div>
+      </div>
+
+      {/* 3. Rodapé: Resumo Financeiro ou Métricas Secundárias */}
+      <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
+        <div>
+           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total Compras</p>
+           <p className="text-sm font-bold text-green-600">{formatCurrency(item.total)}</p>
+        </div>
+      </div>
+
+      {/* 4. Ações — Espaço Total (Full Width) */}
+      <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-white/5 w-full">
+        <Button variant="ghost" size="sm" onClick={() => handleEdit(item)} className="flex-1 font-black tracking-widest text-[10px] uppercase p-2">
+          <HiOutlinePencil className="w-4 h-4 mr-2" /> Editar
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => handleDelete(item)} className="flex-1 font-black tracking-widest text-[10px] uppercase p-2 text-red-600">
+          <HiOutlineTrash className="w-4 h-4 mr-2" /> Excluir
+        </Button>
+      </div>
+    </div>
+  )}
+/>
+```
+
+---
+
+## 7. Checklist de Verificação de Layouts Responsivos
 
 Antes de submeter alterações de UI ou considerar uma página concluída, verifique:
 

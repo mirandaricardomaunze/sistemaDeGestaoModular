@@ -256,15 +256,15 @@ export default function OrdersDashboard({
                 subtitle="Visão geral e gerenciamento de pedidos"
                 icon={<HiOutlineClipboardDocumentList className="text-primary-600 dark:text-primary-400" />}
                 actions={
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                         {/* Period Filter */}
-                        <div className="flex items-center h-10 bg-white dark:bg-dark-800 rounded-lg p-1 border border-gray-200 dark:border-dark-700 shadow-sm">
+                        <div className="flex items-center h-11 sm:h-10 bg-white dark:bg-dark-800 rounded-lg p-1 border border-gray-200 dark:border-dark-700 shadow-sm w-full sm:w-auto">
                             {periodOptions.map((option) => (
                                 <Button variant="ghost"
                                     key={option.value}
                                     onClick={() => setSelectedPeriod(option.value)}
                                     className={cn(
-                                        'px-3 h-full rounded-md text-[10px] font-black uppercase tracking-widest transition-all',
+                                        'px-3 h-full flex-1 sm:flex-none rounded-md text-[10px] font-black uppercase tracking-widest transition-all min-h-0',
                                         selectedPeriod === option.value
                                             ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20'
                                             : 'text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400'
@@ -276,7 +276,7 @@ export default function OrdersDashboard({
                         </div>
                         <Button 
                             size="sm" 
-                            className="h-10 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
+                            className="w-full sm:w-auto h-11 sm:h-10 flex items-center justify-center font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
                             onClick={onNewOrder}
                             leftIcon={<HiOutlinePlus className="w-4 h-4" />}
                         >
@@ -286,7 +286,7 @@ export default function OrdersDashboard({
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-10 bg-white dark:bg-dark-800 font-bold shadow-sm"
+                                className="w-full sm:w-auto h-11 sm:h-10 bg-white dark:bg-dark-800 font-bold shadow-sm flex items-center justify-center"
                                 onClick={onRefresh}
                                 isLoading={isLoading}
                                 loadingText="Atualizando..."
@@ -302,7 +302,7 @@ export default function OrdersDashboard({
             />
 
             {/* Metric Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
                     label="Hoje"
                     value={metrics.today}
@@ -400,6 +400,7 @@ export default function OrdersDashboard({
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 leftIcon={<HiOutlineFilter className="w-5 h-5" />}
+                                size="sm"
                             />
                         </div>
                         <div className="w-full sm:w-48">
@@ -407,6 +408,7 @@ export default function OrdersDashboard({
                                 options={statusOptions}
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
+                                size="sm"
                             />
                         </div>
                         <div className="w-full sm:w-48">
@@ -414,6 +416,7 @@ export default function OrdersDashboard({
                                 options={dateOptions}
                                 value={dateFilter}
                                 onChange={(e) => setDateFilter(e.target.value)}
+                                size="sm"
                             />
                         </div>
                     </div>

@@ -343,49 +343,52 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
                     subtitle={`Gestão de Entidades ${moduleName ? 'da ' + moduleName : ''} e Encomendas de Compra`}
                     icon={<HiOutlineTruck className="text-primary-600 dark:text-primary-400" />}
                     actions={
-                        <>
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="font-black text-[10px] uppercase tracking-widest text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10"
-                                leftIcon={<HiOutlineArrowPath className="w-4 h-4" />} 
+                        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full sm:w-auto h-11 sm:h-9 font-black text-[10px] uppercase tracking-widest text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10"
+                                leftIcon={<HiOutlineArrowPath className="w-5 h-5" />}
                                 onClick={() => refetch()}
                             >
                                 Actualizar
                             </Button>
                             {activeTab === 'directory' && (
                                 <>
-                                    <ExportSuppliersButton data={suppliers} size="sm" />
-                                    <Button 
+                                    <ExportSuppliersButton data={suppliers} size="sm" className="w-full sm:w-auto h-11 sm:h-9" variant="outline" />
+                                    <Button
                                         size="sm"
-                                        className="font-black text-[10px] uppercase tracking-widest"
+                                        className="w-full sm:w-auto h-11 sm:h-9 font-black text-[10px] uppercase tracking-widest"
                                         onClick={() => setShowFormModal(true)}
-                                        leftIcon={<HiOutlinePlus className="w-4 h-4" />}
+                                        leftIcon={<HiOutlinePlus className="w-5 h-5" />}
                                     >
                                         Novo Fornecedor
                                     </Button>
                                 </>
                             )}
-                        </>
+                        </div>
                     }
                     tabs={
-                        <nav className="flex flex-nowrap w-max gap-1">
+                        <nav className="flex w-full flex-nowrap gap-1 sm:w-max">
                             {[
-                                { id: 'directory', label: 'Diretório', icon: <HiOutlineTruck className="w-5 h-5" /> },
-                                { id: 'orders', label: 'Encomendas', icon: <HiOutlineCurrencyDollar className="w-5 h-5" /> }
+                                { id: 'directory', label: 'Diretório', shortLabel: 'Diretório', icon: <HiOutlineTruck className="w-5 h-5" /> },
+                                { id: 'orders', label: 'Encomendas', shortLabel: 'Pedidos', icon: <HiOutlineCurrencyDollar className="w-5 h-5" /> }
                             ].map((tab) => (
                                 <Button variant="ghost"
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id as 'directory' | 'orders')}
                                     className={cn(
-                                        "flex items-center justify-center gap-2 px-4 md:px-6 py-3 text-xs md:text-sm font-black border-b-2 transition-all whitespace-nowrap uppercase tracking-widest",
+                                        "flex flex-1 sm:flex-none items-center justify-center gap-2 px-3 sm:px-4 md:px-6 py-3 text-xs md:text-sm font-black border-b-2 transition-all whitespace-nowrap uppercase tracking-widest",
                                         activeTab === tab.id
                                             ? "border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/10 rounded-t-lg"
                                             : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-800 rounded-t-lg"
                                     )}
                                 >
-                                    <span className="shrink-0">{tab.icon}</span>
-                                    <span>{tab.label}</span>
+                                    <span className="shrink-0 hidden sm:inline-flex">{tab.icon}</span>
+                                    <span>
+                                        <span className="hidden sm:inline">{tab.label}</span>
+                                        <span className="inline sm:hidden">{tab.shortLabel}</span>
+                                    </span>
                                 </Button>
                             ))}
                         </nav>
@@ -395,7 +398,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
                 {activeTab === 'directory' ? (
                 <>
                     {/* Metrics Layer - Standardized */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                         <MetricCard 
                             label="Total Fornecedores"
                             value={metrics.total}
@@ -458,6 +461,79 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
                         emptyTitle="Nenhum fornecedor encontrado"
                         onEmptyAction={() => setShowFormModal(true)}
                         emptyActionLabel="Adicionar Fornecedor"
+                        mobileCardRender={(supplier) => (
+                            <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-3">
+                                {/* Header: Name + Code */}
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center shrink-0">
+                                            <HiOutlineTruck className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{supplier.name}</p>
+                                            <p className="text-[10px] text-gray-500 font-mono">{supplier.code} {supplier.nuit && `• NUIT: ${supplier.nuit}`}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Contact Info */}
+                                <div className="space-y-1.5 text-sm">
+                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                        <HiOutlinePhone className="w-4 h-4 text-primary-500 shrink-0" />
+                                        <span>{supplier.phone}</span>
+                                    </div>
+                                    {supplier.email && (
+                                        <div className="flex items-center gap-2 text-gray-500">
+                                            <HiOutlineEnvelope className="w-4 h-4 text-primary-500/70 shrink-0" />
+                                            <span className="truncate">{supplier.email}</span>
+                                        </div>
+                                    )}
+                                    {supplier.contactPerson && (
+                                        <div className="flex items-center gap-2 text-gray-500">
+                                            <HiOutlineUserCircle className="w-4 h-4 text-indigo-500 shrink-0" />
+                                            <span>{supplier.contactPerson}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Footer: Financial summary */}
+                                <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
+                                    <div>
+                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total Compras</p>
+                                        <p className="text-sm font-bold text-green-600">{formatCurrency(supplier.totalPurchases)}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Saldo</p>
+                                        <p className="text-sm font-bold text-yellow-600">{formatCurrency(supplier.currentBalance)}</p>
+                                    </div>
+                                    {supplier.paymentTerms && (
+                                        <Badge variant="info" size="sm">
+                                            {paymentTermsOptions.find((p) => p.value === supplier.paymentTerms)?.label || '-'}
+                                        </Badge>
+                                    )}
+                                </div>
+
+                                {/* Actions - Full Width */}
+                                <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-white/5 w-full">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleEdit(supplier)}
+                                        className="flex-1 p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-100/50 dark:border-blue-500/20 font-black tracking-widest text-[10px] uppercase"
+                                    >
+                                        <HiOutlinePencil className="w-4 h-4 mr-2" /> Editar
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => { setSupplierToDelete(supplier); setDeleteModalOpen(true); }}
+                                        className="flex-1 p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 border border-red-100/50 dark:border-red-500/20 font-black tracking-widest text-[10px] uppercase"
+                                    >
+                                        <HiOutlineTrash className="w-4 h-4 mr-2" /> Excluir
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     />
                 </>
             ) : (

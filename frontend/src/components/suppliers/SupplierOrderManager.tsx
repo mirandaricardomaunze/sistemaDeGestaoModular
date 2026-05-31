@@ -252,8 +252,12 @@ export default function SupplierOrderManager() {
                     />
                 )}
                 actions={(
-                    <Button onClick={() => setShowCreateModal(true)} size="sm">
-                        <HiOutlinePlus className="w-5 h-5 mr-2" />
+                    <Button
+                        size="sm"
+                        className="w-full sm:w-auto h-11 sm:h-9 font-black text-[10px] uppercase tracking-widest"
+                        onClick={() => setShowCreateModal(true)}
+                        leftIcon={<HiOutlinePlus className="w-4 h-4" />}
+                    >
                         Nova Encomenda
                     </Button>
                 )}

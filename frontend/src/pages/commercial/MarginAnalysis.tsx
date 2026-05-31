@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, Badge, Button, Input, Modal, Select, PageHeader, Pagination } from '../../components/ui';
+import { Card, Badge, Button, Input, Modal, Select, PageHeader, Pagination, SmartTable } from '../../components/ui';
 import { usePagination } from '../../components/ui/Pagination';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { productsAPI } from '../../services/api';
@@ -277,48 +277,106 @@ export default function MarginAnalysis() {
                                     />
                                 </div>
                             </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="text-[10px] text-gray-400 dark:text-gray-500 font-black uppercase tracking-widest border-b border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-800/30">
-                                            <th className="text-left px-4 py-3 font-medium">#</th>
-                                            <th className="text-left py-3 font-medium">Produto</th>
-                                            <th className="text-left py-3 font-medium hidden md:table-cell">Categoria</th>
-                                            <th className="text-right py-3 font-medium">Receita</th>
-                                            <th className="text-right py-3 font-medium hidden sm:table-cell">COGS</th>
-                                            <th className="text-right py-3 font-medium">Lucro</th>
-                                            <th className="text-right py-3 font-medium">Margem</th>
-                                            <th className="py-3" />
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50 dark:divide-dark-800/50">
-                                        {paginatedItems.map((p, i) => (
-                                            <tr key={p.id} className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group">
-                                                <td className="px-4 py-3 text-xs text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">{(currentPage - 1) * itemsPerPage + i + 1}</td>
-                                                <td className="py-2">
-                                                    <span className="font-medium text-gray-900 dark:text-white">{p.name}</span>
-                                                    <span className="ml-1 text-xs text-gray-400">{p.code}</span>
-                                                </td>
-                                                <td className="py-2 hidden md:table-cell">
-                                                    <span className="text-xs text-gray-500 capitalize">{p.category}</span>
-                                                </td>
-                                                <td className="py-2 text-right text-gray-700 dark:text-gray-300">{formatCurrency(p.revenue)}</td>
-                                                <td className="py-2 text-right text-orange-500 text-xs hidden sm:table-cell">-{formatCurrency(p.cogs)}</td>
-                                                <td className="py-2 text-right font-bold text-gray-900 dark:text-white">{formatCurrency(p.profit)}</td>
-                                                <td className="py-2 text-right">
-                                                    <Badge variant={getMarginBadge(p.margin)} size="sm">{p.margin.toFixed(1)}%</Badge>
-                                                </td>
-                                                <td className="py-2 pl-2">
-                                                    <div className="w-20">
-                                                        <MarginBar value={p.profit} max={maxProdProfit} color={p.margin >= 20 ? 'bg-green-400' : p.margin >= 0 ? 'bg-yellow-400' : 'bg-red-400'} />
+                            <div className="-mx-6 -mb-6 mt-4">
+                                <SmartTable
+                                    data={paginatedItems}
+                                    hideToolbar
+                                    columns={[
+                                        {
+                                            key: 'index',
+                                            header: '#',
+                                            render: (_, i) => <span className="text-xs text-gray-400">{(currentPage - 1) * itemsPerPage + (i ?? 0) + 1}</span>
+                                        },
+                                        {
+                                            key: 'product',
+                                            header: 'Produto',
+                                            render: (p) => (
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-sm text-gray-900 dark:text-white leading-tight">{p.name}</span>
+                                                    <span className="text-[10px] text-gray-400 font-mono mt-0.5">{p.code}</span>
+                                                </div>
+                                            )
+                                        },
+                                        {
+                                            key: 'category',
+                                            header: 'Categoria',
+                                            render: (p) => <span className="text-xs text-gray-500 capitalize font-medium">{p.category}</span>
+                                        },
+                                        {
+                                            key: 'revenue',
+                                            header: 'Receita',
+                                            align: 'right',
+                                            render: (p) => <span className="text-gray-700 dark:text-gray-300 font-medium">{formatCurrency(p.revenue)}</span>
+                                        },
+                                        {
+                                            key: 'cogs',
+                                            header: 'COGS',
+                                            align: 'right',
+                                            render: (p) => <span className="text-orange-500 font-medium text-xs">-{formatCurrency(p.cogs)}</span>
+                                        },
+                                        {
+                                            key: 'profit',
+                                            header: 'Lucro',
+                                            align: 'right',
+                                            render: (p) => <span className="font-black text-gray-900 dark:text-white">{formatCurrency(p.profit)}</span>
+                                        },
+                                        {
+                                            key: 'margin',
+                                            header: 'Margem',
+                                            align: 'right',
+                                            render: (p) => <Badge variant={getMarginBadge(p.margin)} size="sm" className="font-black">{p.margin.toFixed(1)}%</Badge>
+                                        },
+                                        {
+                                            key: 'bar',
+                                            header: '',
+                                            render: (p) => (
+                                                <div className="w-20">
+                                                    <MarginBar value={p.profit} max={maxProdProfit} color={p.margin >= 20 ? 'bg-green-400' : p.margin >= 0 ? 'bg-yellow-400' : 'bg-red-400'} />
+                                                </div>
+                                            )
+                                        }
+                                    ]}
+                                    mobileCardRender={(p) => (
+                                        <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-4">
+                                            {/* Header */}
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="font-black text-sm text-gray-900 dark:text-white uppercase tracking-tight">{p.name}</span>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className="text-[10px] text-gray-400 font-mono bg-gray-50 dark:bg-dark-900 px-1.5 py-0.5 rounded">{p.code}</span>
+                                                        <span className="text-[9px] text-gray-500 uppercase tracking-widest">{p.category}</span>
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                                </div>
+                                                <Badge variant={getMarginBadge(p.margin)} size="sm" className="shrink-0 font-black px-2">
+                                                    {p.margin.toFixed(1)}%
+                                                </Badge>
+                                            </div>
+
+                                            {/* Bar */}
+                                            <div className="w-full">
+                                                <MarginBar value={p.profit} max={maxProdProfit} color={p.margin >= 20 ? 'bg-green-400' : p.margin >= 0 ? 'bg-yellow-400' : 'bg-red-400'} />
+                                            </div>
+
+                                            {/* Footer */}
+                                            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 dark:border-white/5">
+                                                <div>
+                                                    <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest">Receita</span>
+                                                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{formatCurrency(p.revenue)}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest">COGS</span>
+                                                    <span className="text-xs font-bold text-orange-500">-{formatCurrency(p.cogs)}</span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="block text-[9px] font-bold text-primary-500 uppercase tracking-widest">Lucro</span>
+                                                    <span className="text-sm font-black text-gray-900 dark:text-white">{formatCurrency(p.profit)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                />
                                 {filteredProducts.length > itemsPerPage && (
-                                    <div className="px-4 py-3 border-t border-gray-100 dark:border-dark-700">
+                                    <div className="px-6 py-4 border-t border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-900/50">
                                         <Pagination
                                             currentPage={currentPage}
                                             totalItems={filteredProducts.length}
@@ -327,9 +385,6 @@ export default function MarginAnalysis() {
                                             onItemsPerPageChange={setItemsPerPage}
                                         />
                                     </div>
-                                )}
-                                {filteredProducts.length === 0 && (
-                                    <p className="text-center text-gray-500 py-8 text-sm">Sem produtos no período seleccionado</p>
                                 )}
                             </div>
                         </Card>
@@ -373,44 +428,75 @@ export default function MarginAnalysis() {
                                     </div>
 
                                     {/* Data table */}
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-xs">
-                                            <thead>
-                                                <tr className="text-gray-400 border-b border-gray-100 dark:border-dark-700">
-                                                    <th className="text-left py-2 font-medium">Mês</th>
-                                                    <th className="text-right py-2 font-medium">Receita</th>
-                                                    <th className="text-right py-2 font-medium">COGS</th>
-                                                    <th className="text-right py-2 font-medium">Lucro</th>
-                                                    <th className="text-right py-2 font-medium">Margem</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {data.monthlyTrend.map((m, i) => {
-                                                    const profit = m.revenue - m.cogs;
-                                                    const prevMargin = i > 0 ? data.monthlyTrend[i - 1].margin : null;
-                                                    const trend = prevMargin !== null ? m.margin - prevMargin : null;
-
-                                                    return (
-                                                        <tr key={i} className="border-b border-gray-50 dark:border-dark-700/50">
-                                                            <td className="py-2 font-medium text-gray-700 dark:text-gray-300">{m.month}</td>
-                                                            <td className="py-2 text-right">{formatCurrency(m.revenue)}</td>
-                                                            <td className="py-2 text-right text-orange-500">-{formatCurrency(m.cogs)}</td>
-                                                            <td className="py-2 text-right font-bold text-gray-900 dark:text-white">{formatCurrency(profit)}</td>
-                                                            <td className="py-2 text-right">
-                                                                <span className={cn('font-bold', getMarginColor(m.margin))}>
-                                                                    {m.margin.toFixed(1)}%
-                                                                </span>
+                                    <div className="-mx-6 -mb-6 mt-6">
+                                        <SmartTable
+                                            data={data.monthlyTrend}
+                                            hideToolbar
+                                            columns={[
+                                                { key: 'month', header: 'Mês', render: (m) => <span className="font-bold text-gray-700 dark:text-gray-300 uppercase">{m.month}</span> },
+                                                { key: 'revenue', header: 'Receita', align: 'right', render: (m) => <span className="text-gray-700 dark:text-gray-300 font-medium">{formatCurrency(m.revenue)}</span> },
+                                                { key: 'cogs', header: 'COGS', align: 'right', render: (m) => <span className="text-orange-500 font-medium">-{formatCurrency(m.cogs)}</span> },
+                                                { key: 'profit', header: 'Lucro', align: 'right', render: (m) => <span className="font-black text-gray-900 dark:text-white">{formatCurrency(m.revenue - m.cogs)}</span> },
+                                                {
+                                                    key: 'margin',
+                                                    header: 'Margem',
+                                                    align: 'right',
+                                                    render: (m, i) => {
+                                                        const prevMargin = (i ?? 0) > 0 ? data.monthlyTrend[(i ?? 0) - 1].margin : null;
+                                                        const trend = prevMargin !== null ? m.margin - prevMargin : null;
+                                                        return (
+                                                            <div className="flex flex-col items-end">
+                                                                <Badge variant={getMarginBadge(m.margin)} size="sm" className="font-black">{m.margin.toFixed(1)}%</Badge>
                                                                 {trend !== null && (
-                                                                    <span className={cn('ml-1 text-[10px]', trend >= 0 ? 'text-green-500' : 'text-red-500')}>
-                                                                        {trend >= 0 ? <HiOutlineArrowSmallUp className="w-3 h-3 text-green-500 inline" /> : <HiOutlineArrowSmallDown className="w-3 h-3 text-red-500 inline" />}{Math.abs(trend).toFixed(1)}%
+                                                                    <span className={cn('text-[10px] font-bold mt-1 flex items-center', trend >= 0 ? 'text-green-500' : 'text-red-500')}>
+                                                                        {trend >= 0 ? <HiOutlineArrowSmallUp className="w-3 h-3 inline mr-0.5" /> : <HiOutlineArrowSmallDown className="w-3 h-3 inline mr-0.5" />}
+                                                                        {Math.abs(trend).toFixed(1)}%
                                                                     </span>
                                                                 )}
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
+                                                            </div>
+                                                        );
+                                                    }
+                                                }
+                                            ]}
+                                            mobileCardRender={(m, i) => {
+                                                const profit = m.revenue - m.cogs;
+                                                const prevMargin = (i ?? 0) > 0 ? data.monthlyTrend[(i ?? 0) - 1].margin : null;
+                                                const trend = prevMargin !== null ? m.margin - prevMargin : null;
+                                                return (
+                                                    <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-3">
+                                                        {/* Header */}
+                                                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2">
+                                                            <span className="font-black text-sm text-gray-900 dark:text-white uppercase tracking-widest">{m.month}</span>
+                                                            <div className="flex items-center gap-2">
+                                                                {trend !== null && (
+                                                                    <span className={cn('text-[10px] font-bold flex items-center px-1.5 py-0.5 rounded', trend >= 0 ? 'bg-green-50 text-green-600 dark:bg-green-900/30' : 'bg-red-50 text-red-600 dark:bg-red-900/30')}>
+                                                                        {trend >= 0 ? <HiOutlineArrowSmallUp className="w-3 h-3 inline mr-0.5" /> : <HiOutlineArrowSmallDown className="w-3 h-3 inline mr-0.5" />}
+                                                                        {Math.abs(trend).toFixed(1)}%
+                                                                    </span>
+                                                                )}
+                                                                <Badge variant={getMarginBadge(m.margin)} size="sm" className="font-black">{m.margin.toFixed(1)}%</Badge>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Footer */}
+                                                        <div className="grid grid-cols-3 gap-2">
+                                                            <div>
+                                                                <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest">Receita</span>
+                                                                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{formatCurrency(m.revenue)}</span>
+                                                            </div>
+                                                            <div>
+                                                                <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest">COGS</span>
+                                                                <span className="text-xs font-bold text-orange-500">-{formatCurrency(m.cogs)}</span>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <span className="block text-[9px] font-bold text-primary-500 uppercase tracking-widest">Lucro</span>
+                                                                <span className="text-sm font-black text-gray-900 dark:text-white">{formatCurrency(profit)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }}
+                                        />
                                     </div>
                                 </div>
                             )}
@@ -429,38 +515,40 @@ export default function MarginAnalysis() {
                             ) : turnoverData.length === 0 ? (
                                 <p className="text-center text-gray-500 py-8">Sem dados suficientes</p>
                             ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="text-xs text-gray-400 border-b border-gray-100 dark:border-dark-700">
-                                                <th className="text-left py-2 font-medium">Categoria</th>
-                                                <th className="text-right py-2 font-medium">COGS (período)</th>
-                                                <th className="text-right py-2 font-medium">Valor Stock</th>
-                                                <th className="text-right py-2 font-medium">Rotatividade</th>
-                                                <th className="text-right py-2 font-medium">Dias em Stock</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {turnoverData.map(row => (
-                                                <tr key={row.category} className="border-b border-gray-50 dark:border-dark-700/50 hover:bg-gray-50 dark:hover:bg-dark-700/30">
-                                                    <td className="py-3 font-medium text-gray-900 dark:text-white capitalize">{row.category}</td>
-                                                    <td className="py-3 text-right text-gray-600 dark:text-gray-400">{formatCurrency(row.cogs)}</td>
-                                                    <td className="py-3 text-right text-gray-600 dark:text-gray-400">{formatCurrency(row.inventoryValue)}</td>
-                                                    <td className="py-3 text-right">
-                                                        <Badge
-                                                            variant={row.turnover >= 6 ? 'success' : row.turnover >= 3 ? 'info' : row.turnover >= 1 ? 'warning' : 'danger'}
-                                                            size="sm"
-                                                        >
-                                                            {row.turnover.toFixed(1)}x/ano
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="py-3 text-right text-gray-600 dark:text-gray-400">
-                                                        {row.daysOnHand > 0 ? `${row.daysOnHand} dias` : <span className="text-gray-300 dark:text-gray-600">—</span>}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                <div className="-mx-6 -mb-6 mt-4">
+                                    <SmartTable
+                                        data={turnoverData}
+                                        hideToolbar
+                                        columns={[
+                                            { key: 'category', header: 'Categoria', render: (row) => <span className="font-bold text-gray-900 dark:text-white capitalize">{row.category}</span> },
+                                            { key: 'cogs', header: 'COGS (período)', align: 'right', render: (row) => <span className="text-gray-600 dark:text-gray-400 font-medium">{formatCurrency(row.cogs)}</span> },
+                                            { key: 'value', header: 'Valor Stock', align: 'right', render: (row) => <span className="text-gray-600 dark:text-gray-400 font-medium">{formatCurrency(row.inventoryValue)}</span> },
+                                            { key: 'turnover', header: 'Rotatividade', align: 'right', render: (row) => <Badge variant={row.turnover >= 6 ? 'success' : row.turnover >= 3 ? 'info' : row.turnover >= 1 ? 'warning' : 'danger'} size="sm" className="font-black">{row.turnover.toFixed(1)}x/ano</Badge> },
+                                            { key: 'days', header: 'Dias em Stock', align: 'right', render: (row) => <span className="font-bold text-gray-700 dark:text-gray-300">{row.daysOnHand > 0 ? `${row.daysOnHand} dias` : <span className="text-gray-300 dark:text-gray-600">—</span>}</span> },
+                                        ]}
+                                        mobileCardRender={(row) => (
+                                            <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-4">
+                                                <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2">
+                                                    <span className="font-black text-sm text-gray-900 dark:text-white uppercase tracking-widest">{row.category}</span>
+                                                    <Badge variant={row.turnover >= 6 ? 'success' : row.turnover >= 3 ? 'info' : row.turnover >= 1 ? 'warning' : 'danger'} size="sm" className="font-black px-2">{row.turnover.toFixed(1)}x/ano</Badge>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest">COGS (Período)</span>
+                                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{formatCurrency(row.cogs)}</span>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest">Valor em Stock</span>
+                                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{formatCurrency(row.inventoryValue)}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex justify-between items-center">
+                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tempo de Escoamento</span>
+                                                    <span className="font-black text-primary-600 dark:text-primary-400">{row.daysOnHand > 0 ? `${row.daysOnHand} dias` : '—'}</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    />
                                 </div>
                             )}
                         </Card>

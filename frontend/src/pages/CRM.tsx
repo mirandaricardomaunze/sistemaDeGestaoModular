@@ -94,7 +94,7 @@ export default function CRM() {
             />
 
             {/* Quick Stats - Using Shared MetricCard */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard 
                     label="Pipeline Total"
                     value={formatCurrency(metrics.totalValue)}

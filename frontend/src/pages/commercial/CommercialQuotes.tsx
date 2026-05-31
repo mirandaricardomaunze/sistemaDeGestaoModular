@@ -346,7 +346,8 @@ function QuoteDetailsModal({ quote, ivaRate, onClose }: QuoteDetailsModalProps) 
                 <div>
                     <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Itens da Cotação</h4>
                     <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800">
-                        <table className="w-full text-[11px]">
+                        {/* Desktop Table */}
+                        <table className="hidden md:table w-full text-[11px]">
                             <thead>
                                 <tr className="bg-gray-50 dark:bg-dark-700/50 text-gray-400">
                                     <th className="text-left p-3 font-black uppercase tracking-widest">Produto</th>
@@ -368,6 +369,24 @@ function QuoteDetailsModal({ quote, ivaRate, onClose }: QuoteDetailsModalProps) 
                                 ))}
                             </tbody>
                         </table>
+                        
+                        {/* Mobile Cards */}
+                        <div className="flex flex-col md:hidden divide-y divide-gray-100 dark:divide-dark-700">
+                            {(quote.items ?? []).map((item) => (
+                                <div key={item.id} className="p-4 space-y-2">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <span className="font-bold text-sm text-gray-700 dark:text-gray-300 uppercase">{item.productName}</span>
+                                        <span className="font-black text-sm text-gray-900 dark:text-white shrink-0">{formatCurrency(Number(item.total))}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs text-gray-500">
+                                        <span className="font-mono text-[10px] bg-gray-50 dark:bg-dark-900 px-1.5 py-0.5 rounded">
+                                            {item.barcode || item.product?.barcode || 'S/ CÓDIGO'}
+                                        </span>
+                                        <span>{item.quantity} un × {formatCurrency(Number(item.price))}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
@@ -640,7 +659,7 @@ export default function CommercialQuotes() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center">
@@ -652,8 +671,13 @@ export default function CommercialQuotes() {
                         </div>
                     </h2>
                 </div>
-                <Button variant="primary" onClick={() => setShowCreateModal(true)} className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20">
-                    <HiOutlinePlus className="w-4 h-4 text-white" /> Nova Cotação
+                <Button 
+                    variant="primary" 
+                    onClick={() => setShowCreateModal(true)} 
+                    className="w-full h-11 sm:w-auto sm:h-10 flex items-center justify-center font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
+                    leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />}
+                >
+                    Nova Cotação
                 </Button>
             </div>
 
@@ -691,18 +715,18 @@ export default function CommercialQuotes() {
                     variant="primary"
                     size="sm"
                     onClick={handlePrintList}
-                    className="flex items-center gap-2"
+                    className="w-full h-11 sm:w-auto sm:h-10 flex items-center justify-center"
+                    leftIcon={<HiOutlinePrinter className="w-4 h-4" />}
                 >
-                    <HiOutlinePrinter className="w-4 h-4" />
                     Imprimir
                 </Button>
                 <Button
                     variant="primary"
                     size="sm"
                     onClick={handleExportPDF}
-                    className="flex items-center gap-2"
+                    className="w-full h-11 sm:w-auto sm:h-10 flex items-center justify-center"
+                    leftIcon={<HiOutlineArrowDownTray className="w-4 h-4" />}
                 >
-                    <HiOutlineArrowDownTray className="w-4 h-4" />
                     Exportar PDF
                 </Button>
             </div>
@@ -724,17 +748,102 @@ export default function CommercialQuotes() {
                     placeholder: "Pesquisar por número ou cliente..."
                 }}
                 renderFilters={
-                    <div className="w-44">
+                    <div className="w-full sm:w-44">
                         <Select 
                             options={statusOptions} 
                             value={statusFilter}
                             onChange={e => handleFilterChange(e.target.value)} 
                             size="sm"
-                            className="bg-white dark:bg-dark-800"
+                            className="w-full bg-white dark:bg-dark-800"
                         />
                     </div>
                 }
                 onRefresh={refetch}
+                mobileCardRender={(quote) => {
+                    const { config: cfg, transitions: actions } = getDocumentWorkflow(quote.status as QuoteStatus, QUOTE_STATUS, QUOTE_TRANSITIONS, 'created');
+                    return (
+                        <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-4">
+                            {/* Header */}
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center shrink-0">
+                                        <HiOutlineDocumentText className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="font-black text-sm text-gray-900 dark:text-white uppercase tracking-tight truncate">
+                                            {quote.orderNumber}
+                                        </span>
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                            {new Date(quote.createdAt).toLocaleDateString('pt-MZ')}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="shrink-0">
+                                    <Badge variant={cfg.variant} size="sm" className="font-black text-[9px] uppercase tracking-widest">
+                                        {cfg.label}
+                                    </Badge>
+                                </div>
+                            </div>
+
+                            {/* Body */}
+                            <div className="bg-gray-50 dark:bg-dark-900/50 p-3 rounded-lg border border-gray-100 dark:border-dark-700">
+                                <p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Cliente</p>
+                                <p className="font-bold text-sm text-gray-700 dark:text-gray-300 uppercase">{quote.customerName}</p>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Valor Total</span>
+                                <span className="text-lg font-black text-primary-600 dark:text-primary-400">
+                                    {formatCurrency(Number(quote.total))}
+                                </span>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-white/5">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setViewingQuote(quote)}
+                                    className="p-2 rounded-lg bg-gray-50 dark:bg-dark-900/30 text-gray-600 dark:text-gray-400 border border-gray-200/50 dark:border-dark-700 font-black tracking-widest text-[10px] uppercase"
+                                >
+                                    <HiOutlineEye className="w-4 h-4 mr-2" /> Detalhes
+                                </Button>
+                                {actions.map(action => (
+                                    <Button
+                                        key={action.next}
+                                        variant={action.variant === 'ghost' ? 'outline' : action.variant}
+                                        size="sm"
+                                        isLoading={converting === quote.id && action.next === 'invoice'}
+                                        onClick={() => handleStatusUpdate(quote.id, action.next as QuoteAction)}
+                                        className="p-2 rounded-lg font-black tracking-widest text-[10px] uppercase"
+                                        leftIcon={action.icon}
+                                    >
+                                        {action.label}
+                                    </Button>
+                                ))}
+                                {quote.status === 'created' && (
+                                    <Button
+                                        variant="danger"
+                                        size="sm"
+                                        onClick={() => handleDeleteRequest(quote.id)}
+                                        className="p-2 rounded-lg font-black tracking-widest text-[10px] uppercase"
+                                    >
+                                        <HiOutlineTrash className="w-4 h-4 mr-2" /> Eliminar
+                                    </Button>
+                                )}
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => generateQuotationPDF(quote, companySettings ?? {}, 'print')}
+                                    className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800 font-black tracking-widest text-[10px] uppercase col-span-2"
+                                >
+                                    <HiOutlinePrinter className="w-4 h-4 mr-2" /> Imprimir Documento
+                                </Button>
+                            </div>
+                        </div>
+                    );
+                }}
             />
 
             {showCreateModal && (

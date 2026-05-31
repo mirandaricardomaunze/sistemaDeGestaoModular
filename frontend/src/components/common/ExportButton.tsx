@@ -13,6 +13,7 @@ import { Button } from '../ui/Button';
 import type { ExportOptions, ExportFormat } from '../../utils/exportUtils';
 import { exportData } from '../../utils/exportUtils';
 import { useStore } from '../../stores/useStore';
+import { cn } from '../../utils/helpers';
 
 interface ExportButtonProps {
     /** Export options including columns and data */
@@ -129,14 +130,15 @@ export function ExportButton({
     };
 
     return (
-        <div className={`relative inline-block ${className}`} ref={wrapperRef}>
-            <div ref={triggerRef}>
+        <div className={cn("relative inline-block", className)} ref={wrapperRef}>
+            <div ref={triggerRef} className="w-full">
                 <Button
                     variant={variant}
                     size={size}
                     onClick={() => setIsOpen(!isOpen)}
                     disabled={disabled || isExporting || !options.data?.length}
                     leftIcon={showIcon ? <HiOutlineArrowDownTray className="w-4 h-4" /> : undefined}
+                    className="w-full"
                 >
                     {isExporting ? 'Exportando...' : buttonText}
                 </Button>
@@ -207,6 +209,7 @@ interface QuickExportProps {
     };
     className?: string;
     size?: 'sm' | 'md' | 'lg';
+    variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
 }
 
 export function ExportProductsButton({ data, className, size = 'md' }: Omit<QuickExportProps, 'companyInfo'>) {
@@ -255,13 +258,14 @@ export function ExportProductsButton({ data, className, size = 'md' }: Omit<Quic
     );
 }
 
-export function ExportCustomersButton({ data, companyName, className, size = 'md' }: QuickExportProps) {
+export function ExportCustomersButton({ data, companyName, className, size = 'md', variant }: QuickExportProps) {
     return (
         <ExportButton
             filename="clientes"
             title="Lista de Clientes"
             className={className}
             size={size}
+            variant={variant}
             options={{
                 companyName,
                 columns: [
@@ -303,13 +307,14 @@ export function ExportSalesButton({ data, companyName, className, size = 'md' }:
     );
 }
 
-export function ExportInvoicesButton({ data, companyName, className, size = 'md' }: QuickExportProps) {
+export function ExportInvoicesButton({ data, companyName, className, size = 'md', variant }: QuickExportProps) {
     return (
         <ExportButton
             filename="facturas"
             title="Lista de Facturas"
             className={className}
             size={size}
+            variant={variant}
             options={{
                 companyName,
                 orientation: 'landscape',
@@ -382,13 +387,14 @@ export function ExportEmployeesButton({ data, companyName, className, size = 'md
     );
 }
 
-export function ExportSuppliersButton({ data, companyName, className, size = 'md' }: QuickExportProps) {
+export function ExportSuppliersButton({ data, companyName, className, size = 'md', variant }: QuickExportProps) {
     return (
         <ExportButton
             filename="fornecedores"
             title="Lista de Fornecedores"
             className={className}
             size={size}
+            variant={variant}
             options={{
                 companyName,
                 orientation: 'landscape',

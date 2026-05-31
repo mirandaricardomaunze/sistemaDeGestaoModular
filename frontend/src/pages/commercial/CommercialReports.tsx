@@ -270,15 +270,15 @@ export default function CommercialReports({ initialTab = 'sales' }: CommercialRe
                             onClick={() => setActiveTab(tab.key as ReportTab)}
                             variant="ghost"
                             size="sm"
+                            leftIcon={<Icon className={cn("w-4 h-4", activeTab === tab.key ? "" : tab.color + " opacity-50")} />}
                             className={cn(
-                                'h-10 min-w-12 flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem]',
+                                'h-10 min-w-12 flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem] justify-center lg:justify-start lg:px-4',
                                 activeTab === tab.key
                                     ? 'bg-white dark:bg-dark-600 text-primary-700 dark:text-primary-400 shadow-sm'
                                     : 'text-slate-600 hover:text-slate-950 dark:hover:text-gray-300'
                             )}
                         >
-                            <Icon className={cn("w-4 h-4", activeTab === tab.key ? "" : tab.color + " opacity-50")} />
-                            <span className="hidden lg:inline">{tab.label}</span>
+                            <span className="hidden lg:inline text-left truncate">{tab.label}</span>
                         </Button>
                     );
                 })}

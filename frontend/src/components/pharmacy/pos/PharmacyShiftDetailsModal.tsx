@@ -51,7 +51,7 @@ export function PharmacyShiftDetailsModal({ isOpen, session, onClose, onPrint }:
                 {/* Body */}
                 <div className="overflow-y-auto p-6 space-y-6">
                     {/* Top Info Bar */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="p-3 bg-gray-50 dark:bg-dark-900 rounded-lg border border-gray-100 dark:border-dark-700">
                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1">
                                 <HiOutlineUser className="w-3 h-3" /> Operador

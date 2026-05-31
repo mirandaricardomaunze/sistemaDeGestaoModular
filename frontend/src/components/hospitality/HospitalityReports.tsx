@@ -309,7 +309,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
             {/* Report Content */}
             {reportLoading ? (
                 <div className="space-y-6">
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {[1, 2, 3, 4].map(i => <SkeletonCard key={i} className="h-28" />)}
                     </div>
                     <SkeletonCard className="h-40" />
@@ -349,7 +349,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
                     {/* Printable area starting here */}
                     <div ref={printRef} className="space-y-6">
                         {/* Summary Cards */}
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             <Card className="p-5 bg-indigo-100/40 dark:bg-indigo-900/20 border border-indigo-200/50 dark:border-indigo-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
                                 <div className="flex items-center gap-3 mb-4">
                                     <div className="p-2.5 bg-indigo-200/60 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-xl border border-indigo-500/20 shadow-inner group-hover:scale-110 transition-transform">

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, Badge, Select, Button, SimpleTable } from '../../components/ui';
+import { Card, Badge, Select, Button, SmartTable } from '../../components/ui';
 import { auditAPI } from '../../services/api/audit.api';
 import type { AuditLog, AuditPayload } from '../../services/api/audit.api';
 import type { BadgeVariant } from '../../components/ui';
@@ -75,12 +75,59 @@ export default function CommercialAuditLogs() {
     };
 
     const auditColumns = [
-        { key: 'createdAt', label: 'Data/Hora' },
-        { key: 'user', label: 'Utilizador' },
-        { key: 'action', label: 'Accao' },
-        { key: 'entity', label: 'Entidade' },
-        { key: 'details', label: 'Detalhes' },
-        { key: 'ipAddress', label: 'IP' },
+        { 
+            key: 'createdAt', 
+            header: 'Data/Hora',
+            render: (log: AuditLog) => (
+                <span className="text-gray-600 dark:text-gray-400 tabular-nums">
+                    {format(new Date(log.createdAt), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
+                </span>
+            )
+        },
+        { 
+            key: 'user', 
+            header: 'Utilizador',
+            render: (log: AuditLog) => (
+                <div className="flex flex-col">
+                    <span className="font-bold text-gray-900 dark:text-white">
+                        {log.userName || log.user?.name || 'Sistema'}
+                    </span>
+                    <span className="text-[10px] text-gray-400 italic">
+                        {log.userId ? log.userId.slice(0, 8) : 'automatico'}
+                    </span>
+                </div>
+            )
+        },
+        { 
+            key: 'action', 
+            header: 'Accao',
+            render: (log: AuditLog) => getActionBadge(log.action)
+        },
+        { 
+            key: 'entity', 
+            header: 'Entidade',
+            render: (log: AuditLog) => (
+                <span className="capitalize font-medium text-gray-500">{log.entity}</span>
+            )
+        },
+        { 
+            key: 'details', 
+            header: 'Detalhes',
+            render: (log: AuditLog) => (
+                <div className="max-w-xs truncate text-xs text-gray-500" title={JSON.stringify(log.newData)}>
+                    {formatAuditDetails(log)}
+                </div>
+            )
+        },
+        { 
+            key: 'ipAddress', 
+            header: 'IP',
+            render: (log: AuditLog) => (
+                <span className="text-[10px] text-gray-400 font-mono">
+                    {log.ipAddress || ''}
+                </span>
+            )
+        },
     ];
 
     return (
@@ -139,48 +186,48 @@ export default function CommercialAuditLogs() {
             </Card>
 
             {/* Logs Table */}
-            <Card padding="none" className="overflow-hidden">
-                <SimpleTable
+            <Card padding="none" className="overflow-hidden border-gray-100 dark:border-dark-700 shadow-xl shadow-black/5">
+                <SmartTable
+                    data={logs}
                     columns={auditColumns}
                     isLoading={loading}
-                    isEmpty={!loading && logs.length === 0}
+                    onRefresh={loadLogs}
                     emptyTitle="Nenhum log de auditoria encontrado"
                     emptyDescription="Ajuste os filtros para consultar outros eventos."
-                    minHeight="360px"
-                    tableClassName="w-full text-sm text-left"
-                >
-                    {logs.map((log) => (
-                        <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-dark-800/50 transition-colors">
-                            <td className="px-6 py-4 whitespace-nowrap text-gray-600 dark:text-gray-400 tabular-nums">
-                                {format(new Date(log.createdAt), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
-                            </td>
-                            <td className="px-6 py-4">
-                                <div className="flex flex-col">
-                                    <span className="font-bold text-gray-900 dark:text-white">
+                    mobileCardRender={(log) => (
+                        <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="flex flex-col min-w-0">
+                                    <span className="font-bold text-sm text-gray-900 dark:text-white truncate">
                                         {log.userName || log.user?.name || 'Sistema'}
                                     </span>
                                     <span className="text-[10px] text-gray-400 italic">
                                         {log.userId ? log.userId.slice(0, 8) : 'automatico'}
                                     </span>
                                 </div>
-                            </td>
-                            <td className="px-6 py-4">
-                                {getActionBadge(log.action)}
-                            </td>
-                            <td className="px-6 py-4 capitalize font-medium text-gray-500">
-                                {log.entity}
-                            </td>
-                            <td className="px-6 py-4">
-                                <div className="max-w-xs truncate text-xs text-gray-500" title={JSON.stringify(log.newData)}>
-                                    {formatAuditDetails(log)}
+                                <div className="shrink-0">
+                                    {getActionBadge(log.action)}
                                 </div>
-                            </td>
-                            <td className="px-6 py-4 text-[10px] text-gray-400 font-mono">
-                                {log.ipAddress || ''}
-                            </td>
-                        </tr>
-                    ))}
-                </SimpleTable>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                    {log.entity}
+                                </p>
+                                <p className="text-xs text-gray-600 dark:text-gray-300 font-medium bg-gray-50 dark:bg-dark-900/50 p-2 rounded-lg border border-gray-100 dark:border-dark-700">
+                                    {formatAuditDetails(log)}
+                                </p>
+                            </div>
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
+                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                                    {format(new Date(log.createdAt), "dd MMM yy, HH:mm", { locale: ptBR })}
+                                </span>
+                                <span className="text-[10px] text-gray-400 font-mono bg-gray-100 dark:bg-dark-700 px-1.5 py-0.5 rounded">
+                                    {log.ipAddress || 'S/ IP'}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                />
 
                 {/* Pagination */}
                 <div className="px-3 sm:px-6 py-4 bg-gray-50 dark:bg-dark-800 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-gray-100 dark:border-dark-700">

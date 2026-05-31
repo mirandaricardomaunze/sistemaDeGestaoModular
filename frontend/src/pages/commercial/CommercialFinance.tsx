@@ -14,7 +14,7 @@ import {
     HiOutlineCurrencyDollar,
     HiOutlineClipboardDocumentList,
 } from 'react-icons/hi2';
-import { Card, Button, Input, Select, Modal, Badge, Pagination, ResponsiveValue, PageHeader, LoadingOverlay, SkeletonTable } from '../../components/ui';
+import { Card, Button, Input, Select, Modal, Badge, PageHeader, SmartTable, ResponsiveValue } from '../../components/ui';
 import { StatCard } from '../../components/common/ModuleMetricCard';
 import { formatCurrency, formatDate, cn } from '../../utils/helpers';
 import { commercialAPI } from '../../services/api';
@@ -202,12 +202,12 @@ export default function CommercialFinance() {
                 icon={<HiOutlineCurrencyDollar className="text-primary-600 dark:text-primary-400" />}
             />
             {/* Actions Bar */}
-            <div className="flex flex-wrap items-center justify-end gap-3 bg-white/50 dark:bg-dark-900/50 p-2 rounded-xl border border-gray-100 dark:border-dark-700/50">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 bg-white/50 dark:bg-dark-900/50 p-2 rounded-xl border border-gray-100 dark:border-dark-700/50">
                 <Button 
                     variant="ghost" 
                     size="sm" 
                     onClick={fetchData}
-                    className="font-black text-[10px] uppercase tracking-widest text-slate-500 dark:text-gray-400 hover:text-primary-600 transition-all"
+                    className="font-black text-[10px] uppercase tracking-widest text-slate-500 dark:text-gray-400 hover:text-primary-600 transition-all w-full sm:w-auto h-11 sm:h-10 flex items-center justify-center"
                     leftIcon={<HiOutlineArrowPath className={cn('w-4 h-4', loading && 'animate-spin')} />}
                 >
                     Actualizar
@@ -221,14 +221,14 @@ export default function CommercialFinance() {
                         reset();
                         setShowFormModal(true);
                     }}
-                    className="font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all"
+                    className="font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all w-full sm:w-auto h-11 sm:h-10 flex items-center justify-center"
                 >
                     Nova Operação
                 </Button>
             </div>
 
             {/* Quick Stats Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <StatCard
                     label="Vendas Totais"
                     value={<ResponsiveValue value={summary.totalRevenue} size="md" className="text-orange-900 dark:text-white font-black" />}
@@ -268,7 +268,7 @@ export default function CommercialFinance() {
                             variant="ghost"
                             size="sm"
                             className={cn(
-                                'min-h-11 lg:h-8 flex-1 lg:px-6 rounded-lg text-[10px] font-black uppercase tracking-widest',
+                                'min-h-11 lg:h-10 flex-1 lg:px-6 rounded-lg text-[10px] font-black uppercase tracking-widest',
                                 selectedPeriod === option.value
                                     ? 'bg-white dark:bg-dark-700 text-orange-600 shadow-sm'
                                     : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
@@ -303,111 +303,177 @@ export default function CommercialFinance() {
             </div>
 
             {/* Table Area */}
-            <Card padding="none" className="min-h-[500px] relative overflow-hidden border-none shadow-sm">
-                {loading && transactions.length === 0 ? (
-                    <div className="p-3 sm:p-6">
-                        <SkeletonTable rows={8} columns={6} />
-                    </div>
-                ) : (
-                    <>
-                        {loading && (
-                            <div className="absolute inset-0 z-20">
-                                <LoadingOverlay 
-                                    fullScreen={false} 
-                                    message="A carregar transações..." 
-                                />
+            <Card padding="none" className="overflow-hidden border-none shadow-sm">
+                <SmartTable
+                    data={transactions}
+                    isLoading={loading}
+                    onRefresh={fetchData}
+                    pagination={{
+                        currentPage: page,
+                        totalItems: totalRows,
+                        itemsPerPage: limit,
+                        onPageChange: setPage,
+                        onItemsPerPageChange: setLimit
+                    }}
+                    emptyTitle="Sem movimentações financeiras"
+                    emptyDescription="Não existem transações para os critérios seleccionados."
+                    columns={[
+                        {
+                            id: 'canal',
+                            header: 'Canal',
+                            cell: ({ row }) => {
+                                const t = row.original;
+                                return (
+                                    <Badge variant={t.type === 'income' ? 'success' : 'danger'} className="uppercase font-black text-[9px] tracking-widest px-2.5 py-0.5 rounded-full">
+                                        {t.type === 'income' ? 'Entrada' : 'Saída'}
+                                    </Badge>
+                                );
+                            }
+                        },
+                        {
+                            id: 'data',
+                            header: 'Data',
+                            cell: ({ row }) => {
+                                const t = row.original;
+                                return (
+                                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                        {formatDate(t.date)}
+                                    </span>
+                                );
+                            }
+                        },
+                        {
+                            id: 'descricao',
+                            header: 'Descrição',
+                            cell: ({ row }) => {
+                                const t = row.original;
+                                return (
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">{t.description}</span>
+                                        {t.reference && <span className="text-[10px] text-gray-400 font-medium italic">MOV: {t.reference}</span>}
+                                    </div>
+                                );
+                            }
+                        },
+                        {
+                            id: 'categoria',
+                            header: 'Categoria',
+                            cell: ({ row }) => {
+                                const t = row.original;
+                                return (
+                                    <span className="text-[10px] px-2 py-1 bg-gray-100 dark:bg-dark-700 text-gray-600 dark:text-gray-300 rounded-lg font-black uppercase tracking-wider italic">
+                                        {t.category.replace(/_/g, ' ')}
+                                    </span>
+                                );
+                            }
+                        },
+                        {
+                            id: 'valor',
+                            header: 'Valor',
+                            meta: { align: 'right' },
+                            cell: ({ row }) => {
+                                const t = row.original;
+                                return (
+                                    <span className={cn(
+                                        "text-sm font-black tracking-tight",
+                                        t.type === 'income' ? 'text-teal-600' : 'text-rose-600'
+                                    )}>
+                                        {formatCurrency(t.amount)}
+                                    </span>
+                                );
+                            }
+                        },
+                        {
+                            id: 'gestao',
+                            header: 'Gestão',
+                            meta: { align: 'center' },
+                            cell: ({ row }) => {
+                                const t = row.original;
+                                return (
+                                    <div className="flex items-center justify-center gap-1 opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity">
+                                        <Button
+                                            onClick={() => handleEdit(t)}
+                                            variant="ghost"
+                                            size="xs"
+                                            className="h-8 w-8 p-0 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-400 hover:text-primary-600"
+                                        >
+                                            <HiOutlineCog className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                            onClick={() => {
+                                                setTransactionToDelete(t);
+                                                setDeleteModalOpen(true);
+                                            }}
+                                            variant="ghost"
+                                            size="xs"
+                                            className="h-8 w-8 p-0 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 text-gray-400 hover:text-rose-600"
+                                        >
+                                            <HiOutlineTrash className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                );
+                            }
+                        }
+                    ]}
+                    mobileCardRender={(t) => (
+                        <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-4">
+                            {/* Header */}
+                            <div className="flex items-start justify-between gap-3">
+                                <Badge variant={t.type === 'income' ? 'success' : 'danger'} className="uppercase font-black text-[9px] tracking-widest px-2 py-0.5 shrink-0">
+                                    {t.type === 'income' ? 'ENTRADA' : 'SAÍDA'}
+                                </Badge>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                    {formatDate(t.date)}
+                                </span>
                             </div>
-                        )}
-                        <div className="max-w-full overflow-x-auto overscroll-x-contain scrollbar-thin">
-                            <table className="w-full min-w-[720px] divide-y divide-gray-200 dark:divide-dark-700">
-                                <thead className="bg-gray-50/50 dark:bg-dark-900/50">
-                                    <tr className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] italic">
-                                        <th className="px-6 py-4 text-left">Canal</th>
-                                        <th className="px-6 py-4 text-left">Data</th>
-                                        <th className="px-6 py-4 text-left">Descrição</th>
-                                        <th className="px-6 py-4 text-left">Categoria</th>
-                                        <th className="px-6 py-4 text-right">Valor</th>
-                                        <th className="px-6 py-4 text-center">Gestão</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white dark:bg-dark-800 divide-y divide-gray-100 dark:divide-dark-700">
-                                    {transactions.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={6} className="px-6 py-20 text-center text-gray-400 italic font-medium">
-                                                Não existem movimentações comerciais para os critérios seleccionados.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        transactions.map((t) => (
-                                            <tr key={t.id} className="hover:bg-gray-50/50 dark:hover:bg-dark-700 transition-colors group">
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <Badge variant={t.type === 'income' ? 'success' : 'danger'} className="uppercase font-black text-[9px] tracking-widest px-2.5 py-0.5 rounded-full">
-                                                        {t.type === 'income' ? 'Entrada' : 'Saída'}
-                                                    </Badge>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-500 dark:text-gray-400">
-                                                    {formatDate(t.date)}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">{t.description}</span>
-                                                        {t.reference && <span className="text-[10px] text-gray-400 font-medium italic">MOV: {t.reference}</span>}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="text-[10px] px-2 py-1 bg-gray-100 dark:bg-dark-700 text-gray-600 dark:text-gray-300 rounded-lg font-black uppercase tracking-wider italic">
-                                                        {t.category.replace(/_/g, ' ')}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                    <span className={cn(
-                                                        "text-sm font-black tracking-tight",
-                                                        t.type === 'income' ? 'text-teal-600' : 'text-rose-600'
-                                                    )}>
-                                                        {formatCurrency(t.amount)}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                    <div className="flex items-center justify-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                                                        <Button
-                                                            onClick={() => handleEdit(t)}
-                                                            variant="ghost"
-                                                            size="xs"
-                                                            className="h-8 w-8 p-0 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-400 hover:text-primary-600"
-                                                        >
-                                                            <HiOutlineCog className="w-4 h-4" />
-                                                        </Button>
-                                                        <Button
-                                                            onClick={() => {
-                                                                setTransactionToDelete(t);
-                                                                setDeleteModalOpen(true);
-                                                            }}
-                                                            variant="ghost"
-                                                            size="xs"
-                                                            className="h-8 w-8 p-0 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 text-gray-400 hover:text-rose-600"
-                                                        >
-                                                            <HiOutlineTrash className="w-4 h-4" />
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </>
-                )}
 
-                <div className="px-3 sm:px-6 py-4 bg-gray-50/30 dark:bg-dark-900/30 border-t border-gray-100 dark:border-dark-700">
-                    <Pagination
-                        currentPage={page}
-                        totalItems={totalRows}
-                        itemsPerPage={limit}
-                        onPageChange={setPage}
-                        onItemsPerPageChange={setLimit}
-                    />
-                </div>
+                            {/* Body */}
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">{t.description}</span>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-[9px] px-1.5 py-0.5 bg-gray-100 dark:bg-dark-700 text-gray-500 rounded font-black uppercase tracking-wider">
+                                        {t.category.replace(/_/g, ' ')}
+                                    </span>
+                                    {t.reference && <span className="text-[9px] text-gray-400 font-medium italic">MOV: {t.reference}</span>}
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/5">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Valor da Operação</span>
+                                <span className={cn(
+                                    "text-lg font-black tracking-tight",
+                                    t.type === 'income' ? 'text-teal-600 dark:text-teal-400' : 'text-rose-600 dark:text-rose-400'
+                                )}>
+                                    {formatCurrency(t.amount)}
+                                </span>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-white/5">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEdit(t)}
+                                    className="p-2 rounded-lg bg-gray-50 dark:bg-dark-900/30 text-gray-600 dark:text-gray-400 border border-gray-200/50 dark:border-dark-700 font-black tracking-widest text-[10px] uppercase"
+                                >
+                                    <HiOutlineCog className="w-4 h-4 mr-2" /> Editar
+                                </Button>
+                                <Button
+                                    variant="danger"
+                                    size="sm"
+                                    onClick={() => {
+                                        setTransactionToDelete(t);
+                                        setDeleteModalOpen(true);
+                                    }}
+                                    className="p-2 rounded-lg font-black tracking-widest text-[10px] uppercase"
+                                >
+                                    <HiOutlineTrash className="w-4 h-4 mr-2" /> Eliminar
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                />
             </Card>
 
             {/* Form Modal */}
