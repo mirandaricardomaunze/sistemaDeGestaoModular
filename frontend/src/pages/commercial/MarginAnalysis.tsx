@@ -165,7 +165,7 @@ export default function MarginAnalysis() {
 
             {/* Tabs */}
             <div className="w-full overflow-x-auto overscroll-x-contain scrollbar-none pb-1">
-                <div className="flex gap-1 bg-gray-100 dark:bg-dark-800/80 backdrop-blur-sm rounded-lg p-1.5 border border-gray-200 dark:border-dark-700 shadow-inner w-max sm:w-full">
+                <div className="flex gap-1 bg-gray-100 dark:bg-dark-800/80 backdrop-blur-sm rounded-lg p-1 border border-gray-200 dark:border-dark-700 shadow-inner w-full min-w-[340px]">
                     {TABS.map(tab => {
                         const Icon = tab.icon;
                         return (
@@ -175,14 +175,39 @@ export default function MarginAnalysis() {
                                 variant="ghost"
                                 size="sm"
                                 className={cn(
-                                    'h-10 flex-1 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap',
+                                    'h-10 flex-1 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-widest whitespace-nowrap flex items-center justify-center gap-1.5 px-1 sm:px-3 transition-all duration-300',
                                     activeTab === tab.key
                                         ? 'bg-white dark:bg-dark-600 text-primary-600 dark:text-white shadow-lg shadow-black/5 scale-[1.02]'
                                         : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'
                                 )}
                             >
-                                <Icon className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">{tab.label}</span>
+                                <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                                <span>
+                                    {tab.key === 'category' && (
+                                        <>
+                                            <span className="hidden md:inline">Por Categoria</span>
+                                            <span className="inline md:hidden">Categorias</span>
+                                        </>
+                                    )}
+                                    {tab.key === 'product' && (
+                                        <>
+                                            <span className="hidden md:inline">Por Produto</span>
+                                            <span className="inline md:hidden">Produtos</span>
+                                        </>
+                                    )}
+                                    {tab.key === 'trend' && (
+                                        <>
+                                            <span className="hidden md:inline">Tendência Mensal</span>
+                                            <span className="inline md:hidden">Tendência</span>
+                                        </>
+                                    )}
+                                    {tab.key === 'turnover' && (
+                                        <>
+                                            <span className="hidden md:inline">Rotatividade</span>
+                                            <span className="inline md:hidden">Giro</span>
+                                        </>
+                                    )}
+                                </span>
                             </Button>
                         );
                     })}
