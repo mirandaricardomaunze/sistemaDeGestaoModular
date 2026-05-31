@@ -131,7 +131,21 @@ As abas horizontais de navegação são uma causa comum de transbordo (overflow)
 ### Regras das Abas:
 1. **`whitespace-nowrap`**: Impede que a etiqueta (label) da aba quebre a linha, mantendo o botão visualmente estático.
 2. **`scrollbar-none`**: Oculta a barra de scroll padrão do browser para um visual premium (garantindo que o utilizador pode fazer scroll por arrastamento no mobile).
-3. **`w-max` e `min-w-max`**: Garante que o contentor interno de abas flexíveis mantenha a sua largura máxima, prevenindo o esmagamento das abas em ecrãs pequenos.
+3. **`w-max` e `min-w-max`**: Padrão para listas longas de abas, garantindo que o contentor interno de abas flexíveis mantenha a sua largura máxima sem esmagar o texto.
+4. **`w-full` (Abas Esticadas)**: Se as abas forem poucas (de 2 a 5 abas), mude o contentor de `w-max` para `w-full` e use `flex-1` nos botões de abas para que elas se estendam e ocupem todo o espaço horizontal disponível do Card no mobile/tablet. Use um `min-w-[340px]` de segurança no contentor para evitar esmagamento extremo em ecrãs ultra-estreitos.
+
+### Rótulos Condicionais Dinâmicos nas Abas:
+Para manter os botões legíveis no mobile sem ocultar os títulos por completo, substitua os textos longos por abreviações ou termos mais curtos em ecrãs menores utilizando classes utilitárias de visibilidade:
+
+```tsx
+<Button ...>
+  <Icon className="w-4 h-4 flex-shrink-0" />
+  <span>
+    <span className="hidden md:inline">Por Categoria</span>
+    <span className="inline md:hidden">Categorias</span>
+  </span>
+</Button>
+```
 
 ---
 
