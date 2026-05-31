@@ -31,10 +31,10 @@ export default function LanguageSelector() {
         <div className="relative" ref={dropdownRef}>
             <Button variant="ghost"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center justify-center h-10 w-10 rounded-xl transition-all duration-300
+                className={`relative p-2.5 rounded-xl transition-all duration-300
                     ${isOpen
-                        ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400'
-                        : 'text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-dark-800'}
+                        ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400 shadow-inner'
+                        : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-dark-800 hover:scale-105'}
                 `}
                 title={`Idioma: ${currentLang.name}`}
                 aria-label="Change language"

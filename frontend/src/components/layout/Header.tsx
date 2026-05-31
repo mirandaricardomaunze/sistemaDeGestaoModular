@@ -11,6 +11,7 @@ import {
     HiOutlineUser,
     HiOutlineCog6Tooth,
     HiArrowPath,
+    HiOutlineCloud,
 } from 'react-icons/hi2';
 import { MdCloudOff } from 'react-icons/md';
 import LanguageSelector from '../common/LanguageSelector';
@@ -82,60 +83,56 @@ export default function Header() {
                     {/* Language Selector */}
                     <LanguageSelector />
 
-                    <div className="flex items-center">
-                        {(pendingCount > 0 || failedCount > 0) ? (
+                    {/* Sync Status */}
+                    {(pendingCount > 0 || failedCount > 0) ? (
+                        <div className="relative">
                             <Button variant="ghost"
                                 onClick={() => setShowSyncPanel(true)}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
-                                    failedCount > 0 || queueLevel === 'full' || queueLevel === 'critical'
-                                        ? 'bg-red-100/60 text-red-700 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-300'
-                                        : 'bg-amber-100/50 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/20 dark:text-amber-300'
-                                }`}
+                                className={`relative p-2.5 rounded-xl transition-all duration-300 hover:scale-105
+                                    ${failedCount > 0 || queueLevel === 'full' || queueLevel === 'critical'
+                                        ? 'text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/20'
+                                        : 'text-amber-500 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/20'
+                                    }`}
                                 title={
                                     queueLevel === 'full' ? 'Fila offline cheia (500). Restaure a ligação para sincronizar.' :
                                     queueLevel === 'critical' ? 'Fila offline próxima do limite (>400). Restaure a ligação assim que possível.' :
-                                    !networkOnline ? 'Offline - dados guardados localmente' :
-                                    !isOnline ? 'Sem servidor - a tentar restabelecer ligação' :
-                                    'Ver fila de sincronização'
+                                    failedCount > 0 ? `${failedCount} sincronizações falhadas` : `${pendingCount} sincronizações pendentes`
                                 }
                             >
-                                <HiArrowPath className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                                <span className="hidden sm:inline">
-                                    {failedCount > 0 ? `${failedCount} falhadas` : `${pendingCount} pendentes`}
-                                </span>
+                                <HiArrowPath className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
                             </Button>
-                        ) : (
-                            <Button variant="ghost"
-                                onClick={() => setShowSyncPanel(true)}
-                                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
-                                    isOnline
-                                        ? 'bg-emerald-100/60 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300'
-                                        : !networkOnline
-                                            ? 'bg-amber-100/60 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/20 dark:text-amber-300'
-                                            : 'bg-orange-100/60 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/20 dark:text-orange-300'
+                            <span
+                                className={`pointer-events-none absolute -top-1 -right-1 min-w-[18px] h-[18px]
+                                    flex items-center justify-center text-[9px] font-black text-white
+                                    rounded-full px-1 ring-2 ring-white dark:ring-dark-900 shadow-md z-10
+                                    ${failedCount > 0 ? 'bg-red-500 animate-pulse' : 'bg-amber-500'}`}
+                            >
+                                {failedCount > 0 ? failedCount : pendingCount}
+                            </span>
+                        </div>
+                    ) : (
+                        <Button variant="ghost"
+                            onClick={() => setShowSyncPanel(true)}
+                            className={`relative p-2.5 rounded-xl transition-all duration-300 hover:scale-105
+                                ${isOnline
+                                    ? 'text-emerald-500 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/20'
+                                    : !networkOnline
+                                        ? 'text-amber-500 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/20'
+                                        : 'text-orange-500 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/20'
                                 }`}
-                                title={
-                                    isOnline ? 'Sistema online - clique para ver fila' :
-                                    !networkOnline ? 'Sistema offline - dados salvos localmente' :
-                                    'Sem servidor - a tentar restabelecer ligação'
-                                }
-                            >
-                                {isOnline ? (
-                                    <>
-                                        <span className="relative inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_0_2px_rgba(255,255,255,0.6)] dark:shadow-[0_0_0_2px_rgba(15,23,42,0.6)] animate-pulse"></span>
-                                        <span className="hidden sm:inline">Sincronizado</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <MdCloudOff className="w-4 h-4 shrink-0" />
-                                        <span className="hidden sm:inline">
-                                            {!networkOnline ? 'Offline' : 'Sem servidor'}
-                                        </span>
-                                    </>
-                                )}
-                            </Button>
-                        )}
-                    </div>
+                            title={
+                                isOnline ? 'Sistema online (Sincronizado)' :
+                                !networkOnline ? 'Sistema offline - dados salvos localmente' :
+                                'Sem servidor - a tentar restabelecer ligação'
+                            }
+                        >
+                            {isOnline ? (
+                                <HiOutlineCloud className="w-5 h-5 shrink-0" />
+                            ) : (
+                                <MdCloudOff className="w-5 h-5 shrink-0" />
+                            )}
+                        </Button>
+                    )}
 
                     {/* Notifications */}
                     <NotificationBadge />

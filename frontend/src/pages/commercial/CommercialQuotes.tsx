@@ -207,7 +207,7 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                             <div key={i}
                                 style={{ zIndex: (lines.length - i) * 10 }}
                                 className="relative overflow-visible grid grid-cols-12 gap-2 items-end p-3 rounded-lg border border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-700/30">
-                                <div className="col-span-5">
+                                <div className="col-span-12 sm:col-span-5">
                                     <ProductSearchInput
                                         label={i === 0 ? 'Produto' : undefined}
                                         originModule="commercial"
@@ -218,7 +218,7 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                                         size="sm"
                                     />
                                 </div>
-                                <div className="col-span-2">
+                                <div className="col-span-5 sm:col-span-2">
                                     {i === 0 && (
                                         <label className="block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo</label>
                                     )}
@@ -255,7 +255,7 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                                         </Button>
                                     </div>
                                 </div>
-                                <div className="col-span-1">
+                                <div className="col-span-2 sm:col-span-1">
                                     <Input
                                         label={i === 0 ? 'Qtd' : undefined}
                                         size="sm" type="number" min="1"
@@ -263,7 +263,7 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                                         onChange={e => updateLine(i, 'quantity', parseInt(e.target.value) || 1)}
                                     />
                                 </div>
-                                <div className="col-span-3">
+                                <div className="col-span-4 sm:col-span-3">
                                     <Input
                                         label={i === 0 ? (line.saleUnit === 'unit' ? 'Preço/un' : 'Preço/cx') : undefined}
                                         size="sm" type="number" min="0" step="0.01"
@@ -271,7 +271,7 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                                         onChange={e => updateLine(i, 'price', parseFloat(e.target.value) || 0)}
                                     />
                                 </div>
-                                <div className="col-span-1 flex justify-center pb-0.5">
+                                <div className="col-span-1 sm:col-span-1 flex justify-center pb-0.5">
                                     <Button type="button" variant="ghost" size="sm" onClick={() => removeLine(i)}
                                         disabled={lines.length === 1}
                                         className="h-10 w-10 p-0 text-red-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed">
@@ -686,7 +686,7 @@ export default function CommercialQuotes() {
             </div>
 
             {/* Toolbar: Print + Export */}
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col sm:flex-row justify-end gap-2 [&>*]:w-full sm:[&>*]:w-auto">
                 <Button
                     variant="primary"
                     size="sm"

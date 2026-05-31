@@ -22,7 +22,8 @@
       "Bash(ls -la \"/c/Users/miran/AppData/Local/Temp/claude/c--Users-miran-Desktop-sistemas/514aea91-3d26-4f41-a0b3-b86056deb291/tasks/\" 2>&1 | head -20)",
       "Read(//c/Users/miran/AppData/Local/Temp/claude/c--Users-miran-Desktop-sistemas/514aea91-3d26-4f41-a0b3-b86056deb291/tasks//**)",
       "PowerShell($job = Start-Job -ScriptBlock { Set-Location \"c:\\\\Users\\\\miran\\\\Desktop\\\\sistemas\\\\frontend\"; npm run dev 2>&1 }; Start-Sleep -Seconds 8; Receive-Job $job; Stop-Job $job; Remove-Job $job -Force)",
-      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:3000\" -UseBasicParsing -TimeoutSec 5; \"HTTP \" + $r.StatusCode } catch { \"Error: \" + $_.Exception.Message })"
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:3000\" -UseBasicParsing -TimeoutSec 5; \"HTTP \" + $r.StatusCode } catch { \"Error: \" + $_.Exception.Message })",
+      "Bash(git log *)"
     ]
   },
   "hooks": {

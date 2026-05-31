@@ -156,8 +156,8 @@ function CreatePOModal({ onClose, onSuccess }: CreatePOModalProps) {
                     <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
                         {lines.map((line, i) => (
                             <div key={i} className="grid grid-cols-12 gap-2 items-end p-3 rounded-lg border border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-700/30">
-                                {/* Product search - spans 6 cols */}
-                                <div className="col-span-6">
+                                {/* Product search - spans 12 cols on mobile, 6 on desktop */}
+                                <div className="col-span-12 sm:col-span-6">
                                     <ProductSearchInput
                                         label={i === 0 ? 'Produto' : undefined}
                                         originModule="commercial"
@@ -168,7 +168,7 @@ function CreatePOModal({ onClose, onSuccess }: CreatePOModalProps) {
                                     />
                                 </div>
                                 {/* Qty */}
-                                <div className="col-span-2">
+                                <div className="col-span-5 sm:col-span-2">
                                     <Input
                                         label={i === 0 ? 'Qtd' : undefined}
                                         size="sm"
@@ -179,7 +179,7 @@ function CreatePOModal({ onClose, onSuccess }: CreatePOModalProps) {
                                     />
                                 </div>
                                 {/* Unit cost */}
-                                <div className="col-span-3">
+                                <div className="col-span-5 sm:col-span-3">
                                     <Input
                                         label={i === 0 ? 'Custo unit.' : undefined}
                                         size="sm"
@@ -191,14 +191,14 @@ function CreatePOModal({ onClose, onSuccess }: CreatePOModalProps) {
                                     />
                                 </div>
                                 {/* Remove */}
-                                <div className="col-span-1 flex justify-center pb-0.5">
+                                <div className="col-span-2 sm:col-span-1 flex justify-center pb-0.5">
                                     <Button
                                         type="button"
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => removeLine(i)}
                                         disabled={lines.length === 1}
-                                        className="text-red-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                        className="text-red-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors h-11 sm:h-10 w-full"
                                     >
                                         <HiOutlineXCircle className="w-5 h-5" />
                                     </Button>
