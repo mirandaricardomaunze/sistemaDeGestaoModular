@@ -36,7 +36,6 @@ import { useSalesHeatmap } from '../../hooks/useSalesHeatmap';
 import { ABCClassificationChart } from '../../components/commercial/analytics/ABCClassificationChart';
 import { CategoryRevenueChart } from '../../components/commercial/analytics/CategoryRevenueChart';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
-import { QuickActionCard } from '../../components/common/QuickActionCard';
 import { SalesHeatmap } from '../../components/commercial/analytics/SalesHeatmap';
 import { SegmentedControl } from '../../components/common/SegmentedControl';
 
@@ -57,8 +56,6 @@ type SalesTrendPoint = {
     date?: string;
     value?: number | string;
 };
-
-type QuickActionColor = 'primary' | 'emerald' | 'amber' | 'rose' | 'indigo' | 'cyan';
 
 interface RecentCommercialSale {
     id: string;

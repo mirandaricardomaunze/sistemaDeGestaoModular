@@ -20,11 +20,18 @@ import { useCompanySettings } from '../../hooks/useSettings';
 import type { ExportColumn } from '../../utils/exportUtils';
 import { cn } from '../../utils/helpers';
 
+export type SmartTableColumnDef<TData> = ColumnDef<TData, any> | {
+    key: string;
+    header: ReactNode;
+    align?: 'left' | 'center' | 'right';
+    render?: (row: TData, index?: number) => ReactNode;
+};
+
 interface SmartTableProps<TData> {
     /** Dados a serem exibidos */
     data: TData[];
     /** Definição das colunas */
-    columns: ColumnDef<TData, unknown>[];
+    columns: SmartTableColumnDef<TData>[];
     /** Estado de carregamento */
     isLoading?: boolean;
     /** Estado de erro */
@@ -149,10 +156,24 @@ export function SmartTable<TData extends { id?: string | number }>({
 }: SmartTableProps<TData>) {
     const { settings: companySettings } = useCompanySettings();
 
+    const processedColumns = useMemo(() => {
+        return columns.map((col): ColumnDef<TData, any> => {
+            if ('key' in col && ('render' in col || !('accessorKey' in col || 'id' in col))) {
+                return {
+                    id: col.key,
+                    header: () => col.header,
+                    cell: (info) => col.render ? col.render(info.row.original, info.row.index) : null,
+                    meta: { align: col.align }
+                } as ColumnDef<TData, any>;
+            }
+            return col as ColumnDef<TData, any>;
+        });
+    }, [columns]);
+
     // Criar instância da tabela se não for fornecida externamente
     const internalTable = useReactTable({
         data,
-        columns,
+        columns: processedColumns,
         state: {
             sorting,
         },

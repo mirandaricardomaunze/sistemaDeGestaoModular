@@ -433,15 +433,15 @@ export default function MarginAnalysis() {
                                             data={data.monthlyTrend}
                                             hideToolbar
                                             columns={[
-                                                { key: 'month', header: 'Mês', render: (m) => <span className="font-bold text-gray-700 dark:text-gray-300 uppercase">{m.month}</span> },
-                                                { key: 'revenue', header: 'Receita', align: 'right', render: (m) => <span className="text-gray-700 dark:text-gray-300 font-medium">{formatCurrency(m.revenue)}</span> },
-                                                { key: 'cogs', header: 'COGS', align: 'right', render: (m) => <span className="text-orange-500 font-medium">-{formatCurrency(m.cogs)}</span> },
-                                                { key: 'profit', header: 'Lucro', align: 'right', render: (m) => <span className="font-black text-gray-900 dark:text-white">{formatCurrency(m.revenue - m.cogs)}</span> },
+                                                { key: 'month', header: 'Mês', render: (m: any) => <span className="font-bold text-gray-700 dark:text-gray-300 uppercase">{m.month}</span> },
+                                                { key: 'revenue', header: 'Receita', align: 'right', render: (m: any) => <span className="text-gray-700 dark:text-gray-300 font-medium">{formatCurrency(m.revenue)}</span> },
+                                                { key: 'cogs', header: 'COGS', align: 'right', render: (m: any) => <span className="text-orange-500 font-medium">-{formatCurrency(m.cogs)}</span> },
+                                                { key: 'profit', header: 'Lucro', align: 'right', render: (m: any) => <span className="font-black text-gray-900 dark:text-white">{formatCurrency(m.revenue - m.cogs)}</span> },
                                                 {
                                                     key: 'margin',
                                                     header: 'Margem',
                                                     align: 'right',
-                                                    render: (m, i) => {
+                                                    render: (m: any, i: any) => {
                                                         const prevMargin = (i ?? 0) > 0 ? data.monthlyTrend[(i ?? 0) - 1].margin : null;
                                                         const trend = prevMargin !== null ? m.margin - prevMargin : null;
                                                         return (
@@ -458,9 +458,10 @@ export default function MarginAnalysis() {
                                                     }
                                                 }
                                             ]}
-                                            mobileCardRender={(m, i) => {
+                                            mobileCardRender={(m: any) => {
+                                                const i = data.monthlyTrend.indexOf(m);
                                                 const profit = m.revenue - m.cogs;
-                                                const prevMargin = (i ?? 0) > 0 ? data.monthlyTrend[(i ?? 0) - 1].margin : null;
+                                                const prevMargin = i > 0 ? data.monthlyTrend[i - 1].margin : null;
                                                 const trend = prevMargin !== null ? m.margin - prevMargin : null;
                                                 return (
                                                     <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-3">
@@ -520,13 +521,13 @@ export default function MarginAnalysis() {
                                         data={turnoverData}
                                         hideToolbar
                                         columns={[
-                                            { key: 'category', header: 'Categoria', render: (row) => <span className="font-bold text-gray-900 dark:text-white capitalize">{row.category}</span> },
-                                            { key: 'cogs', header: 'COGS (período)', align: 'right', render: (row) => <span className="text-gray-600 dark:text-gray-400 font-medium">{formatCurrency(row.cogs)}</span> },
-                                            { key: 'value', header: 'Valor Stock', align: 'right', render: (row) => <span className="text-gray-600 dark:text-gray-400 font-medium">{formatCurrency(row.inventoryValue)}</span> },
-                                            { key: 'turnover', header: 'Rotatividade', align: 'right', render: (row) => <Badge variant={row.turnover >= 6 ? 'success' : row.turnover >= 3 ? 'info' : row.turnover >= 1 ? 'warning' : 'danger'} size="sm" className="font-black">{row.turnover.toFixed(1)}x/ano</Badge> },
-                                            { key: 'days', header: 'Dias em Stock', align: 'right', render: (row) => <span className="font-bold text-gray-700 dark:text-gray-300">{row.daysOnHand > 0 ? `${row.daysOnHand} dias` : <span className="text-gray-300 dark:text-gray-600">—</span>}</span> },
+                                            { key: 'category', header: 'Categoria', render: (row: any) => <span className="font-bold text-gray-900 dark:text-white capitalize">{row.category}</span> },
+                                            { key: 'cogs', header: 'COGS (período)', align: 'right', render: (row: any) => <span className="text-gray-600 dark:text-gray-400 font-medium">{formatCurrency(row.cogs)}</span> },
+                                            { key: 'value', header: 'Valor Stock', align: 'right', render: (row: any) => <span className="text-gray-600 dark:text-gray-400 font-medium">{formatCurrency(row.inventoryValue)}</span> },
+                                            { key: 'turnover', header: 'Rotatividade', align: 'right', render: (row: any) => <Badge variant={row.turnover >= 6 ? 'success' : row.turnover >= 3 ? 'info' : row.turnover >= 1 ? 'warning' : 'danger'} size="sm" className="font-black">{row.turnover.toFixed(1)}x/ano</Badge> },
+                                            { key: 'days', header: 'Dias em Stock', align: 'right', render: (row: any) => <span className="font-bold text-gray-700 dark:text-gray-300">{row.daysOnHand > 0 ? `${row.daysOnHand} dias` : <span className="text-gray-300 dark:text-gray-600">—</span>}</span> },
                                         ]}
-                                        mobileCardRender={(row) => (
+                                        mobileCardRender={(row: any) => (
                                             <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-4">
                                                 <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2">
                                                     <span className="font-black text-sm text-gray-900 dark:text-white uppercase tracking-widest">{row.category}</span>
