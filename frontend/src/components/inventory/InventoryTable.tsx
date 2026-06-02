@@ -6,12 +6,7 @@ import {
     type ColumnDef,
 } from '@tanstack/react-table';
 import { HiOutlinePencilSquare, HiOutlineTrash, HiOutlineEye, HiOutlinePlusCircle, HiOutlineClock, HiOutlineCube, HiOutlineBuildingOffice } from 'react-icons/hi2';
-import { Button } from '../ui/Button';
-import { Badge, type BadgeVariant } from '../ui/Badge';
-import { Modal } from '../ui/Modal';
-import { Select } from '../ui/Select';
-import { ConfirmationModal } from '../ui/ConfirmationModal';
-import { SmartTable } from '../ui/SmartTable';
+import { Button, Badge, type BadgeVariant, Modal, Select, ConfirmationModal, SmartTable } from '../ui';
 import StockAdjustmentModal from './StockAdjustmentModal';
 import ProductValiditiesSection from './ProductValiditiesSection';
 import { ProductStockHistory } from './ProductStockHistory';

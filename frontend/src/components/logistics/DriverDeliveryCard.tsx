@@ -11,8 +11,7 @@
  */
 
 import { useState } from 'react';
-import { Button, Badge, Modal } from '../ui';
-import { SignaturePad } from '../ui/SignaturePad';
+import { Button, Badge, Modal, SignaturePad } from '../ui';
 import { DeliveryStatusTimeline } from './DeliveryStatusTimeline';
 import { useDeliveryStatusTimeline } from '../../hooks/useLogistics';
 import type { DriverPanelDelivery, Delivery } from '../../hooks/useDriverPanel';

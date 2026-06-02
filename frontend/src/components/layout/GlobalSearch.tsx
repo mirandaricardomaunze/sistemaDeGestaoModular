@@ -27,7 +27,7 @@ import {
 import { logger } from '../../utils/logger';
 import { useTenant } from '../../contexts/TenantContext';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { Button } from '../ui/Button';
+import { Button } from '../ui';
 import {
     productsAPI,
     customersAPI,

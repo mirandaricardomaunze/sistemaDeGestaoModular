@@ -14,7 +14,7 @@
 
 import { useState } from 'react';
 import type { ExpiryAlert, ExpiryAlertSeverity } from '../../services/api/logistics.api';
-import { Button } from '../ui/Button';
+import { Button } from '../ui';
 import {
     HiOutlineExclamationTriangle,
     HiOutlineXCircle,

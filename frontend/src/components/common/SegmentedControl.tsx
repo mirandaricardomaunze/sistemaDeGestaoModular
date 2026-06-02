@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/helpers';
-import { Button } from '../ui/Button';
+import { Button } from '../ui';
 
 interface Option {
     label: string;
@@ -35,15 +35,15 @@ export function SegmentedControl<V extends string | number = string | number>({
                     key={opt.value}
                     type="button"
                     onClick={() => onChange(opt.value as V)}
+                    leftIcon={opt.icon && <opt.icon className="w-3.5 h-3.5" />}
                     className={cn(
-                        "transition-all duration-300 flex min-w-max max-w-[14rem] items-center justify-center font-black uppercase tracking-widest gap-2 flex-1 h-full whitespace-nowrap",
+                        "transition-all duration-300 flex min-w-max max-w-[14rem] items-center justify-start text-left font-black uppercase tracking-widest gap-2 flex-1 h-full whitespace-nowrap",
                         size === 'sm' ? "px-3 sm:px-4 text-[10px] rounded-lg" : "px-4 sm:px-6 text-xs rounded-lg",
                         value === opt.value
                             ? "bg-white dark:bg-dark-700 text-primary-700 dark:text-primary-400 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.7)] scale-[1.02]"
                             : "text-slate-600 dark:text-gray-400 hover:text-primary-700 dark:hover:text-primary-400"
                     )}
                 >
-                    {opt.icon && <opt.icon className="w-3.5 h-3.5" />}
                     {opt.label}
                 </Button>
             ))}

@@ -16,9 +16,8 @@ import { logger } from '../../utils/logger';
 import { productsAPI } from '../../services/api';
 import { useWarehouses } from '../../hooks/useData';
 import type { MovementType, StockMovement } from '../../types';
-import { Badge, Button, Input, Modal, Select } from '../ui';
+import { Badge, Button, Input, Modal, Select, SmartTable } from '../ui';
 import type { BadgeVariant } from '../ui';
-import { SmartTable } from '../ui/SmartTable';
 
 interface MovementFilters {
     search: string;

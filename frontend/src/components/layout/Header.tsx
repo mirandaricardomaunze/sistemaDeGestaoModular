@@ -19,7 +19,7 @@ import { NotificationBadge } from '../notifications';
 import { useOfflineSync } from '../../hooks/useOfflineSync';
 import GlobalSearch from './GlobalSearch';
 import SyncQueuePanel from '../offline/SyncQueuePanel';
-import { Button } from '../ui/Button';
+import { Button } from '../ui';
 
 export default function Header() {
     const navigate = useNavigate();
@@ -204,16 +204,17 @@ export default function Header() {
                                         <span className="flex-1 text-left">{t('nav.settings')}</span>
                                     </Link>
                                     <div className="my-2 border-t border-slate-100 dark:border-dark-700/80 mx-2" />
-                                    <button
+                                    <Button
                                         type="button"
+                                        variant="ghost"
                                         onClick={handleLogout}
-                                        className="group w-full flex items-center gap-3 px-3 py-3 text-sm font-black text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all outline-none focus:ring-2 focus:ring-red-500/20"
+                                        className="group w-full flex items-center gap-3 px-3 py-3 text-sm font-black text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all outline-none focus:ring-2 focus:ring-red-500/20 min-h-0 sm:min-h-0 py-3 px-3 shadow-none bg-transparent hover:bg-red-50 dark:hover:bg-red-900/20 whitespace-normal"
                                     >
                                         <div className="w-9 h-9 shrink-0 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center group-hover:bg-white dark:group-hover:bg-red-900/50 group-hover:shadow-sm transition-all">
                                             <HiOutlineArrowRightOnRectangle className="w-5 h-5 text-red-500 dark:text-red-400" />
                                         </div>
                                         <span className="flex-1 text-left tracking-wide uppercase text-xs">{t('auth.logout')}</span>
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         )}

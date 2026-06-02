@@ -9,7 +9,7 @@ import { logger } from '../../utils/logger';
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { HiOutlineArrowDownTray, HiOutlineDocumentText, HiOutlineTableCells } from 'react-icons/hi2';
-import { Button } from '../ui/Button';
+import { Button } from '../ui';
 import type { ExportOptions, ExportFormat } from '../../utils/exportUtils';
 import { exportData } from '../../utils/exportUtils';
 import { useStore } from '../../stores/useStore';

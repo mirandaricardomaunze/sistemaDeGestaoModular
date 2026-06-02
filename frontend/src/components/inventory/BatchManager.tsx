@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, Input, Modal, Badge, Skeleton, ConfirmationModal, Pagination, SimpleTable, TableLoadingState } from '../ui';
+import { Card, Button, Input, Modal, Badge, Skeleton, ConfirmationModal, Pagination, SimpleTable, TableLoadingState, Select, Textarea } from '../ui';
 import {
     HiOutlinePlus, 
     HiOutlineArrowPath, 
@@ -151,29 +151,29 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                     <Input label="Nº Lote *" value={form.batchNumber || ''} onChange={e => setForm(p => ({ ...p, batchNumber: e.target.value.toUpperCase() }))}
                         placeholder="Ex: LT2026001" required />
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código de Barras *</label>
-                        <select required value={form.productId || ''} onChange={e => {
-                            const pid = e.target.value;
-                            const product = (products || []).find((p) => p.id === pid);
-                            const packSize = product?.packSize || 1;
-                            
-                            setForm(p => ({ 
-                                ...p, 
-                                productId: pid,
-                                boxes: 0,
-                                quantity: 0,
-                                boxPrice: Number(Number(product?.price || 0).toFixed(2)),
-                                costPrice: Number((Number(product?.price || 0) / packSize).toFixed(2)),
-                                totalCost: 0
-                            }));
-                        }}
+                        <Select
+                            label="Código de Barras *"
+                            required
+                            value={form.productId || ''}
+                            onChange={e => {
+                                const pid = e.target.value;
+                                const product = (products || []).find((p) => p.id === pid);
+                                const packSize = product?.packSize || 1;
+
+                                setForm(p => ({
+                                    ...p,
+                                    productId: pid,
+                                    boxes: 0,
+                                    quantity: 0,
+                                    boxPrice: Number(Number(product?.price || 0).toFixed(2)),
+                                    costPrice: Number((Number(product?.price || 0) / packSize).toFixed(2)),
+                                    totalCost: 0
+                                }));
+                            }}
                             disabled={!!editing || !!defaultProductId}
-                            className="w-full rounded-lg border border-gray-300 dark:border-dark-700 bg-white dark:bg-dark-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60 shadow-sm">
-                            <option value="">Seleccionar produto...</option>
-                            {(products || []).map((p) => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
-                            ))}
-                        </select>
+                            placeholder="Seleccionar produto..."
+                            options={(products || []).map((p) => ({ value: p.id, label: p.name }))}
+                        />
                         {form.productId && (
                             <p className="mt-1 text-[10px] font-bold uppercase tracking-tight text-gray-500 flex justify-between">
                                 <span>Ref. Cadastro: {products?.find(p => p.id === form.productId)?.packSize || 1} un/cx</span>
@@ -227,14 +227,14 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                         required 
                     />
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Armazém *</label>
-                        <select required value={form.warehouseId || ''} onChange={e => setForm(p => ({ ...p, warehouseId: e.target.value }))}
-                            className="w-full rounded-lg border border-gray-300 dark:border-dark-700 bg-white dark:bg-dark-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm">
-                            <option value="">Seleccionar armazém...</option>
-                            {(warehouses || []).map((w: { id: string; name: string }) => (
-                                <option key={w.id} value={w.id}>{w.name}</option>
-                            ))}
-                        </select>
+                        <Select
+                            label="Armazém *"
+                            required
+                            value={form.warehouseId || ''}
+                            onChange={e => setForm(p => ({ ...p, warehouseId: e.target.value }))}
+                            placeholder="Seleccionar armazém..."
+                            options={(warehouses || []).map((w: { id: string; name: string }) => ({ value: w.id, label: w.name }))}
+                        />
                     </div>
                 </div>
 
@@ -292,11 +292,12 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                     <Input label="Data de Entrada" type="date" value={form.receivedDate || ''} onChange={e => setForm(p => ({ ...p, receivedDate: e.target.value }))} />
                     <Input label="Validade (Expiração)" type="date" value={form.expiryDate || ''} onChange={e => setForm(p => ({ ...p, expiryDate: e.target.value }))} />
                 </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observações</label>
-                    <textarea rows={2} value={form.notes || ''} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-                        className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" />
-                </div>
+                <Textarea
+                    label="Observações"
+                    rows={2}
+                    value={form.notes || ''}
+                    onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+                />
                 <div className="flex justify-end gap-3 pt-2">
                     <Button variant="outline" type="button" onClick={onClose}>Cancelar</Button>
                     <Button type="submit" isLoading={busy}>{editing ? 'Guardar' : 'Registar Lote'}</Button>
@@ -380,11 +381,21 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
             </div>
 
             {/* Sub-tabs */}
-            <div className="flex gap-4 border-b border-gray-100 dark:border-dark-700">
+            <div className="flex w-full overflow-x-auto overscroll-x-contain p-1 bg-gray-100/50 dark:bg-dark-800/50 rounded-xl border border-gray-200/30 dark:border-dark-700/30 shadow-inner scrollbar-none">
                 {TABS.map(t => (
-                    <Button key={t.id} variant="ghost" size="sm" onClick={() => setTab(t.id)}
-                        className={cn('group px-2 py-4 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 border-b-2 rounded-none',
-                            tab === t.id ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-400 hover:text-gray-600')}>
+                    <Button
+                        type="button"
+                        key={t.id}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setTab(t.id)}
+                        className={cn(
+                            "flex-1 sm:flex-none justify-center sm:min-w-max px-3 text-[10px] font-black uppercase tracking-widest rounded-lg gap-2",
+                            tab === t.id
+                                ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
+                                : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                        )}
+                    >
                         {t.label}
                         {t.urgent && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />}
                     </Button>
@@ -512,13 +523,23 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
             {tab === 'list' && (
                 <>
                     <div className="flex flex-col sm:flex-row gap-3">
-                        <Input className="flex-1" placeholder="Pesquisar lote, produto..." leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
-                            value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
-                        <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1); }}
-                            className="rounded-lg border border-gray-300 dark:border-dark-700 bg-white dark:bg-dark-800 px-3 py-2 text-xs font-black uppercase tracking-widest text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm appearance-none cursor-pointer">
-                            <option value="">FILTRO: TODOS</option>
-                            {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label.toUpperCase()}</option>)}
-                        </select>
+                        <Input
+                            size="sm"
+                            className="flex-1"
+                            placeholder="Pesquisar lote, produto..."
+                            leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
+                            value={search}
+                            onChange={e => { setSearch(e.target.value); setPage(1); }}
+                        />
+                        <Select
+                            size="sm"
+                            value={filterStatus}
+                            onChange={e => { setFilterStatus(e.target.value); setPage(1); }}
+                            options={[
+                                { value: '', label: 'FILTRO: TODOS' },
+                                ...Object.entries(STATUS_CFG).map(([k, v]) => ({ value: k, label: v.label.toUpperCase() })),
+                            ]}
+                        />
                     </div>
 
                     {isLoading ? (

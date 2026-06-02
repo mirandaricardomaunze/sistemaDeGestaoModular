@@ -19,8 +19,7 @@ import {
     HiOutlineStop,
 } from 'react-icons/hi2';
 import { useCampaigns } from '../../hooks/useData';
-import { Button, Card, Modal, Input, Select, Badge, Textarea, usePagination, ConfirmationModal } from '../ui';
-import { SmartTable } from '../ui/SmartTable';
+import { Button, Card, Modal, Input, Select, Badge, Textarea, usePagination, ConfirmationModal, SmartTable } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import {
     CAMPAIGN_STATUS_LABELS,

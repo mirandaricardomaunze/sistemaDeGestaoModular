@@ -2,13 +2,7 @@ import { useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { HiOutlineCheck, HiOutlinePencil, HiOutlineXMark } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { Modal } from '../ui/Modal';
-import { Badge } from '../ui/Badge';
-import { usePagination } from '../ui/Pagination';
-import { ConfirmationModal } from '../ui/ConfirmationModal';
-import { SmartTable } from '../ui/SmartTable';
+import { Button, Input, Modal, Badge, usePagination, ConfirmationModal, SmartTable } from '../ui';
 import { useWarehouses, type Warehouse } from '../../hooks/useWarehouses';
 
 export default function WarehouseManager() {

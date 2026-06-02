@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Card, Badge, TableContainer, Pagination } from '../ui';
-import { usePagination } from '../ui/Pagination';
+import { Card, Badge, TableContainer, Pagination, usePagination } from '../ui';
 import { HiOutlineUser } from 'react-icons/hi2';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 

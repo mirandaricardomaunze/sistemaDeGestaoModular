@@ -4,7 +4,7 @@ import { useCustomers } from '../../hooks/useData';
 import { useDebounce } from '../../hooks/useDebounce';
 import { cn } from '../../utils/helpers';
 import type { Customer } from '../../types';
-import { Button } from '../ui/Button';
+import { Button } from '../ui';
 
 interface CustomerAutocompleteProps {
     selectedId: string | null;

@@ -1,8 +1,7 @@
 import { logger } from '../../utils/logger';
 import { useEffect, useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Button, ConfirmationModal, Input } from '../ui';
-import { SmartTable } from '../ui/SmartTable';
+import { Button, ConfirmationModal, Input, SmartTable } from '../ui';
 import {
     HiOutlinePlus,
     HiOutlinePrinter,

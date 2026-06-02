@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { HiOutlineXMark, HiOutlineCheck, HiOutlineExclamationTriangle } from 'react-icons/hi2';
 import { formatCurrency, cn } from '../../../utils/helpers';
 import { useAuthStore } from '../../../stores/useAuthStore';
-import { Button } from '../../ui/Button';
+import { Button, Input, Select } from '../../ui';
 
 export type DiscountKind = 'percent' | 'amount';
 
@@ -112,7 +112,7 @@ export function CommercialDiscountModal({
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-md mx-4 bg-[#111214] border border-white/5 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="relative z-10 w-full max-w-md mx-4 bg-white dark:bg-[#111214] border border-slate-200 dark:border-white/5 rounded-2xl shadow-2xl overflow-hidden">
                 <div className="bg-gradient-to-r from-rose-600 to-rose-700 px-6 py-4 flex items-center justify-between">
                     <div>
                         <h2 className="text-white font-bold text-lg uppercase tracking-tight">
@@ -165,7 +165,7 @@ export function CommercialDiscountModal({
                             {kind === 'percent' ? 'Percentagem de desconto' : 'Valor do desconto'}
                         </label>
                         <div className="relative">
-                            <input
+                            <Input
                                 type="number"
                                 value={value}
                                 onChange={e => setValue(e.target.value)}
@@ -212,16 +212,17 @@ export function CommercialDiscountModal({
                         <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
                             Motivo (obrigatório)
                         </label>
-                        <select
+                        <Select
                             value={reason}
                             onChange={e => setReason(e.target.value)}
+                            options={[
+                                { value: '', label: '— Selecione —' },
+                                ...REASONS.map(r => ({ value: r, label: r })),
+                            ]}
                             className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:border-rose-500/50 focus:ring-4 focus:ring-rose-500/10"
-                        >
-                            <option value="">— Selecione —</option>
-                            {REASONS.map(r => <option key={r} value={r}>{r}</option>)}
-                        </select>
+                        />
                         {reason === 'Outro' && (
-                            <input
+                            <Input
                                 type="text"
                                 value={customReason}
                                 onChange={e => setCustomReason(e.target.value)}
@@ -252,7 +253,7 @@ export function CommercialDiscountModal({
                     </div>
                 </div>
 
-                <div className="px-6 py-4 bg-[#0a0b0d] border-t border-white/5 flex gap-3">
+                <div className="px-6 py-4 bg-slate-50 dark:bg-[#0a0b0d] border-t border-slate-200 dark:border-white/5 flex gap-3">
                     {currentDiscount && (
                         <Button
                             variant="ghost"

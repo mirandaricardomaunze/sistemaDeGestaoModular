@@ -317,7 +317,7 @@ const menuItems: MenuItem[] = [
 
 
 import { useUnreadCount } from '../../hooks/useAlerts';
-import { Button } from '../ui/Button';
+import { Button } from '../ui';
 
 export default function Sidebar() {
     const navigate = useNavigate();
@@ -512,18 +512,20 @@ export default function Sidebar() {
                             </div>
                         )}
                     </div>
-                    <button
+                    <Button
                         type="button"
+                        variant="ghost"
+                        size="xs"
                         onClick={toggleSidebar}
                         aria-label={sidebarOpen ? 'Fechar barra lateral' : 'Abrir barra lateral'}
-                        className="hidden lg:flex items-center justify-center w-8 h-8 rounded-xl bg-white hover:bg-primary-50 dark:bg-transparent dark:hover:bg-primary-900/20 text-slate-500 hover:text-primary-600 transition-all duration-200 group/btn shadow-sm ring-1 ring-slate-300 dark:ring-dark-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                        className="hidden lg:flex items-center justify-center w-8 h-8 rounded-xl bg-white hover:bg-primary-50 dark:bg-transparent dark:hover:bg-primary-900/20 text-slate-500 hover:text-primary-600 transition-all duration-200 group/btn shadow-sm ring-1 ring-slate-300 dark:ring-dark-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 min-h-0 sm:min-h-0 px-0 py-0"
                     >
                         {sidebarOpen ? (
                             <HiOutlineChevronLeft className="w-5 h-5 transition-transform group-hover/btn:-translate-x-0.5" />
                         ) : (
                             <HiOutlineChevronRight className="w-5 h-5 transition-transform group-hover/btn:translate-x-0.5" />
                         )}
-                    </button>
+                    </Button>
                 </div>
 
                 {/* Navigation - scrollable area */}

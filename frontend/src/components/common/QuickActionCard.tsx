@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../utils';
-import { Button } from '../ui/Button';
+import { Button } from '../ui';
 
 interface QuickActionCardProps {
     icon: React.ElementType;

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { HiOutlineClock, HiOutlineExclamationTriangle, HiOutlineXMark } from 'react-icons/hi2';
-import { Button } from '../ui/Button';
+import { Button } from '../ui';
 import { cn, formatCurrency } from '../../utils/helpers';
 
 type ShiftAlertSeverity = 'warning' | 'danger' | 'critical';
@@ -190,7 +190,7 @@ export function ShiftReminder({
             {canShowPopup && (
                 <div className="fixed inset-0 z-40 flex items-center justify-center px-4">
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleSnooze} />
-                    <div className="relative z-10 w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#111214]">
+                    <div className="relative z-10 w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-dark-900">
                         <div className="flex items-start justify-between gap-4">
                             <div className="flex items-start gap-3">
                                 <div className={cn('rounded-xl p-3', style.shell)}>
@@ -205,14 +205,16 @@ export function ShiftReminder({
                                     </h2>
                                 </div>
                             </div>
-                            <button
+                            <Button
                                 type="button"
+                                variant="ghost"
+                                size="xs"
                                 onClick={handleSnooze}
-                                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
+                                className="rounded-lg p-2 min-h-0 sm:min-h-0 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
                                 aria-label="Adiar aviso"
                             >
                                 <HiOutlineXMark className="h-5 w-5" />
-                            </button>
+                            </Button>
                         </div>
 
                         <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-white/10 dark:bg-black/30 dark:text-slate-200">

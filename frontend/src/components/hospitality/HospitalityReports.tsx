@@ -4,8 +4,7 @@
  */
 
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Card, Button, Badge, Input, Select, SkeletonTable, SkeletonCard } from '../ui';
-import Pagination, { usePagination } from '../ui/Pagination';
+import { Card, Button, Badge, Input, Select, SkeletonTable, SkeletonCard, Pagination, usePagination } from '../ui';
 import { useStore } from '../../stores/useStore';
 import { exportAPI } from '../../services/api';
 import {

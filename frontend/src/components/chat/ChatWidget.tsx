@@ -17,7 +17,7 @@ import toast from 'react-hot-toast';
 import { logger } from '../../utils';
 import { useChatStore } from '../../stores/useChatStore';
 import { API_HOST } from '../../config/env';
-import { Button } from '../ui/Button';
+import { Button } from '../ui';
 
 interface ChatWidgetProps {
     initiallyOpen?: boolean;

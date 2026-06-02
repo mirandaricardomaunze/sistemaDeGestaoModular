@@ -15,8 +15,7 @@ import {
     HiOutlineClock,
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
-import { ConfirmationModal } from '../ui/ConfirmationModal';
-import { Button } from '../ui/Button';
+import { ConfirmationModal, Button } from '../ui';
 
 interface Props {
     open: boolean;

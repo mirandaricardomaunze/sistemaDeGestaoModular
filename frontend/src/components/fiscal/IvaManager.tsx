@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, Button, Input, Modal, Badge, ConfirmationModal, Pagination, SimpleTable, usePagination } from '../ui';
+import { Card, Button, Input, Modal, Badge, ConfirmationModal, Pagination, SimpleTable, usePagination, Textarea } from '../ui';
 import { MetricCard } from '../common/ModuleMetricCard';
 import {
     HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineArrowPath,
@@ -86,20 +86,25 @@ function IvaRateModal({ open, onClose, editing }: { open: boolean; onClose: () =
                 <div className="grid grid-cols-2 gap-4">
                     <Input label="Código *" value={form.code} onChange={e => setForm(p => ({ ...p, code: e.target.value.toUpperCase() }))}
                         placeholder="Ex: NORMAL, REDUZIDA, ISENTO" required />
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Taxa (%) *</label>
-                        <input type="number" min={0} max={100} step={0.01} required value={form.rate}
-                            onChange={e => setForm(p => ({ ...p, rate: parseFloat(e.target.value) || 0 }))}
-                            className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" />
-                    </div>
+                    <Input
+                        label="Taxa (%) *"
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={0.01}
+                        required
+                        value={form.rate}
+                        onChange={e => setForm(p => ({ ...p, rate: parseFloat(e.target.value) || 0 }))}
+                    />
                 </div>
                 <Input label="Nome / Descrição curta *" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                     placeholder="Ex: Taxa Normal (16%)" required />
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição completa</label>
-                    <textarea rows={2} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                        className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" />
-                </div>
+                <Textarea
+                    label="Descrição completa"
+                    rows={2}
+                    value={form.description}
+                    onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                />
                 <div className="grid grid-cols-2 gap-4">
                     <Input label="Vigência: De" type="date" value={form.effectiveFrom || ''} onChange={e => setForm(p => ({ ...p, effectiveFrom: e.target.value }))} />
                     <Input label="Vigência: At" type="date" value={form.effectiveTo || ''} onChange={e => setForm(p => ({ ...p, effectiveTo: e.target.value }))} />
@@ -111,11 +116,16 @@ function IvaRateModal({ open, onClose, editing }: { open: boolean; onClose: () =
                         Categorias aplicáveis
                         <span className="text-xs text-gray-400 ml-1">(deixe vazio = todas)</span>
                     </label>
-                    <div className="flex gap-2 mb-2">
-                        <input value={catInput} onChange={e => setCatInput(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCat(); } }}
-                            placeholder="Ex: alimentos, saúde..."
-                            className="flex-1 rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-3 py-1.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                    <div className="flex gap-2 mb-2 items-start">
+                        <div className="flex-1">
+                            <Input
+                                size="sm"
+                                value={catInput}
+                                onChange={e => setCatInput(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCat(); } }}
+                                placeholder="Ex: alimentos, saúde..."
+                            />
+                        </div>
                         <Button type="button" size="sm" variant="outline" onClick={addCat}>Adicionar</Button>
                     </div>
                     {(form.applicableCategories || []).length > 0 && (

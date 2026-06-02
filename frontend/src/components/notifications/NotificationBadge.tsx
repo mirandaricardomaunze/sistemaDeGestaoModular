@@ -11,7 +11,7 @@ import { HiOutlineBell } from 'react-icons/hi2';
 import { useAlerts, useUnreadCount } from '../../hooks/useAlerts';
 import type { AlertModule } from '../../services/api';
 import NotificationCenter from './NotificationCenter';
-import { Button } from '../ui/Button';
+import { Button } from '../ui';
 
 interface NotificationBadgeProps {
     className?: string;

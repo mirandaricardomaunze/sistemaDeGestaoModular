@@ -36,11 +36,12 @@ import {
 } from 'recharts';
 import { format } from 'date-fns';
 import { Card, Button, Badge, Input, Select, Pagination, PageHeader } from '../ui';
-import type { BadgeVariant } from '../ui/Badge';
+import type { BadgeVariant } from '../ui';
 import { useEmployees, useAttendance } from '../../hooks/useData';
 import { useSmartInsights } from '../../hooks/useSmartInsights';
 import { SmartInsightCard } from '../common/SmartInsightCard';
 import { MetricCard } from '../common/ModuleMetricCard';
+import { SegmentedControl } from '../common/SegmentedControl';
 import { HiOutlineLightBulb } from 'react-icons/hi2';
 import { formatCurrency, cn } from '../../utils/helpers';
 import type { Employee, EmployeeRole, EducationLevel } from '../../types';
@@ -473,24 +474,12 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                 actions={
                     <div className="flex w-full min-w-0 flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
                         {/* Period Filter */}
-                        <div className="w-full overflow-x-auto overscroll-x-contain scroller-hidden sm:w-auto">
-                            <div className="flex w-max min-w-full items-center gap-1 bg-gray-100 dark:bg-dark-800 p-1 rounded-xl border border-gray-200 dark:border-dark-700 sm:min-w-0">
-                                {periodOptions.map((option) => (
-                                    <Button variant="ghost"
-                                        key={option.value}
-                                        onClick={() => setSelectedPeriod(option.value)}
-                                        className={cn(
-                                            'shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all',
-                                            selectedPeriod === option.value
-                                                ? 'bg-white dark:bg-dark-700 text-primary-600 shadow-sm'
-                                                : 'text-gray-500 hover:text-gray-700'
-                                        )}
-                                    >
-                                        {option.label}
-                                    </Button>
-                                ))}
-                            </div>
-                        </div>
+                        <SegmentedControl
+                            options={periodOptions}
+                            value={selectedPeriod}
+                            onChange={setSelectedPeriod}
+                            size="sm"
+                        />
                         <Button
                             variant="primary"
                             size="sm"
@@ -525,7 +514,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
             )}
 
             {/* Metric Cards Row 1 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                 <MetricCard
                     icon={<HiOutlineUsers />}
                     color="primary"
@@ -566,7 +555,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
             </div>
 
             {/* Metric Cards Row 2 - HR Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                 <MetricCard
                     icon={<HiOutlineUsers />}
                     color="cyan"
