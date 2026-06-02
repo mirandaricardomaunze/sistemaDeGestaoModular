@@ -148,21 +148,45 @@ A toolbar do [`SmartTable`](../../../frontend/src/components/ui/SmartTable.tsx) 
 
 As abas horizontais de navegação são uma causa comum de transbordo (overflow) horizontal. Utilize o seguinte padrão para garantir que são navegáveis e não partem o ecrã:
 
+### A. Padrão Pill/Segmented Control (Padrão Canónico do ERP)
+Todas as abas principais de cabeçalhos de páginas de domínio (ex: *Fornecedores*, *Faturas*, *Inventário*) e sub-abas de painéis devem utilizar o estilo de pílulas/controle segmentado, eliminando de vez designs antigos do tipo "Underlined" (linhas inferiores).
+
 ```tsx
-<div className="w-full overflow-x-auto overscroll-x-contain scrollbar-none pb-1">
-  <div className="flex gap-1.5 bg-gray-100/60 dark:bg-dark-900/60 backdrop-blur-sm rounded-xl p-1.5 w-max min-w-max border border-gray-200/50 dark:border-dark-700 shadow-inner">
-    {TABS.map((tab) => (
-      <Button
-        key={tab.id}
-        variant={activeTab === tab.id ? 'primary' : 'ghost'}
-        className="whitespace-nowrap flex-1 h-10 px-4 text-xs font-bold uppercase tracking-wider"
-        onClick={() => setActiveTab(tab.id)}
-      >
-        {tab.label}
-      </Button>
-    ))}
-  </div>
+<div className="flex w-full overflow-x-auto overscroll-x-contain p-1 bg-gray-100/50 dark:bg-dark-800/50 rounded-xl border border-gray-200/30 dark:border-dark-700/30 shadow-inner scrollbar-none">
+  {TABS.map((tab) => (
+    <Button
+      key={tab.id}
+      type="button"
+      variant="ghost"
+      size="sm"
+      onClick={() => setActiveTab(tab.id)}
+      className={cn(
+        "flex-1 sm:flex-none justify-center sm:min-w-max px-6 text-[10px] font-black uppercase tracking-widest rounded-lg gap-2",
+        activeTab === tab.id
+          ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
+          : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+      )}
+    >
+      <span className="shrink-0">{tab.icon}</span>
+      <span>{tab.label}</span>
+    </Button>
+  ))}
 </div>
+```
+
+### B. Uso de `SegmentedControl` para Filtros de Período/Status
+Para filtros simples de dashboards ou listagens (como a seleção de tempo "1 Mês", "3 Meses", "6 Meses", "1 Ano"), deve ser utilizado o componente reutilizável `<SegmentedControl>` localizado em `frontend/src/components/common/SegmentedControl.tsx`. Evite reescrever loops manuais para estes filtros rápidos de período para garantir consistência visual e comportamento de transição.
+
+```tsx
+import { SegmentedControl } from '@/components/common/SegmentedControl';
+
+<SegmentedControl
+  options={periodOptions}
+  value={selectedPeriod}
+  onChange={setSelectedPeriod}
+  size="sm"
+  className="w-full sm:w-auto"
+/>
 ```
 
 ### Regras das Abas:
@@ -375,3 +399,4 @@ Antes de submeter alterações de UI ou considerar uma página concluída, verif
 6. [ ] **Utilização de min-w-0**: Elementos flex que contêm texto ou tabelas utilizam `min-w-0` para prevenir transbordo em ecrãs de telemóveis.
 7. [ ] **Tipografia Adaptativa**: Os tamanhos dos textos escalam corretamente em mobile e usam utilitários de truncamento/quebra (`truncate`, `break-all`, `line-clamp`) nos dados dinâmicos.
 8. [ ] **Rótulos Condicionais**: Textos longos em botões de ação são omitidos (`hidden sm:inline`) ou abreviados no mobile para economizar espaço horizontal.
+9. [ ] **Ícones e Textos em Botões/Abas**: Os ícones **NUNCA** devem estar posicionados acima do texto (com `flex-col`) dentro de botões ou abas. Use sempre alinhamento horizontal (`flex-row` / `flex items-center gap-2`) para que o ícone fique à esquerda do texto. A única exceção a esta regra é dentro de componentes estritamente de exibição, como os `Cards`.

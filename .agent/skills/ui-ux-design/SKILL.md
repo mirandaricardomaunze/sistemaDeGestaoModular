@@ -7,6 +7,8 @@ description: "Premium UI/UX, Design Consistency, and Frontend Component standard
 
 > 🤖 **AI INSTRUCTION (MANDATORY)**: You MUST ensure that any frontend code you generate or modify aligns with these visual and structural design standards. Prioritize premium aesthetics, responsiveness, and accessibility in every component.
 
+> 📎 **See also**: [[design-system]] — operational cheat-sheet with the actual component inventory in [frontend/src/components/ui/](../../../frontend/src/components/ui/) and the process to add a new one. This skill (`ui-ux-design`) covers the **visual philosophy** (premium feel, glassmorphism, 8px grid, theming, print, charts); `design-system` covers the **practical "what's available right now"**. Read both when designing a new screen.
+
 This skill ensures the Multicore system not only works flawlessly on the backend but also provides an exceptional, modern, and professional experience to the end-users. A system is judged heavily by its interface.
 
 ## 1. Visual Aesthetics & "Premium" Feel

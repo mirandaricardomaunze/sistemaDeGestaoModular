@@ -128,8 +128,11 @@ sistemas/                          # workspace root
 
 ## Skills
 
-A pasta [.agent/skills/](.agent/skills/) tem **17+ SKILL.md** com regras detalhadas. Ler o relevante antes de tocar numa área:
+A pasta [.agent/skills/](.agent/skills/) tem **20+ SKILL.md** com regras detalhadas. Ler o relevante antes de tocar numa área:
 
+- `spec-driven` — template leve para spec antes de código (features que tocam $/stock/fiscal/API)
+- `test-harness` — factories + `withTestTx` (rollback automático) + mocks em [backend/src/test/](backend/src/test/)
+- `design-system` — inventário operacional dos componentes em [frontend/src/components/ui/](frontend/src/components/ui/) + processo para adicionar (cheat-sheet de [[ui-ux-design]])
 - `monorepo-structure` — layout npm workspaces, regras de packages
 - `security-and-auth` — JWT, bcrypt, rate limit, secrets
 - `data-integrity-and-validation` — Zod, transações, FK
@@ -138,13 +141,15 @@ A pasta [.agent/skills/](.agent/skills/) tem **17+ SKILL.md** com regras detalha
 - `multicore` — isolamento por `companyId`
 - `offline-mode` — IndexedDB, sync queue, reservas de série
 - `ui-ux-design` — sistema de design
-- `testing-standards` — coverage, tipos de testes
+- `testing-standards` — coverage, tipos de testes (complementa [[test-harness]])
 - `observability-and-logs` — Winston, sem PII
 - `documentation-standards` — TSDoc em APIs públicas
 - `producao-readiness` — checklist pré-deploy
 - `saft-xml`, `inventario-fisico`, `payroll-unificado`, `plano-de-contas` — domínios específicos
 - `encoding-utf8` — UTF-8 sem BOM em código
 - `performance-fixes` — issues já resolvidos (referência histórica)
+
+Specs em [docs/specs/](docs/specs/) — uma por feature não-trivial, seguindo o template de `spec-driven`.
 
 ## Workflow
 
