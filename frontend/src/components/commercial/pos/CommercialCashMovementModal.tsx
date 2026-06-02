@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { HiOutlineXMark, HiOutlineCheck, HiOutlineBanknotes, HiOutlineArrowRightOnRectangle, HiOutlineArrowLeftOnRectangle } from 'react-icons/hi2';
-import { Button } from '../../ui/Button';
+import { Button, Input, Textarea } from '../../ui';
 
 interface CommercialCashMovementModalProps {
     isOpen: boolean;
@@ -56,17 +56,15 @@ export function CommercialCashMovementModal({ isOpen, type, onConfirm, onClose, 
                             <HiOutlineBanknotes className="w-3.5 h-3.5" />
                             Valor da Operação (MTn)
                         </label>
-                        <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-gray-400 text-sm">MTn</span>
-                            <input
-                                type="number"
-                                value={amount}
-                                onChange={e => setAmount(e.target.value)}
-                                placeholder="0.00"
-                                autoFocus
-                                className="w-full pl-14 pr-4 py-4 text-right text-3xl font-black rounded-lg border-2 border-gray-200 dark:border-dark-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white"
-                            />
-                        </div>
+                        <Input
+                            type="number"
+                            value={amount}
+                            onChange={e => setAmount(e.target.value)}
+                            placeholder="0.00"
+                            autoFocus
+                            leftIcon={<span className="font-black text-gray-400 text-sm">MTn</span>}
+                            className="pl-14 pr-4 text-right text-3xl font-black rounded-lg border-2 border-gray-200 dark:border-dark-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-dark-900 text-gray-900 dark:text-white"
+                        />
                     </div>
 
                     {/* Reason input */}
@@ -74,7 +72,7 @@ export function CommercialCashMovementModal({ isOpen, type, onConfirm, onClose, 
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-2">
                             Justificação / Motivo
                         </label>
-                        <textarea
+                        <Textarea
                             value={reason}
                             onChange={e => setReason(e.target.value)}
                             rows={3}

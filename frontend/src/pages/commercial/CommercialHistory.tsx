@@ -1,4 +1,4 @@
-import { Button, Input, Badge, Textarea, ConfirmationModal, SmartTable } from '../../components/ui';
+import { Button, Input, Badge, Textarea, ConfirmationModal, SmartTable, PageHeader } from '../../components/ui';
 import { useSales } from '../../hooks/useSales';
 import { formatCurrency } from '../../utils/helpers';
 import { PAGE_SIZE } from '../../utils/constants';
@@ -9,7 +9,7 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { Sale } from '../../types';
-import { HiOutlineEye, HiOutlineTrash } from 'react-icons/hi2';
+import { HiOutlineClock, HiOutlineEye, HiOutlineTrash } from 'react-icons/hi2';
 
 type ParsedPayment = {
     method?: string;
@@ -253,6 +253,12 @@ export default function CommercialHistory() {
 
     return (
         <div className="space-y-4 animate-fade-in pb-10">
+            <PageHeader
+                title="Histórico Comercial"
+                subtitle="Consulta de vendas, recibos, pagamentos e acções de pós-venda."
+                icon={<HiOutlineClock />}
+            />
+
             <SmartTable
                 data={sales}
                 columns={columns}

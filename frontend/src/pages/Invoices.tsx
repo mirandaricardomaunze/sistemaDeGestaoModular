@@ -30,6 +30,7 @@ import { format, parseISO, addDays, subDays } from 'date-fns';
 import { Card, Button, Input, Select, Modal, PageHeader, SmartTable } from '../components/ui';
 import type { ColumnDef } from '@tanstack/react-table';
 import { MetricCard } from '../components/common/ModuleMetricCard';
+import { SegmentedControl } from '../components/common/SegmentedControl';
 import { InvoicePrintPreview, CreditNoteManager } from '../components/invoices';
 import MobilePaymentModal from '../components/pos/MobilePaymentModal';
 import { formatCurrency, generateId, cn } from '../utils/helpers';
@@ -820,17 +821,19 @@ export default function Invoices({ originModule }: InvoicesProps) {
                     </div>
                 }
                 tabs={
-                    <div className="flex flex-nowrap w-max -mb-px gap-1">
+                    <div className="flex w-full overflow-x-auto overscroll-x-contain p-1 bg-gray-100/50 dark:bg-dark-800/50 rounded-xl border border-gray-200/30 dark:border-dark-700/30 shadow-inner scrollbar-none">
                         {tabs.map((tab) => (
                             <Button
                                 key={tab.id}
+                                type="button"
                                 variant="ghost"
+                                size="sm"
                                 onClick={() => setActiveTab(tab.id as 'invoices' | 'credit_notes')}
                                 className={cn(
-                                    "flex items-center justify-center gap-2 px-4 md:px-6 py-3 text-xs md:text-sm font-black border-b-2 rounded-none whitespace-nowrap uppercase tracking-widest",
+                                    "flex-1 sm:flex-none justify-center sm:min-w-max px-6 text-[10px] font-black uppercase tracking-widest rounded-lg gap-2",
                                     activeTab === tab.id
-                                        ? "border-primary-500 text-primary-600 dark:text-primary-400"
-                                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
+                                        ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
+                                        : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                                 )}
                             >
                                 <span className="shrink-0">{tab.icon}</span>
@@ -849,27 +852,16 @@ export default function Invoices({ originModule }: InvoicesProps) {
                     <div className="space-y-6 animate-in fade-in duration-500">
                         {/* Period Filter for Invoices */}
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700">
-                            <div className="grid grid-cols-5 gap-1 w-full sm:flex sm:w-auto bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
-                                {periodOptions.map((option) => (
-                                    <Button
-                                        key={option.value}
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                            setSelectedPeriod(option.value);
-                                            setPage(1);
-                                        }}
-                                        className={cn(
-                                            'w-full sm:w-auto px-1 sm:px-6 py-2 rounded-md text-[10px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest active:scale-95 transition-all duration-150',
-                                            selectedPeriod === option.value
-                                                ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm hover:bg-white'
-                                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                                        )}
-                                    >
-                                        {option.label}
-                                    </Button>
-                                ))}
-                            </div>
+                            <SegmentedControl
+                                options={periodOptions}
+                                value={selectedPeriod}
+                                onChange={(val) => {
+                                    setSelectedPeriod(val as TimePeriod);
+                                    setPage(1);
+                                }}
+                                size="sm"
+                                className="w-full sm:w-auto"
+                            />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <MetricCard 

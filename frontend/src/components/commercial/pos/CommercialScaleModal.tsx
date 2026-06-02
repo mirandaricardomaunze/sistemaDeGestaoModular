@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { HiOutlineXMark, HiOutlineCheck, HiOutlineArrowPath } from 'react-icons/hi2';
-import { Button } from '../../ui/Button';
+import { Button } from '../../ui';
 import { useScale } from '../../../hooks/useScale';
 import { formatCurrency } from '../../../utils/helpers';
 

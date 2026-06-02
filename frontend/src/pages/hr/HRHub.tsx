@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { PageHeader, Button, Card, Badge } from '../../components/ui';
+import { MetricCard } from '../../components/common/ModuleMetricCard';
 import EmployeeList from '../../components/employees/EmployeeList';
 import EmployeeForm from '../../components/employees/EmployeeForm';
 import EmployeesDashboard from '../../components/employees/EmployeesDashboard';
@@ -89,66 +90,57 @@ function GlobalHRSummaryPanel() {
             label: 'Colaboradores ativos',
             value: metrics.active,
             detail: 'Equipa registada',
-            icon: HiOutlineUsers,
-            color: 'text-primary-600 bg-primary-50 dark:bg-primary-900/20',
+            icon: <HiOutlineUsers className="w-5 h-5" />,
+            color: 'primary',
             badge: 'RH',
         },
         {
             label: 'Presentes hoje',
             value: metrics.presentToday,
             detail: `${metrics.attendanceRate}% de assiduidade`,
-            icon: HiOutlineClock,
-            color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20',
+            icon: <HiOutlineClock className="w-5 h-5" />,
+            color: 'emerald',
             badge: 'PONTO',
         },
         {
             label: 'Payroll pendente',
             value: metrics.payrollPending,
             detail: 'Registos por fechar/pagar',
-            icon: HiOutlineBanknotes,
-            color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20',
+            icon: <HiOutlineBanknotes className="w-5 h-5" />,
+            color: 'indigo',
             badge: 'SALARIOS',
         },
         {
             label: 'Alertas laborais',
             value: metrics.contractAlerts + metrics.missingDocuments,
             detail: `${metrics.contractAlerts} contratos, ${metrics.missingDocuments} documentos`,
-            icon: metrics.contractAlerts + metrics.missingDocuments > 0 ? HiOutlineExclamationTriangle : HiOutlineCheckCircle,
-            color: metrics.contractAlerts + metrics.missingDocuments > 0
-                ? 'text-amber-600 bg-amber-50 dark:bg-amber-900/20'
-                : 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20',
+            icon: metrics.contractAlerts + metrics.missingDocuments > 0 ? <HiOutlineExclamationTriangle className="w-5 h-5" /> : <HiOutlineCheckCircle className="w-5 h-5" />,
+            color: metrics.contractAlerts + metrics.missingDocuments > 0 ? 'warning' : 'success',
             badge: 'COMPLIANCE',
         },
     ];
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-            {items.map((item) => {
-                const Icon = item.icon;
-                return (
-                    <Card key={item.label} variant="glass" padding="md">
-                        <div className="flex min-w-0 items-start justify-between gap-4">
-                            <div className="min-w-0">
-                                <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 line-clamp-2">
-                                    {item.label}
-                                </p>
-                                <p className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white mt-2">
-                                    {item.value}
-                                </p>
-                                <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                                    {item.detail}
-                                </p>
-                            </div>
-                            <div className={cn('w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0', item.color)}>
-                                <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
-                            </div>
+            {items.map((item) => (
+                <MetricCard
+                    key={item.label}
+                    label={item.label}
+                    value={item.value}
+                    icon={item.icon}
+                    color={item.color}
+                    badge={
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                            <Badge variant="outline" size="sm" className="px-1.5 py-0.5 text-[9px] font-black tracking-wider uppercase shrink-0">
+                                {item.badge}
+                            </Badge>
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold truncate max-w-[150px]">
+                                {item.detail}
+                            </span>
                         </div>
-                        <Badge variant="outline" size="sm" className="mt-4">
-                            {item.badge}
-                        </Badge>
-                    </Card>
-                );
-            })}
+                    }
+                />
+            ))}
         </div>
     );
 }
@@ -182,28 +174,21 @@ function GlobalPerformancePanel() {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                    { label: 'Score médio', value: `${data.averageScore}%`, icon: HiOutlineChartBar, color: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' },
-                    { label: 'Alta performance', value: data.highPerformers, icon: HiOutlineCheckCircle, color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' },
-                    { label: 'A rever', value: data.needsReview, icon: HiOutlineExclamationTriangle, color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' },
-                    { label: 'Com qualificações', value: data.qualified, icon: HiOutlineAcademicCap, color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' },
-                ].map((metric) => {
-                    const Icon = metric.icon;
-                    return (
-                        <Card key={metric.label} padding="md" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
-                            <div className="flex min-w-0 items-center justify-between gap-3">
-                                <div className="min-w-0">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{metric.label}</p>
-                                    <p className="text-2xl font-black text-gray-900 dark:text-white mt-1 tabular-nums">{metric.value}</p>
-                                </div>
-                                <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center shrink-0', metric.color)}>
-                                    <Icon className="w-5 h-5" />
-                                </div>
-                            </div>
-                        </Card>
-                    );
-                })}
+                    { label: 'Score médio', value: `${data.averageScore}%`, icon: <HiOutlineChartBar className="w-5 h-5" />, color: 'indigo' },
+                    { label: 'Alta performance', value: data.highPerformers, icon: <HiOutlineCheckCircle className="w-5 h-5" />, color: 'emerald' },
+                    { label: 'A rever', value: data.needsReview, icon: <HiOutlineExclamationTriangle className="w-5 h-5" />, color: 'warning' },
+                    { label: 'Com qualificações', value: data.qualified, icon: <HiOutlineAcademicCap className="w-5 h-5" />, color: 'blue' },
+                ].map((metric) => (
+                    <MetricCard
+                        key={metric.label}
+                        label={metric.label}
+                        value={metric.value}
+                        icon={metric.icon}
+                        color={metric.color}
+                    />
+                ))}
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -296,19 +281,30 @@ function GlobalCompliancePanel() {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card padding="md" className="bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 shadow-sm backdrop-blur-xl">
-                    <p className="text-xs font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-400">Dossiers completos</p>
-                    <p className="text-3xl font-black text-emerald-700 dark:text-emerald-300 mt-2 tabular-nums">{completeCount}</p>
-                </Card>
-                <Card padding="md" className="bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 shadow-sm backdrop-blur-xl">
-                    <p className="text-xs font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">Com pendências</p>
-                    <p className="text-3xl font-black text-amber-700 dark:text-amber-300 mt-2 tabular-nums">{compliance.length}</p>
-                </Card>
-                <Card padding="md" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-sm">
-                    <p className="text-xs font-black uppercase tracking-widest text-gray-500">Campos verificados</p>
-                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mt-2">Documento, NUIT, INSS, NIB e contrato.</p>
-                </Card>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <MetricCard
+                    label="Dossiers completos"
+                    value={completeCount}
+                    icon={<HiOutlineCheckCircle className="w-5 h-5" />}
+                    color="success"
+                />
+                <MetricCard
+                    label="Com pendências"
+                    value={compliance.length}
+                    icon={<HiOutlineExclamationTriangle className="w-5 h-5" />}
+                    color="warning"
+                />
+                <MetricCard
+                    label="Campos verificados"
+                    value="5"
+                    icon={<HiOutlineShieldCheck className="w-5 h-5" />}
+                    color="primary"
+                    badge={
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold leading-tight">
+                            Doc, NUIT, INSS, NIB, Contrato
+                        </span>
+                    }
+                />
             </div>
 
             <Card padding="none" className="overflow-hidden bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)]">

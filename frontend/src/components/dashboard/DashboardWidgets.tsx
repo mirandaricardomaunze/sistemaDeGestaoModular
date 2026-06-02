@@ -75,7 +75,7 @@ type AlertItem = {
 
 type ActivityItem = {
     id: string;
-    icon?: string;
+    icon?: React.ElementType | string;
     action: string;
     detail?: string;
     time: string;
@@ -112,7 +112,7 @@ export const StatsWidget = ({ metrics, stats }: { metrics: DashboardMetrics; sta
                     {stats?.commercialRevenue ? (
                         <div>
                             <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-slate-500 dark:text-slate-450 font-bold text-xs uppercase">Comercial</span>
+                                <span className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase">Comercial</span>
                                 <ResponsiveValue value={stats.commercialRevenue} size="sm" className="font-black text-slate-950 dark:text-white" />
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
@@ -123,7 +123,7 @@ export const StatsWidget = ({ metrics, stats }: { metrics: DashboardMetrics; sta
                     {stats?.hospitalityRevenue ? (
                         <div>
                             <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-slate-500 dark:text-slate-450 font-bold text-xs uppercase">Hotelaria</span>
+                                <span className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase">Hotelaria</span>
                                 <ResponsiveValue value={stats.hospitalityRevenue} size="sm" className="font-black text-slate-950 dark:text-white" />
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
@@ -134,7 +134,7 @@ export const StatsWidget = ({ metrics, stats }: { metrics: DashboardMetrics; sta
                     {stats?.pharmacyRevenue ? (
                         <div>
                             <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-slate-500 dark:text-slate-450 font-bold text-xs uppercase">Farmácia</span>
+                                <span className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase">Farmácia</span>
                                 <ResponsiveValue value={stats.pharmacyRevenue} size="sm" className="font-black text-slate-950 dark:text-white" />
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
@@ -145,7 +145,7 @@ export const StatsWidget = ({ metrics, stats }: { metrics: DashboardMetrics; sta
                     {stats?.bottleStoreRevenue ? (
                         <div>
                             <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-slate-500 dark:text-slate-450 font-bold text-xs uppercase">Bottle Store</span>
+                                <span className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase">Bottle Store</span>
                                 <ResponsiveValue value={stats.bottleStoreRevenue} size="sm" className="font-black text-slate-950 dark:text-white" />
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
@@ -219,8 +219,8 @@ export const RevenueChartWidget = ({ salesData }: { salesData: SalesDataPoint[] 
                                                     const isTarget = pld.dataKey === 'meta';
                                                     return (
                                                         <div key={index} className="flex items-center justify-between gap-4">
-                                                            <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase">{pld.name}:</span>
-                                                            <span className={cn("text-sm font-black", isTarget ? "text-emerald-600 dark:text-emerald-450" : "text-indigo-600 dark:text-indigo-400")}>
+                                                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-500 uppercase">{pld.name}:</span>
+                                                            <span className={cn("text-sm font-black", isTarget ? "text-emerald-600 dark:text-emerald-400" : "text-indigo-600 dark:text-indigo-400")}>
                                                                 {formatCurrency(value)}
                                                             </span>
                                                         </div>
@@ -264,7 +264,7 @@ export const CategoryPieWidget = ({ categoryData }: { categoryData: CategoryData
                                         <div className="bg-white/95 dark:bg-dark-900/95 backdrop-blur-md border border-slate-200/90 dark:border-white/10 p-3 rounded-xl shadow-2xl text-[12px] text-slate-900 dark:text-white">
                                             <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{entry.name}</p>
                                             <div className="flex items-center justify-between gap-4">
-                                                <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase">Produtos:</span>
+                                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-500 uppercase">Produtos:</span>
                                                 <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{entry.value}</span>
                                             </div>
                                         </div>
@@ -351,7 +351,7 @@ export const WeeklySalesWidget = ({ weeklyData }: { weeklyData: WeeklyDataPoint[
                                             <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{label}</p>
                                             {payload.map((pld, index) => (
                                                 <div key={index} className="flex items-center justify-between gap-4">
-                                                    <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase">{pld.name}:</span>
+                                                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-500 uppercase">{pld.name}:</span>
                                                     <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">
                                                         {formatCurrency(Number(pld.value ?? 0))}
                                                     </span>
@@ -383,24 +383,33 @@ export const RecentActivityWidget = ({ recentActivities }: { recentActivities: A
                     <p className="text-center text-slate-500 dark:text-slate-400 py-4">
                         {t('dashboard.noRecentActivity')}
                     </p>
-                ) : recentActivities.map((activity) => (
-                    <div key={activity.id} className="flex items-start gap-3 p-2 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/10 rounded-lg transition-colors">
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-dark-700/80 flex items-center justify-center flex-shrink-0 border border-slate-200/50 dark:border-white/5">
-                            <span className="text-sm">{activity.icon}</span>
+                ) : recentActivities.map((activity) => {
+                    const legacyIcon = typeof activity.icon === 'string' ? activity.icon : null;
+                    const Icon = legacyIcon ? null : (activity.icon ?? HiOutlineClock);
+
+                    return (
+                        <div key={activity.id} className="flex items-start gap-3 p-2 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/10 rounded-lg transition-colors">
+                            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-dark-700/80 flex items-center justify-center flex-shrink-0 border border-slate-200/50 dark:border-white/5">
+                                {Icon ? (
+                                    <Icon className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                                ) : (
+                                    <span className="text-sm leading-none">{legacyIcon}</span>
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                                    {activity.action}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                    {activity.detail}
+                                </p>
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-500 flex-shrink-0 uppercase">
+                                {activity.time}
+                            </span>
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                                {activity.action}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                                {activity.detail}
-                            </p>
-                        </div>
-                        <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 flex-shrink-0 uppercase">
-                            {activity.time}
-                        </span>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </Card>
     );
@@ -417,7 +426,7 @@ export const QuickActionsWidget = () => {
                 <Link to="/pos">
                     <Button className="w-full p-3 sm:p-4 rounded-xl border border-slate-200 dark:border-white/10 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50/50 dark:hover:bg-primary-950/20 transition-all group bg-transparent">
                         <HiOutlineShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-slate-500 group-hover:text-primary-600 transition-colors" />
-                        <p className="text-[10px] sm:text-xs font-bold text-slate-650 dark:text-slate-350 group-hover:text-primary-600 break-words line-clamp-2 uppercase tracking-wide">
+                        <p className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 break-words line-clamp-2 uppercase tracking-wide">
                             {t('sales.newSale')}
                         </p>
                     </Button>
@@ -425,7 +434,7 @@ export const QuickActionsWidget = () => {
                 <Link to="/inventory">
                     <Button className="w-full p-3 sm:p-4 rounded-xl border border-slate-200 dark:border-white/10 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50/50 dark:hover:bg-primary-950/20 transition-all group bg-transparent">
                         <HiOutlineCube className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-slate-500 group-hover:text-primary-600 transition-colors" />
-                        <p className="text-[10px] sm:text-xs font-bold text-slate-650 dark:text-slate-350 group-hover:text-primary-600 break-words line-clamp-2 uppercase tracking-wide">
+                        <p className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 break-words line-clamp-2 uppercase tracking-wide">
                             {t('dashboard.newProduct')}
                         </p>
                     </Button>
@@ -433,7 +442,7 @@ export const QuickActionsWidget = () => {
                 <Link to="/employees">
                     <Button className="w-full p-3 sm:p-4 rounded-xl border border-slate-200 dark:border-white/10 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50/50 dark:hover:bg-primary-950/20 transition-all group bg-transparent">
                         <HiOutlineUsers className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-slate-500 group-hover:text-primary-600 transition-colors" />
-                        <p className="text-[10px] sm:text-xs font-bold text-slate-650 dark:text-slate-350 group-hover:text-primary-600 break-words line-clamp-2 uppercase tracking-wide">
+                        <p className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 break-words line-clamp-2 uppercase tracking-wide">
                             {t('nav.employees')}
                         </p>
                     </Button>
@@ -441,7 +450,7 @@ export const QuickActionsWidget = () => {
                 <Link to="/reports">
                     <Button className="w-full p-3 sm:p-4 rounded-xl border border-slate-200 dark:border-white/10 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50/50 dark:hover:bg-primary-950/20 transition-all group bg-transparent">
                         <HiOutlineCurrencyDollar className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-slate-500 group-hover:text-primary-600 transition-colors" />
-                        <p className="text-[10px] sm:text-xs font-bold text-slate-650 dark:text-slate-350 group-hover:text-primary-600 break-words line-clamp-2 uppercase tracking-wide">
+                        <p className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 break-words line-clamp-2 uppercase tracking-wide">
                             {t('nav.reports')}
                         </p>
                     </Button>
@@ -460,14 +469,14 @@ const MOVEMENT_CONFIG: Record<MovementType, {
     qtyColor: string;
     sign: '+' | '-' | '±';
 }> = {
-    purchase:   { label: 'Compra',        icon: HiOutlineArrowDown,             iconBg: 'bg-emerald-500/10 border border-emerald-500/20',   iconColor: 'text-emerald-600 dark:text-emerald-400',  qtyColor: 'text-emerald-650 dark:text-emerald-400',  sign: '+' },
-    sale:       { label: 'Venda',          icon: HiOutlineArrowUp,               iconBg: 'bg-rose-500/10 border border-rose-500/20',       iconColor: 'text-rose-600 dark:text-rose-450',      qtyColor: 'text-rose-650 dark:text-rose-450',      sign: '-' },
-    return_in:  { label: 'Devolução In',   icon: HiOutlineReceiptRefund,         iconBg: 'bg-blue-500/10 border border-blue-500/20',     iconColor: 'text-blue-600 dark:text-blue-400',    qtyColor: 'text-blue-655 dark:text-blue-400',    sign: '+' },
-    return_out: { label: 'Devolução Out',  icon: HiOutlineReceiptRefund,         iconBg: 'bg-amber-500/10 border border-amber-500/20', iconColor: 'text-amber-600 dark:text-amber-450',qtyColor: 'text-amber-655 dark:text-amber-450',sign: '-' },
-    adjustment: { label: 'Ajuste',         icon: HiOutlineAdjustmentsHorizontal, iconBg: 'bg-purple-500/10 border border-purple-500/20', iconColor: 'text-purple-600 dark:text-purple-400',qtyColor: 'text-purple-655 dark:text-purple-400',sign: '+' },
-    expired:    { label: 'Expirado',       icon: HiOutlineTrash,                 iconBg: 'bg-rose-500/10 border border-rose-500/20',       iconColor: 'text-rose-600 dark:text-rose-450',      qtyColor: 'text-rose-655 dark:text-rose-450',      sign: '-' },
-    transfer:   { label: 'Transferência',  icon: HiOutlineArrowsRightLeft,       iconBg: 'bg-cyan-500/10 border border-cyan-500/20',     iconColor: 'text-cyan-600 dark:text-cyan-400',    qtyColor: 'text-cyan-655 dark:text-cyan-400',    sign: '±' },
-    loss:       { label: 'Perda',          icon: HiOutlineTrash,                 iconBg: 'bg-slate-500/10 border border-slate-500/20',        iconColor: 'text-slate-500 dark:text-slate-400',    qtyColor: 'text-slate-550 dark:text-slate-400',    sign: '-' },
+    purchase:   { label: 'Compra',        icon: HiOutlineArrowDown,             iconBg: 'bg-emerald-500/10 border border-emerald-500/20',   iconColor: 'text-emerald-600 dark:text-emerald-400',  qtyColor: 'text-emerald-600 dark:text-emerald-400',  sign: '+' },
+    sale:       { label: 'Venda',          icon: HiOutlineArrowUp,               iconBg: 'bg-rose-500/10 border border-rose-500/20',       iconColor: 'text-rose-600 dark:text-rose-400',      qtyColor: 'text-rose-600 dark:text-rose-400',      sign: '-' },
+    return_in:  { label: 'Devolução In',   icon: HiOutlineReceiptRefund,         iconBg: 'bg-blue-500/10 border border-blue-500/20',     iconColor: 'text-blue-600 dark:text-blue-400',    qtyColor: 'text-blue-600 dark:text-blue-400',    sign: '+' },
+    return_out: { label: 'Devolução Out',  icon: HiOutlineReceiptRefund,         iconBg: 'bg-amber-500/10 border border-amber-500/20', iconColor: 'text-amber-600 dark:text-amber-400',qtyColor: 'text-amber-600 dark:text-amber-400',sign: '-' },
+    adjustment: { label: 'Ajuste',         icon: HiOutlineAdjustmentsHorizontal, iconBg: 'bg-purple-500/10 border border-purple-500/20', iconColor: 'text-purple-600 dark:text-purple-400',qtyColor: 'text-purple-600 dark:text-purple-400',sign: '+' },
+    expired:    { label: 'Expirado',       icon: HiOutlineTrash,                 iconBg: 'bg-rose-500/10 border border-rose-500/20',       iconColor: 'text-rose-600 dark:text-rose-400',      qtyColor: 'text-rose-600 dark:text-rose-400',      sign: '-' },
+    transfer:   { label: 'Transferência',  icon: HiOutlineArrowsRightLeft,       iconBg: 'bg-cyan-500/10 border border-cyan-500/20',     iconColor: 'text-cyan-600 dark:text-cyan-400',    qtyColor: 'text-cyan-600 dark:text-cyan-400',    sign: '±' },
+    loss:       { label: 'Perda',          icon: HiOutlineTrash,                 iconBg: 'bg-slate-500/10 border border-slate-500/20',        iconColor: 'text-slate-500 dark:text-slate-400',    qtyColor: 'text-slate-600 dark:text-slate-400',    sign: '-' },
 };
 
 export const RecentMovementsWidget = () => {

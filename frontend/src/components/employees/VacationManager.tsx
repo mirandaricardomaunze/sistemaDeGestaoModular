@@ -10,6 +10,7 @@ import {
 } from 'react-icons/hi2';
 import { useEmployees, useVacations } from '../../hooks/useData';
 import { Button, Card, Input, Modal, Select, Pagination, usePagination, ConfirmationModal, SmartTable } from '../ui';
+import { MetricCard } from '../common/ModuleMetricCard';
 import { generateId } from '../../utils/helpers';
 import type { Employee, VacationRequest } from '../../types';
 import toast from 'react-hot-toast';
@@ -238,45 +239,24 @@ export default function VacationManager() {
         <div className="space-y-6">
             {/* Header Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card padding="md" className="bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800">
-                    <div className="flex flex-row-reverse items-center justify-end gap-3">
-                        <div>
-                            <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Férias Agendadas ({selectedYear})</p>
-                            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                                {activeVacations.length}
-                            </p>
-                        </div>
-                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg backdrop-blur-sm shrink-0">
-                            <HiOutlineCalendar className="w-8 h-8 text-blue-500" />
-                        </div>
-                    </div>
-                </Card>
-                <Card padding="md" className="bg-green-50 dark:bg-green-900/10 border-green-100 dark:border-green-800">
-                    <div className="flex flex-row-reverse items-center justify-end gap-3">
-                        <div>
-                            <p className="text-sm text-green-600 dark:text-green-400 font-medium">Colaboradores em Férias Hoje</p>
-                            <p className="text-2xl font-bold text-green-700 dark:text-green-300">
-                                {vacationsTodayCount}
-                            </p>
-                        </div>
-                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg backdrop-blur-sm shrink-0">
-                            <HiOutlineSun className="w-8 h-8 text-green-500" />
-                        </div>
-                    </div>
-                </Card>
-                <Card padding="md">
-                    <div className="flex flex-row-reverse items-center justify-end gap-3">
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Dias Gozados</p>
-                            <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">
-                                {activeEmployees.reduce((acc, curr) => acc + (curr.vacationDaysUsed || 0), 0)}
-                            </p>
-                        </div>
-                        <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg shrink-0">
-                            <HiOutlineClock className="w-8 h-8 text-gray-500" />
-                        </div>
-                    </div>
-                </Card>
+                <MetricCard
+                    label={`Férias Agendadas (${selectedYear})`}
+                    value={activeVacations.length}
+                    icon={<HiOutlineCalendar className="w-5 h-5" />}
+                    color="blue"
+                />
+                <MetricCard
+                    label="Colaboradores em Férias Hoje"
+                    value={vacationsTodayCount}
+                    icon={<HiOutlineSun className="w-5 h-5" />}
+                    color="emerald"
+                />
+                <MetricCard
+                    label="Total Dias Gozados"
+                    value={activeEmployees.reduce((acc, curr) => acc + (curr.vacationDaysUsed || 0), 0)}
+                    icon={<HiOutlineClock className="w-5 h-5" />}
+                    color="slate"
+                />
             </div>
 
             {/* Actions */}

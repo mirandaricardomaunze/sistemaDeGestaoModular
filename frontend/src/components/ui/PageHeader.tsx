@@ -13,7 +13,7 @@ export interface PageHeaderProps {
 export function PageHeader({ title, subtitle, icon, actions, tabs, className }: PageHeaderProps) {
     return (
         <div className={cn("mb-6 relative group", className)}>
-            <div className="bg-white dark:bg-[#12141a] rounded-2xl p-4 sm:p-6 border border-slate-300/70 dark:border-white/5 shadow-card relative overflow-hidden transition-all duration-300 hover:shadow-card-hover">
+            <div className="bg-white dark:bg-dark-900 rounded-2xl p-4 sm:p-6 border border-slate-300/70 dark:border-white/5 shadow-card relative overflow-hidden transition-all duration-300 hover:shadow-card-hover">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
                     <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                         {icon && (

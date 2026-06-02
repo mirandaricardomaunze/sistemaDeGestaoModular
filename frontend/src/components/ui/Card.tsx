@@ -20,9 +20,9 @@ export function Card({ children, className, variant = 'default', padding = 'md',
     };
 
     const variantClasses = {
-        default: 'bg-white dark:bg-[#12141a] rounded-2xl shadow-card border border-slate-300/70 dark:border-white/5 transition-all duration-300 hover:shadow-card-hover hover:border-primary-500/35',
+        default: 'bg-white dark:bg-dark-900 rounded-2xl shadow-card border border-slate-300/70 dark:border-white/5 transition-all duration-300 hover:shadow-card-hover hover:border-primary-500/35',
         glass: 'bg-white dark:bg-dark-900/40 rounded-2xl shadow-glass border border-slate-300/70 dark:border-white/5',
-        premium: 'bg-gradient-to-br from-white to-slate-50 dark:from-dark-800 dark:to-[#0f1115] rounded-2xl border border-slate-300/70 dark:border-dark-700 shadow-premium relative overflow-hidden',
+        premium: 'bg-gradient-to-br from-white to-slate-50 dark:from-dark-800 dark:to-dark-950 rounded-2xl border border-slate-300/70 dark:border-dark-700 shadow-premium relative overflow-hidden',
     };
 
     const colorClasses: Record<string, string> = {

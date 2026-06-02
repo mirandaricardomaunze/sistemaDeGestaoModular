@@ -198,7 +198,7 @@ function CreatePOModal({ onClose, onSuccess }: CreatePOModalProps) {
                                         size="sm"
                                         onClick={() => removeLine(i)}
                                         disabled={lines.length === 1}
-                                        className="text-red-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors h-11 sm:h-10 w-full"
+                                        className="text-red-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors w-full"
                                     >
                                         <HiOutlineXCircle className="w-5 h-5" />
                                     </Button>
@@ -607,7 +607,7 @@ export default function PurchaseOrders() {
                             variant="ghost" 
                             size="sm" 
                             onClick={refetch}
-                            className="w-full h-11 sm:w-auto sm:h-10 font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-primary-600"
+                            className="w-full sm:w-auto font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-primary-600"
                             leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4", isLoading && "animate-spin")} />}
                         >
                             Actualizar
@@ -616,7 +616,7 @@ export default function PurchaseOrders() {
                             variant="primary" 
                             size="sm"
                             onClick={() => setShowCreateModal(true)} 
-                            className="w-full h-11 sm:w-auto sm:h-10 flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
                             leftIcon={<HiOutlinePlus className="w-4 h-4" />}
                         >
                             Nova Ordem
@@ -632,7 +632,7 @@ export default function PurchaseOrders() {
                     size="sm"
                     onClick={() => setActiveTab('list')}
                     className={cn(
-                        "flex-1 sm:flex-none justify-center sm:min-w-max min-h-11 sm:h-10 px-3 text-[10px] font-black uppercase tracking-widest rounded-lg",
+                        "flex-1 sm:flex-none justify-center sm:min-w-max px-3 text-[10px] font-black uppercase tracking-widest rounded-lg",
                         activeTab === 'list'
                             ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
                             : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -650,7 +650,7 @@ export default function PurchaseOrders() {
                     size="sm"
                     onClick={() => setActiveTab('predictive')}
                     className={cn(
-                        "flex-1 sm:flex-none justify-center sm:min-w-max min-h-11 sm:h-10 px-3 text-[10px] font-black uppercase tracking-widest rounded-lg",
+                        "flex-1 sm:flex-none justify-center sm:min-w-max px-3 text-[10px] font-black uppercase tracking-widest rounded-lg",
                         activeTab === 'predictive'
                             ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
                             : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -1051,7 +1051,7 @@ export default function PurchaseOrders() {
                                             <th className="px-6 py-4 w-10 text-center">
                                                 <input 
                                                     type="checkbox" 
-                                                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:bg-dark-900"
+                                                    className="w-4 h-4 text-primary-600 rounded border-slate-300 dark:border-dark-600 bg-white dark:bg-dark-800 focus:ring-primary-500/20 focus:ring-offset-0 cursor-pointer"
                                                     checked={selectedItems.length === predictiveData.length && predictiveData.length > 0}
                                                     onChange={(e) => {
                                                         if (e.target.checked) setSelectedItems(predictiveData.map((p) => p.productId));
@@ -1076,7 +1076,7 @@ export default function PurchaseOrders() {
                                                 <td className="px-6 py-4 text-center">
                                                     <input 
                                                         type="checkbox" 
-                                                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:bg-dark-900"
+                                                        className="w-4 h-4 text-primary-600 rounded border-slate-300 dark:border-dark-600 bg-white dark:bg-dark-800 focus:ring-primary-500/20 focus:ring-offset-0 cursor-pointer"
                                                         checked={selectedItems.includes(item.productId)}
                                                         onChange={() => {
                                                             setSelectedItems(prev => 

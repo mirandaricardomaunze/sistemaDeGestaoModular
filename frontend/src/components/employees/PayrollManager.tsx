@@ -13,6 +13,7 @@ import { useEmployees, usePayroll } from '../../hooks/useData';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useStore } from '../../stores/useStore';
 import { Button, Card, Pagination, usePagination, Badge } from '../ui';
+import { MetricCard } from '../common/ModuleMetricCard';
 import { formatCurrency } from '../../utils/helpers';
 import { generateHRPayrollSummaryReport } from '../../utils/documentGenerator';
 import type { PayrollRecord, Employee } from '../../types';
@@ -386,39 +387,27 @@ export default function PayrollManager() {
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card padding="md" className="bg-primary-50 dark:bg-primary-900/10 border-primary-100 dark:border-primary-800">
-                    <div className="flex min-w-0 items-center justify-between gap-3">
-                        <div className="min-w-0">
-                            <p className="text-sm text-primary-600 dark:text-primary-400 font-medium">Total Líquido a Pagar</p>
-                            <p className="text-2xl font-bold text-primary-700 dark:text-primary-300">{formatCurrency(totals.totalNet)}</p>
-                        </div>
-                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg backdrop-blur-sm shrink-0">
-                            <HiOutlineBanknotes className="w-8 h-8 text-primary-500" />
-                        </div>
-                    </div>
-                </Card>
-                <Card padding="md" className="bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700">
-                    <div className="flex min-w-0 items-center justify-between gap-3">
-                        <div className="min-w-0">
-                            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Total INSS Retido ({inssEmployeeRate}%)</p>
-                            <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">{formatCurrency(totals.totalINSS)}</p>
-                        </div>
-                        <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-lg shrink-0">
-                            <HiOutlineBuildingLibrary className="w-8 h-8 text-gray-500" />
-                        </div>
-                    </div>
-                </Card>
-                <Card padding="md" className="bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700">
-                    <div className="flex min-w-0 items-center justify-between gap-3">
-                        <div className="min-w-0">
-                            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Total IRPS Retido</p>
-                            <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">{formatCurrency(totals.totalIRPS)}</p>
-                        </div>
-                        <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-lg shrink-0">
-                            <HiOutlineDocumentText className="w-8 h-8 text-gray-500" />
-                        </div>
-                    </div>
-                </Card>
+                <MetricCard
+                    label="Total Líquido a Pagar"
+                    value={totals.totalNet}
+                    icon={<HiOutlineBanknotes className="w-5 h-5" />}
+                    color="primary"
+                    isCurrency
+                />
+                <MetricCard
+                    label={`Total INSS Retido (${inssEmployeeRate}%)`}
+                    value={totals.totalINSS}
+                    icon={<HiOutlineBuildingLibrary className="w-5 h-5" />}
+                    color="slate"
+                    isCurrency
+                />
+                <MetricCard
+                    label="Total IRPS Retido"
+                    value={totals.totalIRPS}
+                    icon={<HiOutlineDocumentText className="w-5 h-5" />}
+                    color="slate"
+                    isCurrency
+                />
             </div>
 
 

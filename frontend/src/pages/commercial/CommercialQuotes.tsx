@@ -8,7 +8,7 @@ import {
     HiOutlineEye, HiOutlinePaperAirplane, HiOutlineArrowRight,
     HiOutlinePrinter, HiOutlineTrash, HiOutlineArrowDownTray
 } from 'react-icons/hi2';
-import { Badge, Button, Input, Select, Textarea, Modal, SmartTable } from '../../components/ui';
+import { Badge, Button, Input, Select, Textarea, Modal, SmartTable, PageHeader } from '../../components/ui';
 import { ProductSearchInput, type ProductOption } from '../../components/commercial/ProductSearchInput';
 import { CustomerSearchInput, type CustomerOption } from '../../components/commercial/CustomerSearchInput';
 import { formatCurrency, cn } from '../../utils/helpers';
@@ -196,7 +196,7 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                             variant="ghost"
                             size="sm"
                             onClick={addLine}
-                            className="h-10 px-3 text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                            className="px-3 text-primary-600 hover:text-primary-700 dark:text-primary-400"
                         >
                             <HiOutlinePlus className="w-3.5 h-3.5" /> Adicionar linha
                         </Button>
@@ -222,7 +222,7 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                                     {i === 0 && (
                                         <label className="block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo</label>
                                     )}
-                                    <div className="flex rounded-md border border-gray-200 dark:border-dark-600 overflow-hidden h-10">
+                                    <div className="flex min-h-11 sm:min-h-10 rounded-md border border-gray-200 dark:border-dark-600 overflow-hidden">
                                         <Button
                                             type="button"
                                             variant="ghost"
@@ -230,7 +230,7 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                                             onClick={() => toggleSaleUnit(i, 'box')}
                                             disabled={!line.product}
                                             className={cn(
-                                                "flex-1 h-10 rounded-none text-[11px] font-bold uppercase tracking-wider disabled:opacity-50",
+                                                "flex-1 rounded-none text-[11px] font-bold uppercase tracking-wider disabled:opacity-50",
                                                 line.saleUnit === 'box'
                                                     ? "bg-primary-500 text-white"
                                                     : "bg-white dark:bg-dark-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-dark-600"
@@ -245,7 +245,7 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                                             onClick={() => toggleSaleUnit(i, 'unit')}
                                             disabled={!line.product || !line.product.packSize || line.product.packSize <= 1}
                                             className={cn(
-                                                "flex-1 h-10 rounded-none text-[11px] font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed",
+                                                "flex-1 rounded-none text-[11px] font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed",
                                                 line.saleUnit === 'unit'
                                                     ? "bg-primary-500 text-white"
                                                     : "bg-white dark:bg-dark-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-dark-600"
@@ -274,7 +274,7 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                                 <div className="col-span-1 sm:col-span-1 flex justify-center pb-0.5">
                                     <Button type="button" variant="ghost" size="sm" onClick={() => removeLine(i)}
                                         disabled={lines.length === 1}
-                                        className="h-10 w-10 p-0 text-red-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed">
+                                        className="w-10 p-0 text-red-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed">
                                         <HiOutlineXCircle className="w-5 h-5" />
                                     </Button>
                                 </div>
@@ -658,28 +658,22 @@ export default function CommercialQuotes() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center">
-                            <HiOutlineDocumentText className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                        </div>
-                        <div className="flex flex-col">
-                            <span>Cotações</span>
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Gestão de Propostas Comerciais</span>
-                        </div>
-                    </h2>
-                </div>
-                <Button 
-                    variant="primary" 
-                    onClick={() => setShowCreateModal(true)} 
-                    className="w-full h-11 sm:w-auto sm:h-10 flex items-center justify-center font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
-                    leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />}
-                >
-                    Nova Cotação
-                </Button>
-            </div>
+            <PageHeader
+                title="Cotações"
+                subtitle="Gestão de propostas comerciais, aprovações e conversão em vendas."
+                icon={<HiOutlineDocumentText />}
+                actions={
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setShowCreateModal(true)}
+                        className="w-full justify-center font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20 sm:w-auto"
+                        leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />}
+                    >
+                        Nova Cotação
+                    </Button>
+                }
+            />
 
             {/* Summary Panel */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -715,7 +709,7 @@ export default function CommercialQuotes() {
                     variant="primary"
                     size="sm"
                     onClick={handlePrintList}
-                    className="w-full h-11 sm:w-auto sm:h-10 flex items-center justify-center"
+                    className="w-full sm:w-auto flex items-center justify-center"
                     leftIcon={<HiOutlinePrinter className="w-4 h-4" />}
                 >
                     Imprimir
@@ -724,7 +718,7 @@ export default function CommercialQuotes() {
                     variant="primary"
                     size="sm"
                     onClick={handleExportPDF}
-                    className="w-full h-11 sm:w-auto sm:h-10 flex items-center justify-center"
+                    className="w-full sm:w-auto flex items-center justify-center"
                     leftIcon={<HiOutlineArrowDownTray className="w-4 h-4" />}
                 >
                     Exportar PDF

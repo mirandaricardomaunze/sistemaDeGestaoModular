@@ -25,6 +25,9 @@ import {
     HiOutlineSparkles,
     HiOutlinePlus,
     HiOutlineBuildingOffice2,
+    HiOutlineBellAlert,
+    HiOutlineComputerDesktop,
+    HiOutlineCloudArrowUp,
 } from 'react-icons/hi2';
 import { Card, Button, Input, Select, ConfirmationModal, Textarea, Pagination, usePagination, PageHeader } from '../components/ui';
 import { cn } from '../utils/helpers';
@@ -319,9 +322,9 @@ export default function Settings() {
     const tabs = [
         { id: 'profile', label: 'Meu Perfil', icon: HiOutlineUser },
         { id: 'company', label: 'Empresa', icon: HiOutlineBuildingOffice },
-        { id: 'system', label: 'Sistema', icon: HiOutlineCog },
-        { id: 'alerts', label: 'Alertas', icon: HiOutlineShieldCheck },
-        { id: 'backup', label: 'Backup', icon: HiOutlineCloudDownload },
+        { id: 'system', label: 'Sistema', icon: HiOutlineComputerDesktop },
+        { id: 'alerts', label: 'Alertas', icon: HiOutlineBellAlert },
+        { id: 'backup', label: 'Backup', icon: HiOutlineCloudArrowUp },
         { id: 'users', label: 'Utilizadores', icon: HiOutlineUsers, roles: ['admin', 'super_admin'] },
         { id: 'superadmin', label: 'Super Admin', icon: HiOutlineShieldCheck, roles: ['super_admin'] },
     ].filter(tab => !tab.roles || (user?.role && tab.roles.includes(user.role)));

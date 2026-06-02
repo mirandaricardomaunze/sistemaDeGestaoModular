@@ -124,7 +124,7 @@ export const CommercialDocumentCenter: React.FC = () => {
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1.5 block">Pesquisar</label>
                     <div className="relative">
                         <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <Input placeholder="Pesquisar..." className="pl-10 h-11" value={search} onChange={e => setSearch(e.target.value)} />
+                        <Input placeholder="Pesquisar..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
                     </div>
                 </div>
 
@@ -144,7 +144,7 @@ export const CommercialDocumentCenter: React.FC = () => {
                     />
                 </div>
 
-                <Button variant="outline" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={() => refetch()} className="h-11 font-black text-[10px] uppercase tracking-widest px-8">
+                <Button variant="outline" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={() => refetch()} className="font-black text-[10px] uppercase tracking-widest px-8">
                     Sincronizar
                 </Button>
             </div>

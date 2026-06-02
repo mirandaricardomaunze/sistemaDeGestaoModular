@@ -5,7 +5,7 @@ import {
     HiOutlineTrash
 } from 'react-icons/hi2';
 import { formatCurrency, cn } from '../../../utils/helpers';
-import { Button } from '../../ui/Button';
+import { Button, Input } from '../../ui';
 
 // ──-Icons ──────────────────────────────────────────────────────────────────-
 function PhoneIcon({ className }: { className?: string }) {
@@ -318,7 +318,7 @@ export function CommercialPaymentModal({
                                             <div className="flex gap-4 items-center">
                                                 <div className="relative flex-1">
                                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-white/20 tracking-widest">MTN</span>
-                                                    <input
+                                                    <Input
                                                         type="number"
                                                         value={payment.amount || ''}
                                                         onChange={e => updatePayment(idx, 'amount', Number(e.target.value))}
@@ -355,7 +355,7 @@ export function CommercialPaymentModal({
 
                                             {/* Reference input */}
                                             {(payment.method === 'mpesa' || payment.method === 'emola' || payment.method === 'card') && (
-                                                <input
+                                                <Input
                                                     type="text"
                                                     value={payment.reference || ''}
                                                     onChange={e => updatePayment(idx, 'reference', e.target.value)}

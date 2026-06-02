@@ -207,7 +207,7 @@ export default function CommercialFinance() {
                     variant="ghost" 
                     size="sm" 
                     onClick={fetchData}
-                    className="font-black text-[10px] uppercase tracking-widest text-slate-500 dark:text-gray-400 hover:text-primary-600 transition-all w-full sm:w-auto h-11 sm:h-10 flex items-center justify-center"
+                    className="font-black text-[10px] uppercase tracking-widest text-slate-500 dark:text-gray-400 hover:text-primary-600 transition-all w-full sm:w-auto flex items-center justify-center"
                     leftIcon={<HiOutlineArrowPath className={cn('w-4 h-4', loading && 'animate-spin')} />}
                 >
                     Actualizar
@@ -221,7 +221,7 @@ export default function CommercialFinance() {
                         reset();
                         setShowFormModal(true);
                     }}
-                    className="font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all w-full sm:w-auto h-11 sm:h-10 flex items-center justify-center"
+                    className="font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all w-full sm:w-auto flex items-center justify-center"
                 >
                     Nova Operação
                 </Button>
@@ -268,7 +268,7 @@ export default function CommercialFinance() {
                             variant="ghost"
                             size="sm"
                             className={cn(
-                                'min-h-11 lg:h-10 flex-1 lg:px-6 rounded-lg text-[10px] font-black uppercase tracking-widest',
+                                'flex-1 lg:px-6 rounded-lg text-[10px] font-black uppercase tracking-widest',
                                 selectedPeriod === option.value
                                     ? 'bg-white dark:bg-dark-700 text-orange-600 shadow-sm'
                                     : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
@@ -497,7 +497,7 @@ export default function CommercialFinance() {
                                     : 'border-gray-100 dark:border-dark-700'
                             )}
                         >
-                            <input type="radio" value="income" {...register('type')} className="hidden" />
+                            <Input type="radio" value="income" {...register('type')} className="hidden" />
                             <HiOutlineArrowTrendingUp className={cn(
                                 'w-6 h-6',
                                 selectedType === 'income' ? 'text-orange-600' : 'text-gray-400'
@@ -517,7 +517,7 @@ export default function CommercialFinance() {
                                     : 'border-gray-100 dark:border-dark-700'
                             )}
                         >
-                            <input type="radio" value="expense" {...register('type')} className="hidden" />
+                            <Input type="radio" value="expense" {...register('type')} className="hidden" />
                             <HiOutlineArrowTrendingDown className={cn(
                                 'w-6 h-6',
                                 selectedType === 'expense' ? 'text-rose-600' : 'text-gray-400'

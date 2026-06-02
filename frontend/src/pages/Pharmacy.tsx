@@ -587,11 +587,21 @@ export default function Pharmacy() {
 
                     <div className="flex gap-6">
                         <label className="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" checked={medForm.requiresPrescription} onChange={e => setMedForm(f => ({ ...f, requiresPrescription: e.target.checked }))} className="w-4 h-4 rounded text-primary-600" />
+                            <input
+                                type="checkbox"
+                                checked={medForm.requiresPrescription}
+                                onChange={e => setMedForm(f => ({ ...f, requiresPrescription: e.target.checked }))}
+                                className="w-4 h-4 text-primary-600 rounded border-slate-300 dark:border-dark-600 bg-white dark:bg-dark-800 focus:ring-primary-500/20 focus:ring-offset-0 cursor-pointer"
+                            />
                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Requer Receita Médica</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" checked={medForm.isControlled} onChange={e => setMedForm(f => ({ ...f, isControlled: e.target.checked }))} className="w-4 h-4 rounded text-primary-600" />
+                            <input
+                                type="checkbox"
+                                checked={medForm.isControlled}
+                                onChange={e => setMedForm(f => ({ ...f, isControlled: e.target.checked }))}
+                                className="w-4 h-4 text-primary-600 rounded border-slate-300 dark:border-dark-600 bg-white dark:bg-dark-800 focus:ring-primary-500/20 focus:ring-offset-0 cursor-pointer"
+                            />
                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Substância Controlada</span>
                         </label>
                     </div>

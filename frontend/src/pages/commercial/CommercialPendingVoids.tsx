@@ -7,7 +7,7 @@ import {
     HiOutlineUser,
     HiOutlineClock,
 } from 'react-icons/hi2';
-import { Card, Badge, Button, Textarea, EmptyState, LoadingSpinner, ConfirmationModal } from '../../components/ui';
+import { Card, Badge, Button, Textarea, EmptyState, LoadingSpinner, ConfirmationModal, PageHeader } from '../../components/ui';
 import { usePendingVoids, useSales } from '../../hooks/useSales';
 import { formatCurrency } from '../../utils/helpers';
 
@@ -31,6 +31,13 @@ export default function CommercialPendingVoids() {
     const [confirmTarget, setConfirmTarget] = useState<{ sale: PendingSale; action: 'approve' | 'reject' } | null>(null);
     const [rejectReason, setRejectReason] = useState('');
     const [busy, setBusy] = useState(false);
+    const header = (
+        <PageHeader
+            title="Anulações Pendentes"
+            subtitle="Revisão e aprovação de pedidos de anulação de vendas comerciais."
+            icon={<HiOutlineNoSymbol />}
+        />
+    );
 
     const handleConfirm = async () => {
         if (!confirmTarget) return;
@@ -53,11 +60,14 @@ export default function CommercialPendingVoids() {
 
     if (isLoading) {
         return (
-            <Card>
-                <div className="flex items-center justify-center py-16">
-                    <LoadingSpinner size="lg" />
-                </div>
-            </Card>
+            <div className="space-y-4">
+                {header}
+                <Card>
+                    <div className="flex items-center justify-center py-16">
+                        <LoadingSpinner size="lg" />
+                    </div>
+                </Card>
+            </div>
         );
     }
 
@@ -65,18 +75,23 @@ export default function CommercialPendingVoids() {
 
     if (sales.length === 0) {
         return (
-            <Card>
-                <EmptyState
-                    icon={<HiOutlineNoSymbol className="w-12 h-12" />}
-                    title="Sem pedidos pendentes"
-                    description="Quando um operador solicitar a anulação de uma venda, o pedido aparecerá aqui para aprovação."
-                />
-            </Card>
+            <div className="space-y-4">
+                {header}
+                <Card>
+                    <EmptyState
+                        icon={<HiOutlineNoSymbol className="w-12 h-12" />}
+                        title="Sem pedidos pendentes"
+                        description="Quando um operador solicitar a anulação de uma venda, o pedido aparecerá aqui para aprovação."
+                    />
+                </Card>
+            </div>
         );
     }
 
     return (
         <div className="space-y-4">
+            {header}
+
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-lg font-bold text-gray-900 dark:text-white">

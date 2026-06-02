@@ -66,7 +66,7 @@ export default function CommercialFinanceHub() {
 
             {/* Premium Tab Navigation (Segmented Control style) */}
             <div className="w-full overflow-x-auto overscroll-x-contain scrollbar-none pb-1">
-                <div className="flex p-1 bg-gray-100/80 dark:bg-dark-800/80 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-dark-700/50 shadow-inner w-full min-w-[340px]">
+                <div className="flex w-max min-w-full p-1 bg-gray-100/80 dark:bg-dark-800/80 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-dark-700/50 shadow-inner">
                     {TABS.map(tab => {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
@@ -77,7 +77,7 @@ export default function CommercialFinanceHub() {
                                 variant="ghost"
                                 size="sm"
                                 className={cn(
-                                    "h-10 px-2 sm:px-6 rounded-lg text-[10px] font-black uppercase tracking-widest flex-1 min-w-0",
+                                    "min-w-max sm:min-w-0 sm:flex-1 px-2 sm:px-6 rounded-lg text-[10px] font-black uppercase tracking-widest",
                                     isActive
                                         ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-lg shadow-black/5 scale-[1.02]"
                                         : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"

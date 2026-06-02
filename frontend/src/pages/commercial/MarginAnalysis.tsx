@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Card, Badge, Button, Input, Modal, Select, PageHeader, Pagination, SmartTable } from '../../components/ui';
-import { usePagination } from '../../components/ui/Pagination';
+import { Card, Badge, Button, Input, Modal, Select, PageHeader, Pagination, SmartTable, usePagination } from '../../components/ui';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { productsAPI } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -111,7 +110,7 @@ export default function MarginAnalysis() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowBulkModal(true)}
-                    className="font-black text-[10px] uppercase tracking-widest text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 w-full sm:w-auto flex items-center justify-center h-10"
+                    className="font-black text-[10px] uppercase tracking-widest text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 w-full sm:w-auto flex items-center justify-center"
                     leftIcon={<HiOutlineAdjustmentsHorizontal className="w-4 h-4" />}
                 >
                     Ajuste em Massa
@@ -128,7 +127,7 @@ export default function MarginAnalysis() {
                     variant="ghost"
                     size="sm"
                     onClick={refetch}
-                    className="p-2 h-10 w-full sm:w-10 flex items-center justify-center text-gray-400 hover:text-primary-500"
+                    className="p-2 w-full sm:w-10 flex items-center justify-center text-gray-400 hover:text-primary-500"
                 >
                     <HiOutlineArrowPath className={cn("w-5 h-5", isLoading && "animate-spin")} />
                 </Button>
@@ -165,7 +164,7 @@ export default function MarginAnalysis() {
 
             {/* Tabs */}
             <div className="w-full overflow-x-auto overscroll-x-contain scrollbar-none pb-1">
-                <div className="flex gap-1 bg-gray-100 dark:bg-dark-800/80 backdrop-blur-sm rounded-lg p-1 border border-gray-200 dark:border-dark-700 shadow-inner w-full min-w-[340px]">
+                <div className="flex w-max min-w-full gap-1 bg-gray-100 dark:bg-dark-800/80 backdrop-blur-sm rounded-lg p-1 border border-gray-200 dark:border-dark-700 shadow-inner">
                     {TABS.map(tab => {
                         const Icon = tab.icon;
                         return (
@@ -175,7 +174,7 @@ export default function MarginAnalysis() {
                                 variant="ghost"
                                 size="sm"
                                 className={cn(
-                                    'h-10 flex-1 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-widest whitespace-nowrap flex items-center justify-center gap-1.5 px-1 sm:px-3 transition-all duration-300',
+                                    'min-w-max sm:min-w-0 sm:flex-1 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-widest whitespace-nowrap flex items-center justify-center gap-1.5 px-2 sm:px-3 transition-all duration-300',
                                     activeTab === tab.key
                                         ? 'bg-white dark:bg-dark-600 text-primary-600 dark:text-white shadow-lg shadow-black/5 scale-[1.02]'
                                         : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'
@@ -675,4 +674,3 @@ function BulkAdjustmentModal({ isOpen, onClose, categories, onSuccess }: BulkMod
         </Modal>
     );
 }
-

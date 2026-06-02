@@ -31,6 +31,7 @@ import { format, isToday, subDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, Button, Badge, Input, Select, Pagination, TableContainer, PageHeader } from '../ui';
 import { MetricCard } from '../common/ModuleMetricCard';
+import { SegmentedControl } from '../common/SegmentedControl';
 import { formatCurrency, cn } from '../../utils/helpers';
 import type { OrderStatus } from './OrderStatusTracker';
 
@@ -257,23 +258,13 @@ export default function OrdersDashboard({
                 icon={<HiOutlineClipboardDocumentList className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-                        {/* Period Filter */}
-                        <div className="flex items-center h-11 sm:h-10 bg-white dark:bg-dark-800 rounded-lg p-1 border border-gray-200 dark:border-dark-700 shadow-sm w-full sm:w-auto">
-                            {periodOptions.map((option) => (
-                                <Button variant="ghost"
-                                    key={option.value}
-                                    onClick={() => setSelectedPeriod(option.value)}
-                                    className={cn(
-                                        'px-3 h-full flex-1 sm:flex-none rounded-md text-[10px] font-black uppercase tracking-widest transition-all min-h-0',
-                                        selectedPeriod === option.value
-                                            ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20'
-                                            : 'text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400'
-                                    )}
-                                >
-                                    {option.label}
-                                </Button>
-                            ))}
-                        </div>
+                        <SegmentedControl
+                            options={periodOptions}
+                            value={selectedPeriod}
+                            onChange={(val) => setSelectedPeriod(val as TimePeriod)}
+                            size="sm"
+                            className="w-full sm:w-auto"
+                        />
                         <Button 
                             size="sm" 
                             className="w-full sm:w-auto h-11 sm:h-10 flex items-center justify-center font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"

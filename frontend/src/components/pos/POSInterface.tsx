@@ -1255,14 +1255,14 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                     key={method.id}
                                     onClick={() => handlePaymentMethodSelect(method.id)}
                                     className={`
-                                        flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all
+                                        flex flex-row items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all
                                         ${selectedPayment === method.id
                                             ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
                                             : 'border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-300 hover:border-primary-200 dark:hover:border-primary-800'
                                         }
                                     `}
                                 >
-                                    <div className="mb-2">{method.icon}</div>
+                                    <div>{method.icon}</div>
                                     <span className="text-sm font-medium">{method.label}</span>
                                 </Button>
                             ))}
@@ -1529,7 +1529,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                     <div className="grid grid-cols-2 gap-3">
                         <Button variant="ghost"
                             onClick={() => setCashOperation('add')}
-                            className={`p-4 rounded-lg border-2 flex flex-col items-center gap-2 transition-all ${cashOperation === 'add'
+                            className={`p-4 rounded-lg border-2 flex flex-row items-center justify-center gap-2 transition-all ${cashOperation === 'add'
                                 ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-600'
                                 : 'border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-300'
                                 }`}
@@ -1539,7 +1539,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                         </Button>
                         <Button variant="ghost"
                             onClick={() => setCashOperation('remove')}
-                            className={`p-4 rounded-lg border-2 flex flex-col items-center gap-2 transition-all ${cashOperation === 'remove'
+                            className={`p-4 rounded-lg border-2 flex flex-row items-center justify-center gap-2 transition-all ${cashOperation === 'remove'
                                 ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-600'
                                 : 'border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-300'
                                 }`}

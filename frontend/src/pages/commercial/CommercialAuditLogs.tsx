@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, Badge, Select, Button, SmartTable } from '../../components/ui';
+import { Card, Badge, Select, Button, SmartTable, PageHeader } from '../../components/ui';
 import { auditAPI } from '../../services/api/audit.api';
 import type { AuditLog, AuditPayload } from '../../services/api/audit.api';
 import type { BadgeVariant } from '../../components/ui';
@@ -8,7 +8,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
     HiOutlineChevronLeft,
-    HiOutlineChevronRight
+    HiOutlineChevronRight,
+    HiOutlineShieldCheck
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
@@ -132,6 +133,12 @@ export default function CommercialAuditLogs() {
 
     return (
         <div className="space-y-6">
+            <PageHeader
+                title="Auditoria Comercial"
+                subtitle="Eventos operacionais, alterações críticas e histórico de acções do módulo comercial."
+                icon={<HiOutlineShieldCheck />}
+            />
+
             {/* Filters */}
             <Card padding="md" className="bg-white dark:bg-dark-900 border border-gray-100 dark:border-dark-700">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">

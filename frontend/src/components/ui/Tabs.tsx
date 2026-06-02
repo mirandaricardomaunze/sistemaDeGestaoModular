@@ -76,8 +76,8 @@ export function Tabs({ tabs, activeTab, onChange, variant = 'default', className
                         onClick={() => !tab.disabled && onChange(tab.id)}
                         className={getTabClasses(tab, activeTab === tab.id)}
                         disabled={tab.disabled}
+                        leftIcon={tab.icon}
                     >
-                        {tab.icon}
                         {tab.label}
                     </Button>
                 ))}

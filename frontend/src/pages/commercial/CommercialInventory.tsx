@@ -189,50 +189,40 @@ export default function CommercialInventory() {
             </div>
 
             {/* Tabs */}
-            <div className="border-b border-gray-100 dark:border-dark-700 overflow-hidden">
-                <nav className="flex w-full gap-2 overflow-x-auto overscroll-x-contain scrollbar-none sm:gap-4">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setActiveTab('products')}
-                        className={cn(
-                            "group flex flex-1 sm:flex-none justify-center sm:min-w-max items-center gap-2 py-4 text-xs font-black uppercase tracking-widest sm:tracking-[0.2em] border-b-2 rounded-none focus:ring-0",
-                            activeTab === 'products'
-                                ? "border-primary-500 text-primary-600"
-                                : "border-transparent text-gray-400 hover:text-gray-600"
-                        )}
-                    >
-                        <div className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300",
-                            activeTab === 'products' ? "bg-primary-500 text-white shadow-lg shadow-primary-500/30" : "bg-primary-500/10 text-primary-400 dark:text-primary-500"
-                        )}>
-                            <HiOutlineSquares2X2 className={cn("w-4 h-4 transition-transform group-hover:scale-110")} />
-                        </div>
-                        Produtos
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setActiveTab('batches')}
-                        className={cn(
-                            "group flex flex-1 sm:flex-none justify-center sm:min-w-max items-center gap-2 py-4 text-xs font-black uppercase tracking-widest sm:tracking-[0.2em] border-b-2 rounded-none focus:ring-0",
-                            activeTab === 'batches'
-                                ? "border-amber-500 text-amber-600"
-                                : "border-transparent text-gray-400 hover:text-gray-600"
-                        )}
-                    >
-                        <div className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300",
-                            activeTab === 'batches' ? "bg-amber-500 text-white shadow-lg shadow-amber-500/30" : "bg-amber-500/10 text-amber-400 dark:text-amber-500"
-                        )}>
-                            <HiOutlineClock className={cn("w-4 h-4 transition-transform group-hover:scale-110")} />
-                        </div>
-                        <span>
-                            <span className="hidden sm:inline">Lotes & Validades</span>
-                            <span className="inline sm:hidden">Lotes</span>
-                        </span>
-                    </Button>
-                </nav>
+            <div className="flex w-full overflow-x-auto overscroll-x-contain p-1 bg-gray-100/50 dark:bg-dark-800/50 rounded-xl border border-gray-200/30 dark:border-dark-700/30 shadow-inner scrollbar-none">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActiveTab('products')}
+                    className={cn(
+                        "flex-1 sm:flex-none justify-center sm:min-w-max px-3 text-[10px] font-black uppercase tracking-widest rounded-lg gap-2",
+                        activeTab === 'products'
+                            ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
+                            : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                    )}
+                >
+                    <HiOutlineSquares2X2 className="w-4 h-4" />
+                    <span>Produtos</span>
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActiveTab('batches')}
+                    className={cn(
+                        "flex-1 sm:flex-none justify-center sm:min-w-max px-3 text-[10px] font-black uppercase tracking-widest rounded-lg gap-2",
+                        activeTab === 'batches'
+                            ? "bg-white dark:bg-dark-700 text-amber-500 dark:text-white shadow-sm"
+                            : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                    )}
+                >
+                    <HiOutlineClock className="w-4 h-4" />
+                    <span>
+                        <span className="hidden sm:inline">Lotes & Validades</span>
+                        <span className="inline sm:hidden">Lotes</span>
+                    </span>
+                </Button>
             </div>
 
             {/* Tab Content */}

@@ -21,7 +21,9 @@ import {
     HiOutlineArrowPath as HiOutlineArrowPath,
     HiOutlinePlus,
     HiOutlineLightBulb,
-    HiOutlineChartBar
+    HiOutlineChartBar,
+    HiOutlineBell,
+    HiOutlineCurrencyDollar
 } from 'react-icons/hi2';
 import { Link } from 'react-router-dom';
 
@@ -174,7 +176,7 @@ export default function Dashboard() {
             action: item.title,
             detail: item.description,
             time: formatRelativeTime(item.timestamp),
-            icon: item.type === 'sale' ? '💰' : '🔔'
+            icon: item.type === 'sale' ? HiOutlineCurrencyDollar : HiOutlineBell
         })).slice(0, 5);
     }, [recentActivity]);
 
@@ -245,8 +247,8 @@ export default function Dashboard() {
                 subtitle={t('dashboard.overview')}
                 icon={<HiOutlineChartBar />}
                 actions={
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
-                        <div className="w-full sm:w-56">
+                    <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:w-auto lg:items-center">
+                        <div className="w-full lg:w-56">
                             <Select
                                 size="sm"
                                 value={selectedWarehouseId}
@@ -255,7 +257,7 @@ export default function Dashboard() {
                                     { value: '', label: 'Todos os Armazéns' },
                                     ...(warehouses || []).map(w => ({ value: w.id, label: w.name }))
                                 ]}
-                                className="w-full h-10 text-[10px] font-black uppercase tracking-widest border-slate-200 dark:border-dark-700 shadow-sm rounded-xl"
+                                className="w-full text-[10px] font-black uppercase tracking-widest border-slate-200 dark:border-dark-700 shadow-sm rounded-xl"
                             />
                         </div>
                         <SegmentedControl
@@ -263,12 +265,12 @@ export default function Dashboard() {
                             value={selectedPeriod}
                             onChange={(val) => setSelectedPeriod(val as TimePeriod)}
                             size="sm"
-                            className="w-full sm:w-auto"
+                            className="w-full lg:w-auto"
                         />
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="h-10 px-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-primary-600 transition-all bg-slate-50/50 dark:bg-dark-800 w-full sm:w-auto flex items-center justify-center"
+                            className="w-full justify-center bg-slate-50/70 px-4 text-xs font-black uppercase tracking-widest text-slate-500 transition-all hover:text-primary-600 dark:bg-dark-800 lg:w-auto"
                             onClick={() => refetchDashboard()}
                             leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-primary-600", isLoading && "animate-spin")} />}
                         >
@@ -277,17 +279,17 @@ export default function Dashboard() {
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="h-10 px-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-primary-600 transition-all bg-slate-50/50 dark:bg-dark-800 w-full sm:w-auto flex items-center justify-center"
+                            className="w-full justify-center bg-slate-50/70 px-4 text-xs font-black uppercase tracking-widest text-slate-500 transition-all hover:text-primary-600 dark:bg-dark-800 lg:w-auto"
                             onClick={resetWidgetOrder}
                             leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-slate-500" />}
                         >
                             Repor layout
                         </Button>
-                        <Link to="/pos" className="w-full sm:w-auto">
+                        <Link to="/pos" className="w-full sm:col-span-2 lg:col-span-1 lg:w-auto">
                             <Button
                                 variant="primary"
                                 size="sm"
-                                className="h-10 px-6 bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-500/20 rounded-xl font-black uppercase text-[10px] tracking-widest border-none w-full flex items-center justify-center"
+                                className="w-full justify-center border-none bg-primary-600 px-6 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary-500/20 hover:bg-primary-700"
                                 leftIcon={<HiOutlinePlus className="w-4 h-4" />}
                             >
                                 {t('dashboard.newSale')}
@@ -320,15 +322,15 @@ export default function Dashboard() {
 function DashboardSkeleton() {
     return (
         <div className="space-y-6 animate-pulse">
-            <div className="flex justify-between">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row">
                 <div className="space-y-2"><Skeleton height={32} width={200} /><Skeleton height={20} width={300} /></div>
-                <div className="flex gap-2"><Skeleton height={40} width={100} /><Skeleton height={40} width={100} /></div>
+                <div className="grid grid-cols-2 gap-2 sm:flex"><Skeleton height={40} width={100} /><Skeleton height={40} width={100} /></div>
             </div>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {[1, 2, 3, 4].map(i => <Skeleton key={i} height={120} />)}
             </div>
-            <div className="grid grid-cols-3 gap-6">
-                <Skeleton height={300} className="col-span-2" />
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <Skeleton height={300} className="lg:col-span-2" />
                 <Skeleton height={300} />
             </div>
         </div>

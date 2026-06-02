@@ -19,11 +19,7 @@ import {
     HiOutlineBuildingStorefront,
     HiOutlineCalendarDays
 } from 'react-icons/hi2';
-import { Card } from '../../ui/Card';
-import { Badge } from '../../ui/Badge';
-import { Button } from '../../ui/Button';
-import { Select } from '../../ui';
-import { LoadingOverlay } from '../../ui/Loading';
+import { Card, Badge, Button, Select, LoadingOverlay } from '../../ui';
 import { useSalesTargets, useSalesTargetsSummary } from '../../../hooks/useSalesTargets';
 import { useWarehouses } from '../../../hooks/useWarehouses';
 import { SalesTargetModal } from './SalesTargetModal';

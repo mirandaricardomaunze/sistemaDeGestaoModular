@@ -12,13 +12,13 @@ import {
     HiOutlineCurrencyDollar,
     HiOutlineArrowPath,
     HiOutlineDocumentText,
-    HiOutlineHome
+    HiOutlineHome,
+    HiOutlineClock
 } from 'react-icons/hi2';
 import { shiftAPI, warehousesAPI, type ShiftSession as CashSession, type ShiftZReport } from '../../services/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Card, Badge, Button, Input, Select, SmartTable } from '../../components/ui';
-import Pagination from '../../components/ui/Pagination';
+import { Card, Badge, Button, Input, Select, SmartTable, Pagination, PageHeader } from '../../components/ui';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -547,6 +547,12 @@ const CommercialShiftHistory: React.FC = () => {
 
     return (
         <div className="space-y-4 animate-fade-in pb-10">
+            <PageHeader
+                title="Histórico de Turnos"
+                subtitle="Auditoria de sessões de caixa, totais por operador e relatórios Z."
+                icon={<HiOutlineClock />}
+            />
+
             {/* High Density Filters & Actions */}
             <Card padding="md" className="bg-white dark:bg-dark-900 border border-gray-100 dark:border-dark-700 rounded-lg overflow-visible shadow-card">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-4 items-end">
@@ -608,7 +614,7 @@ const CommercialShiftHistory: React.FC = () => {
                         <Button 
                             onClick={applyFilters} 
                             size="sm"
-                            className="w-full h-11 lg:h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-500/20 border-none"
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-500/20 border-none"
                         >
                             Filtrar
                         </Button>
@@ -619,14 +625,14 @@ const CommercialShiftHistory: React.FC = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => loadHistory(page)}
-                            className="h-11 lg:h-10 px-3 bg-gray-50 dark:bg-dark-800 text-gray-400 hover:text-indigo-600"
+                            className="px-3 bg-gray-50 dark:bg-dark-800 text-gray-400 hover:text-indigo-600"
                         >
                             <HiOutlineArrowPath className={cn("w-5 h-5", loading && "animate-spin")} />
                         </Button>
 
                         <Menu as="div" className="relative inline-block text-left w-full sm:w-auto">
                             <Menu.Button
-                                className="inline-flex items-center justify-center w-full h-11 lg:h-10 px-4 rounded-lg font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 active:scale-[0.98]"
+                                className="inline-flex min-h-11 lg:min-h-10 items-center justify-center w-full px-4 rounded-lg font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 active:scale-[0.98]"
                             >
                                 <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
                                 Exportar

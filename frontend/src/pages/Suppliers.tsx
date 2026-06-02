@@ -372,19 +372,22 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
                         </div>
                     }
                     tabs={
-                        <nav className="flex w-full flex-nowrap gap-1 sm:w-max">
+                        <div className="flex w-full overflow-x-auto overscroll-x-contain p-1 bg-gray-100/50 dark:bg-dark-800/50 rounded-xl border border-gray-200/30 dark:border-dark-700/30 shadow-inner scrollbar-none">
                             {[
                                 { id: 'directory', label: 'Diretório', shortLabel: 'Diretório', icon: <HiOutlineTruck className="w-5 h-5" /> },
                                 { id: 'orders', label: 'Encomendas', shortLabel: 'Pedidos', icon: <HiOutlineCurrencyDollar className="w-5 h-5" /> }
                             ].map((tab) => (
-                                <Button variant="ghost"
+                                <Button 
                                     key={tab.id}
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => setActiveTab(tab.id as 'directory' | 'orders')}
                                     className={cn(
-                                        "flex flex-1 sm:flex-none items-center justify-center gap-2 px-3 sm:px-4 md:px-6 py-3 text-xs md:text-sm font-black border-b-2 transition-all whitespace-nowrap uppercase tracking-widest",
+                                        "flex-1 sm:flex-none justify-center sm:min-w-max px-6 text-[10px] font-black uppercase tracking-widest rounded-lg gap-2",
                                         activeTab === tab.id
-                                            ? "border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/10 rounded-t-lg"
-                                            : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-800 rounded-t-lg"
+                                            ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
+                                            : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                                     )}
                                 >
                                     <span className="shrink-0 hidden sm:inline-flex">{tab.icon}</span>
@@ -394,7 +397,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
                                     </span>
                                 </Button>
                             ))}
-                        </nav>
+                        </div>
                     }
                 />
             )}

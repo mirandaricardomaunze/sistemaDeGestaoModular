@@ -90,11 +90,11 @@ export function ABCClassificationChart({ data, maxItems = 30 }: ABCClassificatio
                                             <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{label}</p>
                                             <div className="space-y-1">
                                                 <div className="flex items-center justify-between gap-4">
-                                                    <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase">Receita:</span>
+                                                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-500 uppercase">Receita:</span>
                                                     <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{formatCurrency(payload[0].value)}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between gap-4">
-                                                    <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase">Acumulado:</span>
+                                                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-500 uppercase">Acumulado:</span>
                                                     <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{Number(payload[1].value).toFixed(1)}%</span>
                                                 </div>
                                             </div>

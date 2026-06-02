@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { formatCurrency, cn } from '../../../utils/helpers';
 import { HiOutlineXMark, HiOutlineCheck, HiOutlineBanknotes, HiOutlineDocumentChartBar, HiOutlineHome } from 'react-icons/hi2';
-import { Button } from '../../../components/ui/Button';
+import { Button, Input, Select, Textarea } from '../../ui';
 import { useQuery } from '@tanstack/react-query';
 import { warehousesAPI } from '../../../services/api';
 
@@ -156,7 +156,7 @@ export function CommercialShiftModal({ isOpen, mode, shift, onOpenShift, onClose
                         </label>
                         <div className="relative">
                             <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-300 dark:text-white/20 text-xs tracking-widest">MTN</span>
-                            <input
+                            <Input
                                 type="number"
                                 value={amount}
                                 onChange={e => setAmount(e.target.value)}
@@ -187,7 +187,7 @@ export function CommercialShiftModal({ isOpen, mode, shift, onOpenShift, onClose
                                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/20 block italic">
                                     Observacoes do fecho {needsNotes ? <span className="text-rose-500">Obrigatorio</span> : null}
                                 </label>
-                                <textarea
+                                <Textarea
                                     value={notes}
                                     onChange={e => setNotes(e.target.value)}
                                     placeholder={needsNotes ? 'Informe o motivo da diferenca...' : 'Sem observacoes'}
@@ -231,16 +231,15 @@ export function CommercialShiftModal({ isOpen, mode, shift, onOpenShift, onClose
                                 <HiOutlineHome className="w-4 h-4 text-blue-500" />
                                 Armazém de Venda
                             </label>
-                            <select
+                            <Select
                                 value={warehouseId}
                                 onChange={e => setWarehouseId(e.target.value)}
+                                options={[
+                                    { value: '', label: 'Seleccione o armazém...' },
+                                    ...warehouses.map((w) => ({ value: w.id, label: w.name })),
+                                ]}
                                 className="w-full px-5 py-4 rounded-2xl border border-slate-200 dark:border-white/5 bg-white dark:bg-black/40 text-slate-900 dark:text-white focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all text-xs font-black uppercase tracking-widest cursor-pointer appearance-none shadow-sm"
-                            >
-                                <option value="" className="bg-[#111214]">Seleccione o armazém...</option>
-                                {warehouses.map((w) => (
-                                    <option key={w.id} value={w.id} className="bg-[#111214]">{w.name}</option>
-                                ))}
-                            </select>
+                            />
                         </div>
                     )}
 

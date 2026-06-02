@@ -30,6 +30,8 @@ export function Button({
     disabled,
     ...props
 }: ButtonProps & { loadingText?: string }) {
+    const hasSimpleChildren = typeof children === 'string' || typeof children === 'number';
+
     const variants = {
         primary: 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 shadow-md shadow-primary-500/20',
         secondary: 'bg-slate-800 text-white hover:bg-slate-900 focus:ring-slate-500 shadow-sm',
@@ -72,7 +74,13 @@ export function Button({
             ) : (
                 <>
                     {leftIcon && <span className="flex-shrink-0">{leftIcon}</span>}
-                    {children && <span className="min-w-0 truncate">{children}</span>}
+                    {children && (
+                        hasSimpleChildren ? (
+                            <span className="min-w-0 truncate">{children}</span>
+                        ) : (
+                            children
+                        )
+                    )}
                     {rightIcon && <span className="flex-shrink-0">{rightIcon}</span>}
                 </>
             )}

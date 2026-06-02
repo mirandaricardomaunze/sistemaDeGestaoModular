@@ -15,7 +15,7 @@ import {
     HiOutlineChartBar, HiOutlineTableCells as HiOutlineTableCells, HiOutlineUsers, HiOutlineTruck,
     HiOutlineExclamationCircle,
 } from 'react-icons/hi2';
-import { Card, Button, LoadingSpinner, TableContainer, PageHeader } from '../../components/ui';
+import { Card, Button, Input, LoadingSpinner, TableContainer, PageHeader } from '../../components/ui';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
 import Pagination from '../../components/ui/Pagination';
 import { formatCurrency, formatDate, cn } from '../../utils/helpers';
@@ -346,10 +346,22 @@ export default function PharmacyReports() {
             <Card className="p-4 print:hidden">
                 <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                     {/* Period */}
-                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-dark-700/50 p-1.5 rounded-lg border border-gray-100 dark:border-dark-600 overflow-x-auto w-full lg:w-auto">
-                        <input type="date" value={period.start} onChange={e => setPeriod({ ...period, start: e.target.value })} className="min-w-[120px] py-1.5 border-none bg-transparent shadow-none focus:ring-0 text-sm" />
-                        <span className="text-[10px] font-black uppercase tracking-tighter text-gray-400 px-1">até</span>
-                        <input type="date" value={period.end} onChange={e => setPeriod({ ...period, end: e.target.value })} className="min-w-[120px] py-1.5 border-none bg-transparent shadow-none focus:ring-0 text-sm" />
+                    <div className="flex items-center gap-2 w-full lg:w-auto">
+                        <Input
+                            type="date"
+                            size="sm"
+                            value={period.start}
+                            onChange={e => setPeriod({ ...period, start: e.target.value })}
+                            className="w-full lg:w-[150px] bg-white dark:bg-dark-800"
+                        />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-gray-500 whitespace-nowrap px-1">até</span>
+                        <Input
+                            type="date"
+                            size="sm"
+                            value={period.end}
+                            onChange={e => setPeriod({ ...period, end: e.target.value })}
+                            className="w-full lg:w-[150px] bg-white dark:bg-dark-800"
+                        />
                     </div>
 
                     {/* Report type selector */}

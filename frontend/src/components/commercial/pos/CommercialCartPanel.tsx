@@ -190,7 +190,7 @@ export function CommercialCartPanel({
                                     setSelectedCustomer(found || null);
                                 }}
                                 size="md"
-                                className="w-full h-10 rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white font-semibold focus:ring-4 focus:ring-blue-500/5 shadow-sm"
+                                className="w-full rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white font-semibold focus:ring-4 focus:ring-blue-500/5 shadow-sm"
                                 options={[
                                     { value: '', label: 'Selecionar Cliente' },
                                     ...customers.map((c) => ({ value: c.id, label: c.name }))
@@ -201,7 +201,7 @@ export function CommercialCartPanel({
                                 value={customerName}
                                 onChange={(e) => setCustomerName(e.target.value)}
                                 size="md"
-                                className="w-full h-10 rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-500/5 shadow-sm"
+                                className="w-full rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-500/5 shadow-sm"
                             />
                         </div>
                     </div>

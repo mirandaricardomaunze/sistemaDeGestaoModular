@@ -75,7 +75,7 @@ export const CommercialAttendanceControl: React.FC = () => {
                         <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <Input
                             placeholder="Nome ou código..."
-                            className="pl-10 h-11"
+                            className="pl-10"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                         />
@@ -161,7 +161,7 @@ export const CommercialAttendanceControl: React.FC = () => {
                                         <Button
                                             variant={record?.checkIn ? 'outline' : 'primary'}
                                             size="sm"
-                                            className="flex-1 rounded-lg font-black text-[10px] uppercase tracking-widest h-10"
+                                            className="flex-1 rounded-lg font-black text-[10px] uppercase tracking-widest"
                                             disabled={!!record?.checkIn}
                                             leftIcon={<HiOutlineArrowRightOnRectangle className="w-4 h-4" />}
                                             onClick={() => handleRecord(person.id, 'checkIn')}
@@ -171,7 +171,7 @@ export const CommercialAttendanceControl: React.FC = () => {
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            className="flex-1 rounded-lg font-black text-[10px] uppercase tracking-widest h-10 border-orange-200 text-orange-600 hover:bg-orange-50"
+                                            className="flex-1 rounded-lg font-black text-[10px] uppercase tracking-widest border-orange-200 text-orange-600 hover:bg-orange-50"
                                             disabled={!record?.checkIn || !!record?.checkOut}
                                             leftIcon={<HiOutlineArrowLeftOnRectangle className="w-4 h-4" />}
                                             onClick={() => handleRecord(person.id, 'checkOut')}

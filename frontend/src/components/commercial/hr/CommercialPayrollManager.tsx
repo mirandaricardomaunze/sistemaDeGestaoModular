@@ -105,12 +105,12 @@ export const CommercialPayrollManager = () => {
                         ]} value={statusFilter} onChange={e => setStatusFilter(e.target.value)} />
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="ghost" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={() => refetch()} className="h-11 font-black text-[10px] uppercase tracking-widest text-gray-500">
+                        <Button variant="ghost" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={() => refetch()} className="font-black text-[10px] uppercase tracking-widest text-gray-500">
                             Refrescar
                         </Button>
                         <Button variant="primary" onClick={handleProcessAll} disabled={processingAll}
                             leftIcon={processingAll ? <HiOutlineClock className="w-5 h-5 animate-spin" /> : <HiOutlineCalculator className="w-5 h-5" />}
-                            className="h-11 font-black text-[10px] uppercase tracking-widest">
+                            className="font-black text-[10px] uppercase tracking-widest">
                             {processingAll ? 'A processar...' : 'Processar Todos'}
                         </Button>
                     </div>

@@ -14,7 +14,7 @@ import {
     PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip,
     BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
-import { Card, Badge, Button, SmartTable, Skeleton } from '../../components/ui';
+import { Card, Badge, Button, SmartTable, Skeleton, PageHeader } from '../../components/ui';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { useStockAging, useSupplierPerformance, useSalesReport, useWarehouseDistribution } from '../../hooks/useCommercial';
@@ -212,6 +212,12 @@ export default function CommercialReports({ initialTab = 'sales' }: CommercialRe
 
     return (
         <div className="space-y-6 pb-10">
+            <PageHeader
+                title="Relatórios Comerciais"
+                subtitle="Análise de vendas, margens, stock, fornecedores e distribuição por armazém."
+                icon={<HiOutlineChartBar />}
+            />
+
             {/* Report Actions */}
             <div className="flex flex-col gap-4 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-card dark:border-white/10 dark:bg-dark-900/50 lg:flex-row lg:items-center lg:justify-between">
                 <div>
@@ -248,14 +254,14 @@ export default function CommercialReports({ initialTab = 'sales' }: CommercialRe
                         onClick={handleRefetch}
                         disabled={activeTab === 'margins'}
                         leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-primary-600", (salesLoading || agingLoading || supplierLoading || warehouseLoading) && "animate-spin")} />}
-                        className="h-10 px-4 text-slate-700 hover:text-primary-700 dark:text-gray-300 dark:hover:text-primary-400 w-full sm:w-auto flex items-center justify-center"
+                        className="px-4 text-slate-700 hover:text-primary-700 dark:text-gray-300 dark:hover:text-primary-400 w-full sm:w-auto flex items-center justify-center"
                     >
                         Actualizar
                     </Button>
                 </div>
             </div>
 
-            <div className="flex gap-1 overflow-x-auto rounded-2xl border border-slate-200/90 bg-slate-100/80 p-1 shadow-inner scrollbar-none dark:border-white/10 dark:bg-dark-700/50">
+            <div className="flex gap-1 overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-200/90 bg-slate-100/80 p-1 shadow-inner scrollbar-none dark:border-white/10 dark:bg-dark-700/50">
                 {[
                     { key: 'sales', label: 'Vendas & Produtos', icon: HiOutlineChartBar, color: 'text-blue-500' },
                     { key: 'margins', label: 'Margens & Lucro', icon: HiOutlineArrowTrendingUp, color: 'text-emerald-500' },
@@ -272,7 +278,7 @@ export default function CommercialReports({ initialTab = 'sales' }: CommercialRe
                             size="sm"
                             leftIcon={<Icon className={cn("w-4 h-4", activeTab === tab.key ? "" : tab.color + " opacity-50")} />}
                             className={cn(
-                                'h-10 min-w-12 flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem] justify-center lg:justify-start lg:px-4',
+                                'min-w-max flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem] justify-center lg:justify-start lg:px-4',
                                 activeTab === tab.key
                                     ? 'bg-white dark:bg-dark-600 text-primary-700 dark:text-primary-400 shadow-sm'
                                     : 'text-slate-600 hover:text-slate-950 dark:hover:text-gray-300'
