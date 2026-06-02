@@ -91,6 +91,18 @@ export { Pagination, usePagination } from './Pagination';
 export { Spinner, LoadingOverlay, LoadingDots, ProgressBar } from './Loading';
 
 // ============================================================================
+// PageTransitionLoader Component
+// ============================================================================
+
+export { PageTransitionLoader } from './PageTransitionLoader';
+
+// ============================================================================
+// SignaturePad Component
+// ============================================================================
+
+export { SignaturePad } from './SignaturePad';
+
+// ============================================================================
 // Re-export Skeleton Components
 // ============================================================================
 

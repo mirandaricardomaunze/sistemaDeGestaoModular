@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '../../utils/helpers';
 import { toCents, toMoney, applyPercent } from '../../utils/money';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, LoadingOverlay, ConfirmationModal } from '../../components/ui';
+import { Button, LoadingOverlay, ConfirmationModal, usePagination } from '../../components/ui';
 import { productsAPI, customersAPI, salesAPI, shiftAPI, warehousesAPI } from '../../services/api';
 import type { ShiftSession, ShiftSummary } from '../../services/api';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
@@ -103,7 +103,6 @@ import {
     calculatePOSDiscounts,
     recordCampaignUsages
 } from '../../utils/crmIntegration';
-import { usePagination } from '../../components/ui/Pagination';
 import { HiOutlinePlay, HiOutlineStop, HiOutlineLockClosed, HiOutlineBanknotes, HiOutlineCloudArrowUp } from 'react-icons/hi2';
 import { useOfflineSync } from '../../hooks/useOfflineSync';
 import { enqueueSale, OfflineQueueFullError } from '../../services/offline/offlineQueue';
@@ -1081,55 +1080,37 @@ export default function CommercialPOS() {
         enabled: true
     });
 
-    if (loadingProducts || loadingShift) {
-        return (
-            <div className="min-h-screen bg-slate-100 dark:bg-dark-900 p-3 sm:p-6 space-y-4 sm:space-y-6 overflow-x-hidden">
-                {/* Header Skeleton */}
-            <div className="min-h-28 bg-white dark:bg-dark-800 border border-slate-200 dark:border-white/5 rounded-2xl p-4 sm:p-6 flex gap-4 sm:gap-6 animate-pulse shadow-sm dark:shadow-2xl">
-                    <div className="space-y-3 flex-1">
-                        <div className="h-8 bg-slate-100 dark:bg-white/5 rounded-lg w-1/3" />
-                        <div className="h-4 bg-slate-100 dark:bg-white/5 rounded-lg w-1/4" />
-                    </div>
-                    <div className="w-40 h-12 bg-slate-100 dark:bg-white/5 rounded-xl" />
-                </div>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                    <div className="lg:col-span-3 space-y-6">
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                            {[1, 2, 3, 4, 5, 6].map(i => (
-                                <div key={i} className="bg-white dark:bg-dark-800 border border-slate-200 dark:border-white/5 h-48 rounded-2xl p-4 flex flex-col gap-4 animate-pulse">
-                                    <div className="flex-1 bg-slate-100 dark:bg-white/5 rounded-xl" />
-                                    <div className="h-4 bg-slate-100 dark:bg-white/5 rounded-lg w-3/4" />
-                                    <div className="h-6 bg-slate-100 dark:bg-white/5 rounded-lg w-1/2" />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="lg:col-span-2">
-                        <div className="bg-white dark:bg-dark-800 border border-slate-200 dark:border-white/5 h-[600px] rounded-2xl p-6 space-y-6 animate-pulse shadow-sm dark:shadow-2xl">
-                            <div className="h-10 bg-slate-100 dark:bg-white/5 rounded-xl w-full" />
-                            <div className="flex-1 space-y-4">
-                                {[1, 2, 3, 4].map(i => (
-                                    <div key={i} className="flex gap-4 items-center">
-                                        <div className="h-14 w-14 bg-slate-100 dark:bg-white/5 rounded-xl" />
-                                        <div className="flex-1 space-y-2">
-                                            <div className="h-4 bg-slate-100 dark:bg-white/5 rounded-lg w-3/4" />
-                                            <div className="h-3 bg-slate-100 dark:bg-white/5 rounded-lg w-1/4" />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="h-32 bg-slate-100 dark:bg-white/5 rounded-2xl w-full" />
-                            <div className="h-14 bg-slate-100 dark:bg-white/5 rounded-xl w-full" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    // First-load feedback: thin top progress strip — non-blocking, page chrome
+    // renders immediately so the user is not staring at a blank screen.
+    // Strip disappears as soon as both shift and catalog have data.
+    const initialLoading = (loadingShift && !activeShift) || (loadingProducts && products.length === 0);
 
     return (
         <div className="min-h-screen bg-slate-100 dark:bg-dark-950 text-slate-900 dark:text-white space-y-2 pb-10 p-1 lg:p-1 transition-colors duration-500 overflow-x-hidden">
+            {/* Top progress strip — non-blocking first-load indicator. */}
+            {initialLoading && (
+                <>
+                    <style>{`
+                        @keyframes mc-pos-strip {
+                            0%   { transform: translateX(-100%); }
+                            50%  { transform: translateX(0%); }
+                            100% { transform: translateX(100%); }
+                        }
+                    `}</style>
+                    <div
+                        className="fixed top-0 left-0 right-0 z-[100] h-0.5 overflow-hidden bg-blue-500/10 pointer-events-none"
+                        role="status"
+                        aria-live="polite"
+                        aria-label={`A carregar ${[loadingShift && 'turno', loadingProducts && 'catálogo'].filter(Boolean).join(' e ')}`}
+                    >
+                        <div
+                            className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-blue-500 to-transparent"
+                            style={{ animation: 'mc-pos-strip 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite' }}
+                        />
+                    </div>
+                </>
+            )}
+
             {/* Header Redesign - Gaming/Modern Style */}
             <div className="relative group overflow-hidden bg-white dark:bg-gradient-to-br dark:from-dark-800 dark:to-dark-900 border border-slate-200 dark:border-white/5 rounded-2xl p-3 mb-2 shadow-sm dark:shadow-2xl">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -1206,8 +1187,10 @@ export default function CommercialPOS() {
             {/* Mobile tabs (Catalogo/Carrinho) — sticky, only < lg */}
             <div className="lg:hidden sticky top-14 z-20 -mx-2 sm:-mx-3 px-2 sm:px-3 py-2 bg-slate-100 dark:bg-dark-950 mb-2 border-b border-slate-200 dark:border-dark-800">
                 <div className="flex min-w-0 items-center gap-1 p-1 bg-slate-200 dark:bg-dark-800 rounded-xl shadow-inner">
-                    <button
+                    <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setMobileView('catalog')}
                         className={cn(
                             "flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98]",
@@ -1217,9 +1200,11 @@ export default function CommercialPOS() {
                         )}
                     >
                         Catálogo
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setMobileView('cart')}
                         className={cn(
                             "flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98] relative",
@@ -1234,7 +1219,7 @@ export default function CommercialPOS() {
                                 {cart.length > 9 ? '9+' : cart.length}
                             </span>
                         )}
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -1425,12 +1410,27 @@ export default function CommercialPOS() {
             {(() => {
                 const busy = checkoutLoading || shiftLoading || movementLoading;
                 if (!busy) return null;
-                const message = checkoutLoading
-                    ? 'A processar a venda... Por favor, aguarde.'
-                    : shiftLoading
-                        ? 'A processar turno...'
-                        : 'A processar movimento de caixa...';
-                return <LoadingOverlay message={message} fullScreen />;
+
+                // Honest, specific messages — citam o que está realmente em curso
+                // com os números visíveis no momento da acção (carrinho ainda
+                // não foi limpo, movementType ainda em estado, activeShift
+                // indica abertura vs fecho).
+                let message: string;
+                let subtext: string | undefined;
+                if (checkoutLoading) {
+                    message = 'A processar venda';
+                    const itemCount = cart.length;
+                    const totalLabel = `${cartTotal.toLocaleString('pt-MZ')} MTn`;
+                    subtext = `${itemCount} ${itemCount === 1 ? 'item' : 'itens'} · ${totalLabel}`;
+                } else if (shiftLoading) {
+                    message = activeShift ? 'A processar fecho de turno' : 'A processar abertura de turno';
+                } else {
+                    message = movementType === 'cash_in'
+                        ? 'A processar suprimento'
+                        : 'A processar sangria';
+                    subtext = movementType === 'cash_in' ? 'entrada de caixa' : 'saída de caixa';
+                }
+                return <LoadingOverlay message={message} subtext={subtext} fullScreen />;
             })()}
 
             <ConfirmationModal

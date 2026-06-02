@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useIsFetching } from '@tanstack/react-query';
+import { useIsFetching, useQueryClient } from '@tanstack/react-query';
 import { LoadingOverlay } from './Loading';
+import { labelForQueryKey, formatResourceList } from '../../utils/queryLabels';
 
 const SHOW_GRACE_MS = 150;
 const SAFETY_TIMEOUT_MS = 20000;
@@ -9,6 +10,7 @@ const SAFETY_TIMEOUT_MS = 20000;
 export function PageTransitionLoader() {
     const location = useLocation();
     const isFetching = useIsFetching();
+    const queryClient = useQueryClient();
     const [show, setShow] = useState(false);
     const isFetchingRef = useRef(isFetching);
 
@@ -36,5 +38,24 @@ export function PageTransitionLoader() {
 
     if (!show) return null;
 
-    return <LoadingOverlay message="A carregar dados..." fullScreen />;
+    // Inspect the cache for queries currently in flight and convert each one
+    // to a human label. Re-runs on every render — and useIsFetching above
+    // re-triggers renders whenever a fetch starts/finishes, so the subtitle
+    // stays current as queries resolve.
+    const fetchingQueries = queryClient.getQueryCache().findAll({ fetchStatus: 'fetching' });
+    const labels = Array.from(
+        new Set(
+            fetchingQueries
+                .map((q) => labelForQueryKey(q.queryKey))
+                .filter((l): l is string => l !== null),
+        ),
+    );
+
+    return (
+        <LoadingOverlay
+            message="A carregar"
+            subtext={labels.length > 0 ? formatResourceList(labels) : undefined}
+            fullScreen
+        />
+    );
 }

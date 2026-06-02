@@ -40,7 +40,7 @@ interface LoadingOverlayProps {
     fullScreen?: boolean;
 }
 
-export function LoadingOverlay({ message, fullScreen = true }: LoadingOverlayProps) {
+export function LoadingOverlay({ message, subtext, fullScreen = true }: LoadingOverlayProps) {
     const displayMessage = message || 'A carregar...';
 
     return (
@@ -67,9 +67,11 @@ export function LoadingOverlay({ message, fullScreen = true }: LoadingOverlayPro
             <div
                 className={cn(
                     'flex items-center justify-center',
+                    // Transparent ambient — backdrop no longer dims the page;
+                    // the floating glass card carries the visual weight.
                     fullScreen
-                        ? 'fixed inset-0 z-[99999] bg-slate-900/55 dark:bg-black/65 backdrop-blur-md'
-                        : 'absolute inset-0 z-50 rounded-xl bg-white/70 dark:bg-dark-900/70 backdrop-blur-sm'
+                        ? 'fixed inset-0 z-[99999] bg-transparent'
+                        : 'absolute inset-0 z-50 rounded-xl bg-transparent'
                 )}
                 style={{ animation: 'mc-fade-in 180ms ease-out' }}
                 role="status"
@@ -80,8 +82,11 @@ export function LoadingOverlay({ message, fullScreen = true }: LoadingOverlayPro
                     className={cn(
                         'flex flex-col items-center',
                         fullScreen
-                            ? 'gap-5 rounded-2xl px-10 py-8 min-w-[240px] bg-white/95 dark:bg-dark-800/95 shadow-2xl ring-1 ring-slate-200/70 dark:ring-dark-600/60'
-                            : 'gap-3'
+                            // Glassmorphism floats the card without dimming behind:
+                            // semi-transparent fill + strong backdrop-blur + soft ring
+                            // create focus while the page stays visible.
+                            ? 'gap-5 rounded-2xl px-10 py-8 min-w-[240px] bg-white/75 dark:bg-dark-800/75 backdrop-blur-2xl shadow-2xl ring-1 ring-slate-200/70 dark:ring-white/10'
+                            : 'gap-3 rounded-xl px-5 py-4 bg-white/70 dark:bg-dark-800/70 backdrop-blur-xl ring-1 ring-slate-200/60 dark:ring-white/10'
                     )}
                     style={fullScreen ? { animation: 'mc-card-in 220ms ease-out' } : undefined}
                 >
@@ -95,16 +100,30 @@ export function LoadingOverlay({ message, fullScreen = true }: LoadingOverlayPro
                     </div>
 
                     {/* Status label */}
-                    <p
-                        className={cn(
-                            'select-none font-medium text-center tracking-tight',
-                            fullScreen
-                                ? 'text-sm text-slate-700 dark:text-gray-200'
-                                : 'text-xs text-slate-600 dark:text-gray-300'
+                    <div className="flex flex-col items-center gap-0.5">
+                        <p
+                            className={cn(
+                                'select-none font-medium text-center tracking-tight',
+                                fullScreen
+                                    ? 'text-sm text-slate-700 dark:text-gray-200'
+                                    : 'text-xs text-slate-600 dark:text-gray-300'
+                            )}
+                        >
+                            {displayMessage}
+                        </p>
+                        {subtext && (
+                            <p
+                                className={cn(
+                                    'select-none text-center font-medium',
+                                    fullScreen
+                                        ? 'text-[11px] text-slate-500 dark:text-gray-400 max-w-[260px] leading-snug'
+                                        : 'text-[10px] text-slate-500 dark:text-gray-400 max-w-[200px] leading-snug'
+                                )}
+                            >
+                                {subtext}
+                            </p>
                         )}
-                    >
-                        {displayMessage}
-                    </p>
+                    </div>
 
                     {/* Indeterminate progress bar */}
                     <div

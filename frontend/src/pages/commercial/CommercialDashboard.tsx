@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, Badge, Button, Modal, Skeleton, Select, PageHeader } from '../../components/ui';
+import { Card, Badge, Button, Modal, Select, PageHeader } from '../../components/ui';
 import {
     HiOutlineCurrencyDollar,
     HiOutlineArrowTrendingUp,
@@ -126,7 +126,14 @@ export default function CommercialDashboard() {
         setRefreshing(false);
     }, [fetchRecentSales, refetchAnalytics, refetchMargins, refetchSalesReport, refetchHeatmap]);
 
-    const isLoading = marginLoading || advancedLoading || analyticsLoading || heatmapLoading || salesReportLoading || recentSalesLoading;
+    // Skeleton full-page só na PRIMEIRA carga — não em refresh.
+    // React Query v5: `isLoading` é true só enquanto não há `data`; em refetch
+    // só `isFetching` fica true. `recentSalesLoading` foi removido daqui porque
+    // é um useState manual que volta a `true` em cada `fetchRecentSales()` —
+    // incluí-lo aqui fazia o "Actualizar Tudo" trocar todo o dashboard por
+    // skeletons (flash branco). A secção de vendas recentes mantém o seu próprio
+    // loading local; o icon do botão "Actualizar Tudo" continua a rodar.
+    const isLoading = marginLoading || advancedLoading || analyticsLoading || heatmapLoading || salesReportLoading;
 
     const metrics = useMemo(() => {
         const totalRevenue = Number(analytics?.revenue ?? 0);
@@ -186,32 +193,38 @@ export default function CommercialDashboard() {
     const categoryProductTotal = categoryProductData.reduce((sum, item) => sum + item.value, 0);
     const hasCategoryProductMix = categoryProductData.length > 0 && categoryProductTotal > 0;
 
-    if (isLoading) {
-        return (
-            <div className="space-y-6">
-                <Skeleton className="h-10 w-1/4 rounded-lg" />
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12 rounded-xl" />)}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28 rounded-xl" />)}
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 space-y-6">
-                        <Skeleton className="h-80 rounded-xl" />
-                        <Skeleton className="h-80 rounded-xl" />
-                    </div>
-                    <div className="space-y-6">
-                        <Skeleton className="h-60 rounded-xl" />
-                        <Skeleton className="h-60 rounded-xl" />
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    // First-load feedback: same pattern as CommercialPOS — page chrome
+    // renders immediately, a thin top progress strip signals data is coming.
+    // Cards use `analytics?.x ?? 0` fallbacks so it's safe to render before
+    // queries resolve. Strip disappears the moment data arrives.
+    const initialLoading = isLoading && !analytics;
 
     return (
         <div className="space-y-6 pb-20 animate-fade-in">
+            {/* Top progress strip — non-blocking first-load indicator. */}
+            {initialLoading && (
+                <>
+                    <style>{`
+                        @keyframes mc-dash-strip {
+                            0%   { transform: translateX(-100%); }
+                            50%  { transform: translateX(0%); }
+                            100% { transform: translateX(100%); }
+                        }
+                    `}</style>
+                    <div
+                        className="fixed top-0 left-0 right-0 z-[100] h-0.5 overflow-hidden bg-primary-500/10 pointer-events-none"
+                        role="status"
+                        aria-live="polite"
+                        aria-label="A carregar dashboard comercial"
+                    >
+                        <div
+                            className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-primary-500 to-transparent"
+                            style={{ animation: 'mc-dash-strip 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite' }}
+                        />
+                    </div>
+                </>
+            )}
+
             <PageHeader
                 title="Dashboard Comercial"
                 subtitle="Análise estratégica de vendas, margens e performance de stock"
@@ -247,7 +260,7 @@ export default function CommercialDashboard() {
                             { value: '', label: 'Todos os Armazéns' },
                             ...(warehouses || []).map(w => ({ value: w.id, label: w.name }))
                         ]}
-                        className="w-full h-10 text-[10px] font-black uppercase tracking-widest border-slate-300/80 dark:border-white/10 shadow-sm focus:ring-0 rounded-xl bg-white dark:bg-dark-800 text-slate-700 dark:text-gray-200"
+                        className="w-full text-[10px] font-black uppercase tracking-widest border-slate-300/80 dark:border-white/10 shadow-sm focus:ring-0 rounded-xl bg-white dark:bg-dark-800 text-slate-700 dark:text-gray-200"
                     />
                 </div>
 
@@ -264,7 +277,7 @@ export default function CommercialDashboard() {
                     onClick={handleRefresh}
                     disabled={refreshing}
                     leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-primary-600 dark:text-primary-400", refreshing && "animate-spin")} />}
-                    className="h-10 px-4 text-slate-700 hover:text-primary-700 dark:text-gray-300 dark:hover:text-primary-400 w-full sm:w-auto flex items-center justify-center"
+                    className="px-4 text-slate-700 hover:text-primary-700 dark:text-gray-300 dark:hover:text-primary-400 w-full sm:w-auto flex items-center justify-center"
                 >
                     {refreshing ? 'Actualizando...' : 'Actualizar Tudo'}
                 </Button>
