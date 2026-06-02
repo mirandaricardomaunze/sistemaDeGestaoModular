@@ -1380,6 +1380,9 @@ model CompanySettings {
   thermalPaperWidth  String       @default("80mm")
   zipCode            String?
   approvalThresholds Json?
+  // FEFO opt-in flag — see docs/specs/2026-06-01-fefo-batch-selection.md
+  // Values: 'none' (default) | 'fefo' | 'manual' (reserved for future spec)
+  batchSelectionMode String       @default("none") @map("batch_selection_mode")
   company            Company?     @relation(fields: [companyId], references: [id])
 
   @@index([companyId])

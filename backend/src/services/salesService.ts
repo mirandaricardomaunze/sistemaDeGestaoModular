@@ -19,6 +19,7 @@ import { invalidateDashboardCache } from './dashboardService';
 import { invalidateCommercialCache } from './commercial/shared';
 import { approvalsService } from './approvalsService';
 import { getThresholds } from './approvals/thresholds';
+import { allocateFefo, getBatchSelectionMode, rateableSplit, type FefoAllocationSlice } from './commercial/fefo.service';
 
 type SaleListParams = {
     page?: string | number;
@@ -468,6 +469,110 @@ export class SalesService {
                 }
             }
 
+            // 4.1 FEFO batch allocation (opt-in via companySettings.batchSelectionMode)
+            // ─────────────────────────────────────────────────────────────────
+            // For each verified item, compute how the requested quantity is
+            // distributed across batches sorted by expiryDate ASC. The result
+            // is a list of `expandedItems` where one POS line may become N
+            // SaleItem rows (one per batch consumed). Discounts are pro-rated
+            // proportionally to the slice quantity; the last slice absorbs
+            // rounding residue so Σ(sub-item totals) === original item.total.
+            // Spec: docs/specs/2026-06-01-fefo-batch-selection.md
+            const effectiveOriginModule = originModule || 'commercial';
+            const fefoEnabled = effectiveOriginModule === 'commercial'
+                && (await getBatchSelectionMode(tx, companyId)) === 'fefo';
+
+            type ExpandedSaleItem = {
+                productId: string;
+                productName: string;
+                quantity: number;
+                unitPrice: number;
+                costPriceSnapshot: number;
+                discount: number;
+                total: number;
+                batchId: string | null;
+                discountReason?: string;
+                discountKind?: string;
+                discountAppliedBy?: string;
+                sourceItemIndex: number; // tracks back to verifiedItems for stockMovement loop
+            };
+
+            const expandedItems: ExpandedSaleItem[] = [];
+            const allocations: Array<{
+                productId: string;
+                slices: FefoAllocationSlice[];
+                unallocatedQuantity: number;
+            }> = [];
+
+            for (let idx = 0; idx < verifiedItems.length; idx++) {
+                const item = verifiedItems[idx];
+                let slices: FefoAllocationSlice[] = [];
+                let unallocatedQuantity = item.quantity;
+
+                if (fefoEnabled) {
+                    const plan = await allocateFefo(
+                        tx,
+                        companyId,
+                        item.productId,
+                        item.quantity,
+                        warehouseId,
+                    );
+                    slices = plan.slices;
+                    unallocatedQuantity = plan.unallocatedQuantity;
+                }
+
+                allocations.push({ productId: item.productId, slices, unallocatedQuantity });
+
+                // No batches available (or FEFO off) → single SaleItem with batchId=NULL
+                // preserves pre-FEFO behaviour byte-for-byte.
+                if (slices.length === 0) {
+                    expandedItems.push({
+                        productId: item.productId,
+                        productName: item.productNameSnapshot,
+                        quantity: item.quantity,
+                        unitPrice: item.unitPrice,
+                        costPriceSnapshot: item.costPriceSnapshot,
+                        discount: item.discount || 0,
+                        total: item.total,
+                        batchId: null,
+                        discountReason: item.discountReason,
+                        discountKind: item.discountKind,
+                        discountAppliedBy: item.discountAppliedBy,
+                        sourceItemIndex: idx,
+                    });
+                    continue;
+                }
+
+                // Build sub-items per slice + optional fallback for unallocated qty.
+                const fallbackSlices: FefoAllocationSlice[] = unallocatedQuantity > 0
+                    ? [...slices, { batchId: '__fallback__', quantity: unallocatedQuantity }]
+                    : slices;
+
+                const lineDiscount = item.discount || 0;
+                const discountShares = rateableSplit(lineDiscount, fallbackSlices);
+
+                fallbackSlices.forEach((slice, sliceIdx) => {
+                    const sliceDiscount = discountShares[sliceIdx] || 0;
+                    const sliceTotal = Math.round(
+                        (slice.quantity * item.unitPrice - sliceDiscount) * 100,
+                    ) / 100;
+                    expandedItems.push({
+                        productId: item.productId,
+                        productName: item.productNameSnapshot,
+                        quantity: slice.quantity,
+                        unitPrice: item.unitPrice,
+                        costPriceSnapshot: item.costPriceSnapshot,
+                        discount: sliceDiscount,
+                        total: sliceTotal,
+                        batchId: slice.batchId === '__fallback__' ? null : slice.batchId,
+                        discountReason: item.discountReason,
+                        discountKind: item.discountKind,
+                        discountAppliedBy: item.discountAppliedBy,
+                        sourceItemIndex: idx,
+                    });
+                });
+            }
+
             // 5. Create Sale
             const isCreditSale = paymentMethod === 'credit';
             // Compute precise change (server-side authoritative calculation)
@@ -489,7 +594,7 @@ export class SalesService {
                     isCredit: isCreditSale,
                     paymentRef: paymentRef || undefined,
                     sessionId: sessionId || undefined,
-                    originModule: originModule || 'commercial',
+                    originModule: effectiveOriginModule,
                     tableId: tableId || undefined,
                     warehouseId: warehouseId || undefined,
                     notes: notes ? `${notes}${pointsToRedeem > 0 ? ` (Pontos redimidos: ${pointsToRedeem})` : ''}` : undefined,
@@ -500,18 +605,19 @@ export class SalesService {
                     discountKind: discountKind || undefined,
                     discountAudit: discountAudit ? (discountAudit as Prisma.InputJsonValue) : undefined,
                     items: {
-                        create: verifiedItems.map((item) => ({
-                            productId: item.productId,
-                            productName: item.productNameSnapshot,
-                            quantity: item.quantity,
-                            unitPrice: item.unitPrice,
-                            costPrice: item.costPriceSnapshot,
-                            discount: item.discount || 0,
-                            total: item.total,
-                            discountReason: item.discountReason || undefined,
-                            discountKind: item.discountKind || undefined,
-                            discountAppliedBy: item.discountAppliedBy || undefined
-                        }))
+                        create: expandedItems.map((sub) => ({
+                            productId: sub.productId,
+                            productName: sub.productName,
+                            quantity: sub.quantity,
+                            unitPrice: sub.unitPrice,
+                            costPrice: sub.costPriceSnapshot,
+                            discount: sub.discount,
+                            total: sub.total,
+                            batchId: sub.batchId || undefined,
+                            discountReason: sub.discountReason || undefined,
+                            discountKind: sub.discountKind || undefined,
+                            discountAppliedBy: sub.discountAppliedBy || undefined,
+                        })),
                     }
                 },
                 include: {
@@ -519,6 +625,18 @@ export class SalesService {
                     items: { include: { product: true } }
                 }
             });
+
+            // 5.1 Decrement ProductBatch.quantity for every consumed slice.
+            // Done after sale creation so the SaleItems already reference these
+            // batches; rollback of the transaction reverts both together.
+            for (const alloc of allocations) {
+                for (const slice of alloc.slices) {
+                    await tx.productBatch.update({
+                        where: { id: slice.batchId },
+                        data: { quantity: { decrement: slice.quantity } },
+                    });
+                }
+            }
 
             // 6. Atomically close restaurant kitchen orders when a restaurant sale is paid
             if (originModule === 'restaurant' && tableId) {
@@ -537,10 +655,15 @@ export class SalesService {
             }
 
             // 7. Update Stock & Log Movements (Alerts handled internally by StockService)
-            for (const item of verifiedItems) {
+            // One stockMovement per expanded sub-item so batch-level traceability
+            // is preserved (productBatchId carried through). When FEFO is off or
+            // the product has no batches, sub.batchId is null and the movement
+            // looks identical to the pre-FEFO single-row record.
+            for (const sub of expandedItems) {
                 await stockService.recordMovement({
-                    productId: item.productId,
-                    quantity: -item.quantity,
+                    productId: sub.productId,
+                    productBatchId: sub.batchId || undefined,
+                    quantity: -sub.quantity,
                     movementType: 'sale',
                     originModule: 'COMMERCIAL',
                     referenceType: 'SALE',
