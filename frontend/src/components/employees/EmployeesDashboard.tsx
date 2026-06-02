@@ -43,7 +43,7 @@ import { SmartInsightCard } from '../common/SmartInsightCard';
 import { MetricCard } from '../common/ModuleMetricCard';
 import { SegmentedControl } from '../common/SegmentedControl';
 import { HiOutlineLightBulb } from 'react-icons/hi2';
-import { formatCurrency, cn } from '../../utils/helpers';
+import { formatCurrency } from '../../utils/helpers';
 import type { Employee, EmployeeRole, EducationLevel } from '../../types';
 
 const columnHelper = createColumnHelper<Employee>();

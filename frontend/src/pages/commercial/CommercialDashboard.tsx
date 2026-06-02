@@ -84,10 +84,8 @@ export default function CommercialDashboard() {
     const [showRiskModal, setShowRiskModal] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [recentSales, setRecentSales] = useState<RecentCommercialSale[]>([]);
-    const [recentSalesLoading, setRecentSalesLoading] = useState(true);
 
     const fetchRecentSales = useCallback(async () => {
-        setRecentSalesLoading(true);
         try {
             const response = await salesAPI.getAll({
                 limit: 10,
@@ -109,8 +107,6 @@ export default function CommercialDashboard() {
             })));
         } catch {
             setRecentSales([]);
-        } finally {
-            setRecentSalesLoading(false);
         }
     }, [selectedWarehouseId]);
 
