@@ -83,7 +83,7 @@ describe('POST /api/auth/login', () => {
 // ── POST /api/auth/register ───────────────────────────────────────────────────
 
 describe('POST /api/auth/register', () => {
-    const REG_NUIT = `REG-NUIT-${Date.now()}`;
+    const REG_NUIT = `RN${Date.now()}`;
     const REG_EMAIL = `newreg-${Date.now()}@example.com`;
 
     afterEach(async () => {
@@ -110,7 +110,7 @@ describe('POST /api/auth/register', () => {
             moduleCode: 'COMMERCIAL'
         });
         expect(res.status).toBe(400);
-        expect(res.body.message).toContain('senha');
+        expect(res.body.message.toLowerCase()).toContain('senha');
     });
 
     it('returns 400 for duplicate email', async () => {
