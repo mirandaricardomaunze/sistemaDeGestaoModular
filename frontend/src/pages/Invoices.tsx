@@ -821,25 +821,30 @@ export default function Invoices({ originModule }: InvoicesProps) {
                     </div>
                 }
                 tabs={
-                    <div className="flex w-full overflow-x-auto overscroll-x-contain p-1 bg-gray-100/50 dark:bg-dark-800/50 rounded-xl border border-gray-200/30 dark:border-dark-700/30 shadow-inner scrollbar-none">
-                        {tabs.map((tab) => (
-                            <Button
-                                key={tab.id}
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setActiveTab(tab.id as 'invoices' | 'credit_notes')}
-                                className={cn(
-                                    "flex-1 sm:flex-none justify-center sm:min-w-max px-6 text-[10px] font-black uppercase tracking-widest rounded-lg gap-2",
-                                    activeTab === tab.id
-                                        ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
-                                        : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                                )}
-                            >
-                                <span className="shrink-0">{tab.icon}</span>
-                                <span>{tab.label}</span>
-                            </Button>
-                        ))}
+                    <div className="flex w-full overflow-x-auto overscroll-x-contain p-1 bg-gray-100/80 dark:bg-dark-800/80 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-dark-700/50 shadow-inner scrollbar-none">
+                        {tabs.map((tab) => {
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <Button
+                                    key={tab.id}
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setActiveTab(tab.id as 'invoices' | 'credit_notes')}
+                                    className={cn(
+                                        "flex-1 sm:flex-none justify-center sm:min-w-max px-6 text-[10px] font-black uppercase tracking-widest rounded-lg gap-2 transition-all duration-200",
+                                        isActive
+                                            ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-lg shadow-black/5 scale-[1.02]"
+                                            : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                                    )}
+                                >
+                                    <span className={cn("shrink-0", isActive ? "text-primary-600 dark:text-primary-400" : "opacity-55")}>
+                                        {tab.icon}
+                                    </span>
+                                    <span>{tab.label}</span>
+                                </Button>
+                            );
+                        })}
                     </div>
                 }
             />
