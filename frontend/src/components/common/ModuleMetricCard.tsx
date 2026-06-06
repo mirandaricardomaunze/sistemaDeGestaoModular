@@ -49,35 +49,50 @@ interface MetricCardProps {
     className?: string;
     isCurrency?: boolean;
     isLoading?: boolean;
+    /** When provided, the card becomes a button — clickable filter-style tile. */
+    onClick?: () => void;
+    /** Highlights the card with a ring + permanent bottom accent. Use with onClick. */
+    isActive?: boolean;
 }
 
-export function MetricCard({ 
-    icon, 
-    color = 'primary', 
-    value, 
-    label, 
-    growth, 
-    badge, 
+export function MetricCard({
+    icon,
+    color = 'primary',
+    value,
+    label,
+    growth,
+    badge,
     className,
     isCurrency = false,
-    isLoading = false
+    isLoading = false,
+    onClick,
+    isActive = false,
 }: MetricCardProps) {
     const p = getPalette(color);
 
-    const formattedValue = isLoading 
-        ? '...' 
-        : isCurrency 
+    const formattedValue = isLoading
+        ? '...'
+        : isCurrency
             ? new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(Number(value) || 0)
             : value;
 
+    const Tag = onClick ? 'button' : 'div';
+
     return (
-        <div className={cn(
-            'relative group overflow-hidden rounded-2xl transition-all duration-300 ease-out',
-            'shadow-[0_4px_20px_-4px_rgba(148,163,184,0.12)] hover:shadow-[0_12px_30px_-6px_rgba(148,163,184,0.25)]',
-            'dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] dark:hover:shadow-[0_12px_35px_-6px_rgba(0,0,0,0.7)]',
-            'hover:-translate-y-1 active:scale-[0.99]',
-            p.cardBg, p.cardBorder, className
-        )}>
+        <Tag
+            type={onClick ? 'button' : undefined}
+            onClick={onClick}
+            aria-pressed={onClick ? isActive : undefined}
+            className={cn(
+                'relative group overflow-hidden rounded-2xl transition-all duration-300 ease-out text-left w-full',
+                'shadow-[0_4px_20px_-4px_rgba(148,163,184,0.12)] hover:shadow-[0_12px_30px_-6px_rgba(148,163,184,0.25)]',
+                'dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] dark:hover:shadow-[0_12px_35px_-6px_rgba(0,0,0,0.7)]',
+                'hover:-translate-y-1 active:scale-[0.99]',
+                onClick ? 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60' : '',
+                isActive ? 'ring-2 ring-primary-500/70 ring-offset-2 dark:ring-offset-dark-900' : '',
+                p.cardBg, p.cardBorder, className
+            )}
+        >
             {/* Subtle inner glow */}
             <div className="absolute inset-0 bg-gradient-to-br from-white/55 via-transparent to-transparent dark:from-white/5 pointer-events-none" />
             <div className={cn('absolute left-0 top-0 h-full w-1.5 opacity-90', p.accent)} />
@@ -121,10 +136,11 @@ export function MetricCard({
             
             {/* Elegant accent line */}
             <div className={cn(
-                'absolute bottom-0 left-0 h-1 transition-all duration-700 ease-out w-12 group-hover:w-full opacity-90',
+                'absolute bottom-0 left-0 h-1 transition-all duration-700 ease-out opacity-90',
+                isActive ? 'w-full' : 'w-12 group-hover:w-full',
                 p.accent
             )} />
-        </div>
+        </Tag>
     );
 }
 

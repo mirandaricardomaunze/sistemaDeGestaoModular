@@ -1,16 +1,30 @@
-import { FilterCard } from '../../common/ModuleMetricCard';
+import {
+    HiOutlineSparkles,
+    HiOutlineClock,
+    HiOutlineExclamationCircle,
+    HiOutlineExclamationTriangle,
+} from 'react-icons/hi2';
+import type { ComponentType, SVGProps } from 'react';
+import { MetricCard } from '../../common/ModuleMetricCard';
 import type { StockAgingProduct, StockAgingReport } from '../../../services/api/commercial.api';
 
 export type StockAgingBucket = StockAgingProduct['agingBucket'];
 
 export const STOCK_AGING_BUCKETS: StockAgingBucket[] = ['fresh', 'slow', 'aging', 'critical'];
 
+type AgingBucketConfig = {
+    label: string;
+    palette: string;
+    badgeVariant: 'success' | 'warning' | 'danger';
+    icon: ComponentType<SVGProps<SVGSVGElement>>;
+};
+
 export const STOCK_AGING_CONFIG = {
-    fresh: { label: 'Fresco', palette: 'success', badgeVariant: 'success' as const },
-    slow: { label: 'Lento (31-60d)', palette: 'warning', badgeVariant: 'warning' as const },
-    aging: { label: 'A Envelhecer (61-90d)', palette: 'orange', badgeVariant: 'warning' as const },
-    critical: { label: 'Crítico (>90d)', palette: 'danger', badgeVariant: 'danger' as const },
-} satisfies Record<StockAgingBucket, { label: string; palette: string; badgeVariant: 'success' | 'warning' | 'danger' }>;
+    fresh:    { label: 'Fresco',                  palette: 'success', badgeVariant: 'success', icon: HiOutlineSparkles },
+    slow:     { label: 'Lento (31-60d)',          palette: 'warning', badgeVariant: 'warning', icon: HiOutlineClock },
+    aging:    { label: 'A Envelhecer (61-90d)',   palette: 'orange',  badgeVariant: 'warning', icon: HiOutlineExclamationCircle },
+    critical: { label: 'Crítico (>90d)',          palette: 'danger',  badgeVariant: 'danger',  icon: HiOutlineExclamationTriangle },
+} satisfies Record<StockAgingBucket, AgingBucketConfig>;
 
 interface StockAgingSummaryCardsProps {
     summary: StockAgingReport['summary'];
@@ -27,14 +41,15 @@ export function StockAgingSummaryCards({
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {STOCK_AGING_BUCKETS.map((bucket) => {
                 const cfg = STOCK_AGING_CONFIG[bucket];
+                const Icon = cfg.icon;
 
                 return (
-                    <FilterCard
+                    <MetricCard
                         key={bucket}
                         label={cfg.label}
-                        value={summary[bucket]}
-                        sublabel="produtos"
+                        value={`${summary[bucket]} produtos`}
                         color={cfg.palette}
+                        icon={<Icon className="w-5 h-5" />}
                         isActive={activeBucket === bucket}
                         onClick={() => onBucketChange(activeBucket === bucket ? '' : bucket)}
                     />
