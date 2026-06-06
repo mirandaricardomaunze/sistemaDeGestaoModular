@@ -19,7 +19,11 @@ import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { useStockAging, useSupplierPerformance, useSalesReport, useWarehouseDistribution } from '../../hooks/useCommercial';
 import { AISuggestionsPanel } from '../../components/commercial/analytics/AISuggestionsPanel';
-import { StockAgingSummaryCards, type StockAgingBucket } from '../../components/commercial/analytics/StockAgingSummaryCards';
+import {
+    StockAgingSummaryCards,
+    STOCK_AGING_CONFIG,
+    type StockAgingBucket,
+} from '../../components/commercial/analytics/StockAgingSummaryCards';
 import type { StockAgingProduct, SupplierPerformance } from '../../services/api/commercial.api';
 import { useCategories } from '../../hooks/useData';
 import { SegmentedControl } from '../../components/common/SegmentedControl';
@@ -34,12 +38,9 @@ const PERIOD_OPTIONS = [
     { label: '90 dias', value: 90 },
 ];
 
-const AGING_CONFIG = {
-    fresh: { label: 'Fresco', palette: 'success', badgeVariant: 'success' as const },
-    slow: { label: 'Lento (31-60d)', palette: 'warning', badgeVariant: 'warning' as const },
-    aging: { label: 'A Envelhecer (61-90d)', palette: 'orange', badgeVariant: 'warning' as const },
-    critical: { label: 'Crítico (>90d)', palette: 'danger', badgeVariant: 'danger' as const },
-};
+// Aging config (labels, palette, badge variant) lives in
+// StockAgingSummaryCards as the single source of truth — see
+// STOCK_AGING_CONFIG imported above.
 
 type ReportTab = 'sales' | 'margins' | 'aging' | 'suppliers' | 'warehouses';
 
@@ -82,7 +83,7 @@ export default function CommercialReports({ initialTab = 'sales' }: CommercialRe
     const filteredAgingProducts = agingData?.products.filter(p =>
         !agingFilter || p.agingBucket === agingFilter
     ) || [];
-    const activeAgingConfig = agingFilter ? AGING_CONFIG[agingFilter as keyof typeof AGING_CONFIG] : null;
+    const activeAgingConfig = agingFilter ? STOCK_AGING_CONFIG[agingFilter as keyof typeof STOCK_AGING_CONFIG] : null;
     const totalAgingProducts = agingData?.products.length || 0;
 
     const agingColumns = useMemo<ColumnDef<StockAgingProduct, unknown>[]>(() => [
@@ -134,7 +135,7 @@ export default function CommercialReports({ initialTab = 'sales' }: CommercialRe
             accessorKey: 'agingBucket',
             header: 'Estado',
             cell: (info) => {
-                const cfg = AGING_CONFIG[info.getValue() as keyof typeof AGING_CONFIG];
+                const cfg = STOCK_AGING_CONFIG[info.getValue() as keyof typeof STOCK_AGING_CONFIG];
                 return <Badge variant={cfg.badgeVariant} size="sm">{cfg.label}</Badge>;
             },
             meta: { align: 'center' }
@@ -536,7 +537,7 @@ export default function CommercialReports({ initialTab = 'sales' }: CommercialRe
                             minHeight={filteredAgingProducts.length === 0 ? 280 : 450}
                             exportConfig={{
                                 filename: `stock_aging_${agingFilter || 'all'}`,
-                                title: `Relatório de Envelhecimento de Stock - ${agingFilter ? AGING_CONFIG[agingFilter as keyof typeof AGING_CONFIG]?.label : 'Todos'}`,
+                                title: `Relatório de Envelhecimento de Stock - ${agingFilter ? STOCK_AGING_CONFIG[agingFilter as keyof typeof STOCK_AGING_CONFIG]?.label : 'Todos'}`,
                                 columns: [
                                     { key: 'code', header: 'Código', width: 15 },
                                     { key: 'name', header: 'Produto', width: 30 },
