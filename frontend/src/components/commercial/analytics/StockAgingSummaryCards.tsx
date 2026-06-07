@@ -1,30 +1,14 @@
-import {
-    HiOutlineSparkles,
-    HiOutlineClock,
-    HiOutlineExclamationCircle,
-    HiOutlineExclamationTriangle,
-} from 'react-icons/hi2';
-import type { ComponentType, SVGProps } from 'react';
 import { MetricCard } from '../../common/ModuleMetricCard';
-import type { StockAgingProduct, StockAgingReport } from '../../../services/api/commercial.api';
+import type { StockAgingReport } from '../../../services/api/commercial.api';
+import {
+    STOCK_AGING_BUCKETS,
+    STOCK_AGING_CONFIG,
+    type StockAgingBucket,
+} from './stockAging.config';
 
-export type StockAgingBucket = StockAgingProduct['agingBucket'];
-
-export const STOCK_AGING_BUCKETS: StockAgingBucket[] = ['fresh', 'slow', 'aging', 'critical'];
-
-type AgingBucketConfig = {
-    label: string;
-    palette: string;
-    badgeVariant: 'success' | 'warning' | 'danger';
-    icon: ComponentType<SVGProps<SVGSVGElement>>;
-};
-
-export const STOCK_AGING_CONFIG = {
-    fresh:    { label: 'Fresco',                  palette: 'success', badgeVariant: 'success', icon: HiOutlineSparkles },
-    slow:     { label: 'Lento (31-60d)',          palette: 'warning', badgeVariant: 'warning', icon: HiOutlineClock },
-    aging:    { label: 'A Envelhecer (61-90d)',   palette: 'orange',  badgeVariant: 'warning', icon: HiOutlineExclamationCircle },
-    critical: { label: 'Crítico (>90d)',          palette: 'danger',  badgeVariant: 'danger',  icon: HiOutlineExclamationTriangle },
-} satisfies Record<StockAgingBucket, AgingBucketConfig>;
+// Re-export so existing consumers of the cards module keep working.
+export { STOCK_AGING_BUCKETS, STOCK_AGING_CONFIG } from './stockAging.config';
+export type { StockAgingBucket } from './stockAging.config';
 
 interface StockAgingSummaryCardsProps {
     summary: StockAgingReport['summary'];
@@ -47,9 +31,14 @@ export function StockAgingSummaryCards({
                     <MetricCard
                         key={bucket}
                         label={cfg.label}
-                        value={`${summary[bucket]} produtos`}
+                        value={summary[bucket]}
                         color={cfg.palette}
                         icon={<Icon className="w-5 h-5" />}
+                        badge={
+                            <span className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-widest">
+                                produtos
+                            </span>
+                        }
                         isActive={activeBucket === bucket}
                         onClick={() => onBucketChange(activeBucket === bucket ? '' : bucket)}
                     />
