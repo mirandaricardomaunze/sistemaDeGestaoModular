@@ -169,7 +169,9 @@ export function AISuggestionsPanel({
                                         </h4>
                                     </div>
                                     <Badge variant={style.badge} size="sm">
-                                        {(suggestion.confidence * 100).toFixed(0)}%
+                                        {suggestion.id === 'steady-state'
+                                            ? 'Sem alertas'
+                                            : `${(suggestion.confidence * 100).toFixed(0)}%`}
                                     </Badge>
                                 </div>
                                 <p className="mt-3 text-xs font-semibold text-slate-700 dark:text-slate-300 leading-relaxed">

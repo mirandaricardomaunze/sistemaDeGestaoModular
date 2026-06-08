@@ -76,15 +76,29 @@ export class CommercialDecisionSuggestionsService {
         const candidates = this.buildRuleCandidates(context);
 
         if (candidates.length === 0) {
+            // Steady-state — none of the 6 rules fired. Cite the actual zero
+            // counts in the reasoning so the user sees the evidence behind
+            // "operação estável" instead of a hardcoded reassurance.
+            const evaluated = [
+                `${context.receivables.overdueCount} factura(s) a receber vencidas`,
+                `${context.payables.overdueCount + context.payables.dueSoonCount} pagamento(s) a fornecedor em alerta`,
+                `${context.suppliers.overduePurchaseOrders} ordem(ns) de compra atrasada(s)`,
+                `${context.operations.longOpenShifts.length} turno(s) aberto(s) há mais de 12h`,
+                `${context.expiry.length} lote(s) a expirar nos próximos 30 dias`,
+                `${context.stockForecast.length} produto(s) com previsão crítica de stock`,
+            ];
             return [{
                 id: 'steady-state',
                 title: 'Operação estável',
-                summary: 'Não encontrei riscos urgentes nos dados comerciais actuais.',
-                reasoning: 'Stock crítico, cobranças vencidas, turnos abertos e compras atrasadas não geraram sinais relevantes.',
+                summary: 'Nenhuma das 6 regras automáticas disparou neste momento.',
+                reasoning: evaluated.join(' · '),
                 priority: 'low',
                 category: 'operations',
                 impact: 'Manter monitoria diária',
-                confidence: 0.74,
+                // Confidence here is a constant marker (not shown visually for
+                // this card — the frontend renders "Sem alertas" instead of a
+                // percentage when id === 'steady-state').
+                confidence: 1,
                 actionLabel: 'Ver relatórios',
                 actionUrl: '/commercial/reports',
                 source: 'rules',
