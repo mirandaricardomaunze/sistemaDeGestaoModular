@@ -11,6 +11,7 @@ import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
 import { useCompanySettings } from '../../hooks/useCompanySettings';
 import { playScanSound } from '../../utils/audio';
 import { getApiErrorMessage } from '../../utils/apiError';
+import { isDecimalUnit } from '../../constants/unitOfMeasure';
 import toast from 'react-hot-toast';
 import type { Customer } from '../../types';
 
@@ -277,6 +278,10 @@ export default function CommercialPOS() {
     const [shiftModalMode, setShiftModalMode] = useState<'open' | 'close'>('open');
     const [showScaleModal, setShowScaleModal] = useState(false);
     const [scaleProduct, setScaleProduct] = useState<{ name: string; unitPrice: number; unit?: string } | null>(null);
+    // ID do produto-alvo da balança — desacopla a operação do "último item do
+    // carrinho" para evitar pesar o produto errado quando há mais do que um
+    // item pesável ou um item não-pesável foi adicionado depois.
+    const [scaleTargetProductId, setScaleTargetProductId] = useState<string | null>(null);
 
     // Build ShiftData shape for the modal from the DB session + summary
     const shift: ShiftData | null = useMemo(() => {
@@ -1276,9 +1281,23 @@ export default function CommercialPOS() {
                         globalDiscount={globalDiscount}
                         crmDiscount={crmDiscount}
                         handleScaleAction={() => {
-                            // Se h um item no carrinho, pré-selecciona o último para pesagem
-                            const last = cart.at(-1);
-                            setScaleProduct(last ? { name: last.product.name, unitPrice: last.unitPrice, unit: last.product.unit } : null);
+                            // Filtra apenas items vendidos em unidade pesável
+                            // (kg, L, m, m²...). Evita aplicar peso a produtos
+                            // unitários como uma garrafa cheia ou caixa.
+                            const weighable = cart.filter((item) => isDecimalUnit(item.product.unit || 'un'));
+                            if (weighable.length === 0) {
+                                toast.error('Adicione primeiro um produto pesável (kg, L) ao carrinho.');
+                                return;
+                            }
+                            // Usa o ÚLTIMO pesável adicionado (não o último item do
+                            // carrinho). Quando há mais de um, avisa para o cashier
+                            // ter a certeza que é o pretendido.
+                            const target = weighable[weighable.length - 1];
+                            if (weighable.length > 1) {
+                                toast(`A pesar: ${target.product.name}`, { icon: 'ℹ️' });
+                            }
+                            setScaleTargetProductId(target.productId);
+                            setScaleProduct({ name: target.product.name, unitPrice: target.unitPrice, unit: target.product.unit });
                             setShowScaleModal(true);
                         }}
                         heldSales={heldSales}
@@ -1358,15 +1377,25 @@ export default function CommercialPOS() {
 
             <CommercialScaleModal
                 isOpen={showScaleModal}
-                onClose={() => setShowScaleModal(false)}
+                onClose={() => {
+                    setShowScaleModal(false);
+                    setScaleTargetProductId(null);
+                }}
                 product={scaleProduct}
                 onConfirm={(weightG, qty) => {
-                    // Se h produto pré-seleccionado, actualiza a quantidade do último item
-                    const last = cart.at(-1);
-                    if (last) {
-                        updateQuantity(last.productId, qty);
-                        toast.success(`${last.product.name}: ${(weightG / 1000).toFixed(3)} kg`);
+                    // Aplica o peso ao produto-alvo registado quando a balança
+                    // foi aberta, NÃO ao último item do carrinho. Se o item
+                    // entretanto foi removido, falha silenciosamente.
+                    const target = scaleTargetProductId
+                        ? cart.find((i) => i.productId === scaleTargetProductId)
+                        : null;
+                    if (target) {
+                        updateQuantity(target.productId, qty);
+                        toast.success(`${target.product.name}: ${(weightG / 1000).toFixed(3)} kg`);
+                    } else {
+                        toast.error('Produto-alvo já não está no carrinho.');
                     }
+                    setScaleTargetProductId(null);
                     setShowScaleModal(false);
                 }}
             />

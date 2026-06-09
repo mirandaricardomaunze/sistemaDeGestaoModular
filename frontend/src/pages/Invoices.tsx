@@ -37,6 +37,7 @@ import { formatCurrency, generateId, cn } from '../utils/helpers';
 import { ExportInvoicesButton } from '../components/common/ExportButton';
 import type { Invoice, InvoiceStatus } from '../types';
 import toast from 'react-hot-toast';
+import { isDecimalUnit } from '../constants/unitOfMeasure';
 import { PAGE_SIZE } from '../utils/constants';
 
 // ── Local shapes for invoice-source items and product picks ────────────────
@@ -63,7 +64,7 @@ type InvoiceSource = {
     taxAmount?: number | string;
     total: number | string;
 };
-type ProductPick = { id: string; name: string; price: number };
+type ProductPick = { id: string; name: string; price: number; unit?: string };
 type ApiValidationError = { path?: string; message?: string };
 
 // Time period options
@@ -81,10 +82,11 @@ const invoiceItemSchema = z.object({
     id: z.string(),
     productId: z.string().optional().nullable(),
     description: z.string().min(1, 'Descrição obrigatória'),
-    quantity: z.coerce.number().min(1, 'Mínimo 1'),
+    quantity: z.coerce.number().min(0.001, 'Mínimo 0.001'),
     unitPrice: z.coerce.number().min(0.01, 'Preço inválido'),
     discount: z.coerce.number().min(0).default(0),
     total: z.number(),
+    unit: z.string().optional().default('un'),
 });
 
 const invoiceSchema = z.object({
@@ -587,6 +589,9 @@ export default function Invoices({ originModule }: InvoicesProps) {
                 unitPrice: item.unitPrice,
                 discount: 0,
                 total: item.total,
+                // Source items don't carry unit metadata yet — default to 'un'.
+                // Once the upstream document (order/quote) propagates unit, swap this.
+                unit: 'un',
             }));
             replace(sourceItems);
 
@@ -629,6 +634,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
             unitPrice: product.price,
             discount: 0,
             total: product.price,
+            unit: product.unit || 'un',
         });
         setProductSearch('');
         setShowProductResults(false);
@@ -1235,7 +1241,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                 )}
                             </h4>
                             {!lockedSource && (
-                                <Button type="button" variant="outline" size="sm" onClick={() => append({ id: generateId(), description: '', quantity: 1, unitPrice: 0, discount: 0, total: 0 })}>
+                                <Button type="button" variant="outline" size="sm" onClick={() => append({ id: generateId(), description: '', quantity: 1, unitPrice: 0, discount: 0, total: 0, unit: 'un' })}>
                                     <HiOutlinePlus className="w-4 h-4 mr-1" />Item Manual
                                 </Button>
                             )}
@@ -1296,8 +1302,13 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                 <div className="col-span-5">
                                     <Input placeholder="Descrição" disabled={!!lockedSource} {...register(`items.${index}.description`)} />
                                 </div>
-                                <div className="col-span-2">
-                                    <Input type="number" placeholder="Qtd" disabled={!!lockedSource} {...register(`items.${index}.quantity`)} onChange={() => updateItemTotal(index)} />
+                                <div className="col-span-2 relative">
+                                    <Input type="number" step={isDecimalUnit(watchItems?.[index]?.unit || 'un') ? "any" : "1"} placeholder="Qtd" disabled={!!lockedSource} {...register(`items.${index}.quantity`)} onChange={() => updateItemTotal(index)} />
+                                    {watchItems?.[index]?.unit && watchItems[index].unit !== 'un' && (
+                                        <span className="absolute right-2 bottom-3 text-[10px] font-black text-gray-400 pointer-events-none uppercase">
+                                            {watchItems[index].unit}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="col-span-2">
                                     <Input type="number" step="0.01" placeholder="Preço" disabled={!!lockedSource} {...register(`items.${index}.unitPrice`)} onChange={() => updateItemTotal(index)} />
