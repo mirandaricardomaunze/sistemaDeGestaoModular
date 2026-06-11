@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '../../utils/helpers';
 import { toCents, toMoney, applyPercent } from '../../utils/money';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, LoadingOverlay, ConfirmationModal, usePagination } from '../../components/ui';
+import { Button, LoadingOverlay, ConfirmationModal, Modal, usePagination } from '../../components/ui';
 import { productsAPI, customersAPI, salesAPI, shiftAPI, warehousesAPI } from '../../services/api';
 import type { ShiftSession, ShiftSummary } from '../../services/api';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
@@ -282,6 +282,9 @@ export default function CommercialPOS() {
     // carrinho" para evitar pesar o produto errado quando há mais do que um
     // item pesável ou um item não-pesável foi adicionado depois.
     const [scaleTargetProductId, setScaleTargetProductId] = useState<string | null>(null);
+    // Picker aberto quando há mais de um item pesável e o cashier precisa de
+    // escolher qual quer pesar (em vez de assumir "o último adicionado").
+    const [scalePickerOpen, setScalePickerOpen] = useState(false);
 
     // Build ShiftData shape for the modal from the DB session + summary
     const shift: ShiftData | null = useMemo(() => {
@@ -1281,24 +1284,22 @@ export default function CommercialPOS() {
                         globalDiscount={globalDiscount}
                         crmDiscount={crmDiscount}
                         handleScaleAction={() => {
-                            // Filtra apenas items vendidos em unidade pesável
-                            // (kg, L, m, m²...). Evita aplicar peso a produtos
-                            // unitários como uma garrafa cheia ou caixa.
+                            // Filtra items vendidos em unidade pesável (kg, L, m, m²...).
+                            // 0 pesáveis → erro. 1 pesável → abre balança directo.
+                            // >1 → abre picker para o cashier escolher.
                             const weighable = cart.filter((item) => isDecimalUnit(item.product.unit || 'un'));
                             if (weighable.length === 0) {
                                 toast.error('Adicione primeiro um produto pesável (kg, L) ao carrinho.');
                                 return;
                             }
-                            // Usa o ÚLTIMO pesável adicionado (não o último item do
-                            // carrinho). Quando há mais de um, avisa para o cashier
-                            // ter a certeza que é o pretendido.
-                            const target = weighable[weighable.length - 1];
-                            if (weighable.length > 1) {
-                                toast(`A pesar: ${target.product.name}`, { icon: 'ℹ️' });
+                            if (weighable.length === 1) {
+                                const target = weighable[0];
+                                setScaleTargetProductId(target.productId);
+                                setScaleProduct({ name: target.product.name, unitPrice: target.unitPrice, unit: target.product.unit });
+                                setShowScaleModal(true);
+                                return;
                             }
-                            setScaleTargetProductId(target.productId);
-                            setScaleProduct({ name: target.product.name, unitPrice: target.unitPrice, unit: target.product.unit });
-                            setShowScaleModal(true);
+                            setScalePickerOpen(true);
                         }}
                         heldSales={heldSales}
                         onResumeSale={handleResumeSale}
@@ -1374,6 +1375,46 @@ export default function CommercialPOS() {
                 receipt={lastReceipt}
                 onClose={() => setShowReceiptModal(false)}
             />
+
+            {/* Picker — só aparece quando há >1 produto pesável no carrinho */}
+            <Modal
+                isOpen={scalePickerOpen}
+                onClose={() => setScalePickerOpen(false)}
+                title="Pesar qual produto?"
+                size="sm"
+            >
+                <div className="space-y-2">
+                    <p className="text-xs text-slate-500 dark:text-gray-400 mb-3">
+                        Escolha o produto que está em cima da balança.
+                    </p>
+                    {cart
+                        .filter((item) => isDecimalUnit(item.product.unit || 'un'))
+                        .map((item) => (
+                            <Button
+                                key={item.productId}
+                                type="button"
+                                variant="outline"
+                                fullWidth
+                                onClick={() => {
+                                    setScalePickerOpen(false);
+                                    setScaleTargetProductId(item.productId);
+                                    setScaleProduct({
+                                        name: item.product.name,
+                                        unitPrice: item.unitPrice,
+                                        unit: item.product.unit,
+                                    });
+                                    setShowScaleModal(true);
+                                }}
+                                className="justify-between"
+                            >
+                                <span className="truncate">{item.product.name}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-300 shrink-0">
+                                    {item.quantity} {item.product.unit}
+                                </span>
+                            </Button>
+                        ))}
+                </div>
+            </Modal>
 
             <CommercialScaleModal
                 isOpen={showScaleModal}
