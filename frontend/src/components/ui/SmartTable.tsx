@@ -20,7 +20,7 @@ import { useCompanySettings } from '../../hooks/useSettings';
 import type { ExportColumn } from '../../utils/exportUtils';
 import { cn } from '../../utils/helpers';
 
-export type SmartTableColumnDef<TData> = ColumnDef<TData, any> | {
+export type SmartTableColumnDef<TData> = ColumnDef<TData, unknown> | {
     key: string;
     header: ReactNode;
     align?: 'left' | 'center' | 'right';
@@ -125,7 +125,7 @@ interface SmartTableProps<TData> {
  * - Paginação
  * - Estados de Carregamento e Vazio
  */
-export function SmartTable<TData extends { id?: string | number }>({
+export function SmartTable<TData extends object>({
     data,
     columns,
     isLoading = false,
@@ -157,16 +157,16 @@ export function SmartTable<TData extends { id?: string | number }>({
     const { settings: companySettings } = useCompanySettings();
 
     const processedColumns = useMemo(() => {
-        return columns.map((col): ColumnDef<TData, any> => {
+        return columns.map((col): ColumnDef<TData, unknown> => {
             if ('key' in col && ('render' in col || !('accessorKey' in col || 'id' in col))) {
                 return {
                     id: col.key,
                     header: () => col.header,
                     cell: (info) => col.render ? col.render(info.row.original, info.row.index) : null,
                     meta: { align: col.align }
-                } as ColumnDef<TData, any>;
+                } as ColumnDef<TData, unknown>;
             }
-            return col as ColumnDef<TData, any>;
+            return col as ColumnDef<TData, unknown>;
         });
     }, [columns]);
 
@@ -274,8 +274,8 @@ export function SmartTable<TData extends { id?: string | number }>({
             {!isLoading && !isError && data.length > 0 && (
                 <div className="md:hidden space-y-2">
                     {mobileCardRender
-                        ? data.map((row) => (
-                            <div key={(row.id as string | number | undefined) ?? Math.random()}>
+                        ? data.map((row, index) => (
+                            <div key={index}>
                                 {mobileCardRender(row)}
                             </div>
                         ))
@@ -344,7 +344,7 @@ export function SmartTable<TData extends { id?: string | number }>({
                         emptyActionLabel={emptyActionLabel}
                         minHeight={minHeight}
                         renderExpandedRow={expandedRowRender}
-                        isRowExpanded={(row) => row.id === expandedId}
+                        isRowExpanded={(row) => (row as { id?: string | number }).id === expandedId}
                         rowClassName={rowClassName}
                     />
                 </div>
