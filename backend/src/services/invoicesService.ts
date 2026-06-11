@@ -9,6 +9,7 @@ import { ResultHandler } from '../utils/result';
 import { auditService } from './auditService';
 import { approvalsService } from './approvalsService';
 import { getThresholds, isOverThreshold } from './approvals/thresholds';
+import { validateQuantityForUnit } from '../constants/unitOfMeasure';
 
 /**
  * Fiscal hash chain per AT-MZ requirement: each invoice hashes
@@ -109,7 +110,7 @@ type CreditNoteListParams = {
 };
 
 type CreditNoteWithRelations = Prisma.CreditNoteGetPayload<{
-    include: { items: true; originalInvoice: true };
+    include: { items: { include: { product: { select: { unit: true } } } }; originalInvoice: true };
 }>;
 
 function serializeCreditNote(note: CreditNoteWithRelations) {
@@ -136,6 +137,7 @@ function serializeCreditNote(note: CreditNoteWithRelations) {
             unitPrice: Number(item.unitPrice || 0),
             total: Number(item.total || 0),
             originalInvoiceItemId: item.originalInvoiceItemId,
+            product: item.product ? { unit: item.product.unit } : null,
         })),
     };
 }
@@ -152,7 +154,7 @@ type DebitNoteServiceInput = DebitNoteInput & {
 };
 
 type DebitNoteWithRelations = Prisma.DebitNoteGetPayload<{
-    include: { items: true; originalInvoice: true };
+    include: { items: { include: { product: { select: { unit: true } } } }; originalInvoice: true };
 }>;
 
 function serializeDebitNote(note: DebitNoteWithRelations) {
@@ -179,6 +181,7 @@ function serializeDebitNote(note: DebitNoteWithRelations) {
             unitPrice: Number(item.unitPrice || 0),
             total: Number(item.total || 0),
             originalInvoiceItemId: item.originalInvoiceItemId,
+            product: item.product ? { unit: item.product.unit } : null,
         })),
     };
 }
@@ -365,7 +368,7 @@ export class InvoicesService {
                 verifiedItems = sourceOrder.items.map((oi) => ({
                     productId: oi.productId,
                     description: oi.productName,
-                    quantity: oi.quantity,
+                    quantity: Number(oi.quantity),
                     unitPrice: Number(oi.price),
                     discount: 0,
                     total: Number(oi.total)
@@ -687,7 +690,7 @@ export class InvoicesService {
     async getCreditNoteById(id: string, companyId: string) {
         const note = await prisma.creditNote.findFirst({
             where: { id, companyId },
-            include: { items: true, originalInvoice: true },
+            include: { items: { include: { product: { select: { unit: true } } } }, originalInvoice: true },
         });
         if (!note) throw ApiError.notFound('Nota de crédito não encontrada');
         return serializeCreditNote(note);
@@ -704,7 +707,7 @@ export class InvoicesService {
 
         const [total, creditNotes] = await Promise.all([
             prisma.creditNote.count({ where }),
-            prisma.creditNote.findMany({ where, include: { originalInvoice: true, items: true }, orderBy: { createdAt: 'desc' }, skip, take: limitNum })
+            prisma.creditNote.findMany({ where, include: { originalInvoice: true, items: { include: { product: { select: { unit: true } } } } }, orderBy: { createdAt: 'desc' }, skip, take: limitNum })
         ]);
 
         return {
@@ -717,7 +720,7 @@ export class InvoicesService {
         return prisma.$transaction(async (tx) => {
             const invoice = await tx.invoice.findFirst({
                 where: { id: invoiceId, companyId },
-                include: { items: true }
+                include: { items: { include: { product: { select: { unit: true } } } } }
             });
             if (!invoice) throw ApiError.notFound('Fatura nao encontrada');
             if (invoice.status === 'cancelled') throw ApiError.badRequest('Nao e possivel devolver uma fatura cancelada');
@@ -774,8 +777,13 @@ export class InvoicesService {
                 }
 
                 const quantity = Number(requested.quantity);
-                if (!Number.isInteger(quantity) || quantity <= 0) {
-                    throw ApiError.badRequest(`Quantidade invalida para "${original.description}"`);
+                if (quantity <= 0) {
+                    throw ApiError.badRequest(`Quantidade deve ser maior que zero para "${original.description}"`);
+                }
+
+                const uomError = validateQuantityForUnit(quantity, original.product?.unit || 'un');
+                if (uomError) {
+                    throw ApiError.badRequest(`Item "${original.description}": ${uomError}`);
                 }
 
                 const alreadyReturned = returnedQuantityByItem.get(original.id) || 0;
@@ -831,7 +839,7 @@ export class InvoicesService {
                         create: creditItems
                     }
                 },
-                include: { items: true, originalInvoice: true }
+                include: { items: { include: { product: { select: { unit: true } } } }, originalInvoice: true }
             });
 
             for (const item of creditItems) {
@@ -908,7 +916,7 @@ export class InvoicesService {
     async getDebitNoteById(id: string, companyId: string) {
         const note = await prisma.debitNote.findFirst({
             where: { id, companyId },
-            include: { items: true, originalInvoice: true },
+            include: { items: { include: { product: { select: { unit: true } } } }, originalInvoice: true },
         });
         if (!note) throw ApiError.notFound('Nota de débito não encontrada');
         return serializeDebitNote(note);
@@ -927,7 +935,7 @@ export class InvoicesService {
             prisma.debitNote.count({ where }),
             prisma.debitNote.findMany({
                 where,
-                include: { originalInvoice: true, items: true },
+                include: { originalInvoice: true, items: { include: { product: { select: { unit: true } } } } },
                 orderBy: { createdAt: 'desc' },
                 skip,
                 take: limitNum,
@@ -1030,7 +1038,7 @@ export class InvoicesService {
                     companyId,
                     items: { create: debitItems },
                 },
-                include: { items: true, originalInvoice: true },
+                include: { items: { include: { product: { select: { unit: true } } } }, originalInvoice: true },
             });
 
             await this.recalcInvoiceAmountDue(tx, invoice);
@@ -1113,7 +1121,7 @@ export class InvoicesService {
         return prisma.$transaction(async (tx) => {
             const note = await tx.debitNote.findFirst({
                 where: { id, companyId },
-                include: { originalInvoice: true, items: true },
+                include: { originalInvoice: true, items: { include: { product: { select: { unit: true } } } } },
             });
             if (!note) throw ApiError.notFound('Nota de débito não encontrada');
             if (note.status === 'cancelled') throw ApiError.badRequest('Nota de débito já está cancelada');
@@ -1122,7 +1130,7 @@ export class InvoicesService {
             const updated = await tx.debitNote.update({
                 where: { id },
                 data: { status: 'cancelled' },
-                include: { items: true, originalInvoice: true },
+                include: { items: { include: { product: { select: { unit: true } } } }, originalInvoice: true },
             });
 
             // Recalcula amountDue da fatura — a ND cancelada deixa de somar.
@@ -1170,7 +1178,7 @@ export class InvoicesService {
         return prisma.$transaction(async (tx) => {
             const note = await tx.debitNote.findFirst({
                 where: { id, companyId },
-                include: { items: true, originalInvoice: true },
+                include: { items: { include: { product: { select: { unit: true } } } }, originalInvoice: true },
             });
             if (!note) throw ApiError.notFound('Nota de débito não encontrada');
             if (note.status !== 'issued') {
@@ -1180,7 +1188,7 @@ export class InvoicesService {
             const updated = await tx.debitNote.update({
                 where: { id },
                 data: { status: 'settled' },
-                include: { items: true, originalInvoice: true },
+                include: { items: { include: { product: { select: { unit: true } } } }, originalInvoice: true },
             });
 
             // 'settled' continua a contar como dívida activa — não altera a fatura.
@@ -1247,7 +1255,7 @@ export class InvoicesService {
             items: order.items.map(i => ({
                 productId: i.productId,
                 description: i.productName,
-                quantity: i.quantity,
+                quantity: Number(i.quantity),
                 unitPrice: Number(i.price),
                 discount: 0,
                 total: Number(i.total),

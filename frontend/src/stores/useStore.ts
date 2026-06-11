@@ -11,6 +11,7 @@ import type {
     AlertConfig,
 } from '../types';
 import toast from 'react-hot-toast';
+import { formatQuantityWithUnit } from '../constants/unitOfMeasure';
 
 // Mapping from Backend Module Codes to Frontend BusinessType
 export const MODULE_TO_BUSINESS_TYPE: Record<string, BusinessType> = {
@@ -179,7 +180,7 @@ export const useStore = create<AppState>()(
                     const newQty = currentQty + quantity;
 
                     if (newQty > product.currentStock) {
-                        toast.error(`Estoque insuficiente. Disponível: ${product.currentStock}`);
+                        toast.error(`Estoque insuficiente. Disponível: ${formatQuantityWithUnit(product.currentStock, product.unit)}`);
                         return state;
                     }
 

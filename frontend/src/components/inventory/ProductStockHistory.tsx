@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { Modal, Badge, SmartTable } from '../ui';
 import { useStockMovements } from '../../hooks/useStockMovements';
 import type { Product, MovementType, StockMovement } from '../../types';
+import { formatQuantity, formatQuantityWithUnit } from '../../constants/unitOfMeasure';
 
 interface ProductStockHistoryProps {
     isOpen: boolean;
@@ -75,11 +76,11 @@ export function ProductStockHistory({ isOpen, onClose, product }: ProductStockHi
         {
             header: 'Qtd',
             cell: ({ row }) => {
-                const quantity = row.original.quantity;
+                const quantity = Number(row.original.quantity);
 
                 return (
                     <span className={`font-bold ${quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {quantity > 0 ? `+${quantity}` : quantity}
+                        {quantity > 0 ? `+${formatQuantity(quantity, product.unit)}` : formatQuantity(quantity, product.unit)}
                     </span>
                 );
             },
@@ -88,9 +89,9 @@ export function ProductStockHistory({ isOpen, onClose, product }: ProductStockHi
             header: 'Saldo',
             cell: ({ row }) => (
                 <div className="flex items-center justify-center gap-1 text-sm">
-                    <span className="text-gray-400">{row.original.balanceBefore}</span>
+                    <span className="text-gray-400">{formatQuantity(Number(row.original.balanceBefore), product.unit)}</span>
                     <span className="text-gray-400">-&gt;</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">{row.original.balanceAfter}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{formatQuantity(Number(row.original.balanceAfter), product.unit)}</span>
                 </div>
             ),
         },
@@ -135,7 +136,7 @@ export function ProductStockHistory({ isOpen, onClose, product }: ProductStockHi
                     </div>
                     <div className="text-right">
                         <p className="text-xs text-gray-500 dark:text-gray-400">Stock Actual (Global)</p>
-                        <p className="text-2xl font-black text-primary-600">{product.currentStock} {product.unit}</p>
+                        <p className="text-2xl font-black text-primary-600">{formatQuantityWithUnit(product.currentStock, product.unit)}</p>
                     </div>
                 </div>
 

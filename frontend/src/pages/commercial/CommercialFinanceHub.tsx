@@ -65,8 +65,7 @@ export default function CommercialFinanceHub() {
             />
 
             {/* Premium Tab Navigation (Segmented Control style) */}
-            <div className="w-full overflow-x-auto overscroll-x-contain scrollbar-none pb-1">
-                <div className="flex w-max min-w-full p-1 bg-gray-100/80 dark:bg-dark-800/80 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-dark-700/50 shadow-inner">
+            <div className="flex gap-1 overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-200/90 bg-slate-100/80 p-1 shadow-inner scrollbar-none dark:border-white/10 dark:bg-dark-700/50">
                     {TABS.map(tab => {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
@@ -77,19 +76,17 @@ export default function CommercialFinanceHub() {
                                 variant="ghost"
                                 size="sm"
                                 className={cn(
-                                    "min-w-max sm:min-w-0 sm:flex-1 px-2 sm:px-6 rounded-lg text-[10px] font-black uppercase tracking-widest",
+                                    "min-w-max flex-1 justify-center rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem] lg:justify-start lg:px-4",
                                     isActive
-                                        ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-lg shadow-black/5 scale-[1.02]"
-                                        : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                                        ? "bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-400"
+                                        : "text-slate-600 hover:text-slate-950 dark:hover:text-gray-300"
                                 )}
-                                leftIcon={<Icon className={cn("w-4 h-4 hidden sm:block", isActive ? "text-primary-600 dark:text-primary-400" : "opacity-55")} />}
+                                leftIcon={<Icon className={cn("w-4 h-4", !isActive && "text-primary-500 opacity-50")} />}
                             >
-                                <span className="hidden md:inline">{tab.label}</span>
-                                <span className="inline md:hidden">{tab.shortLabel}</span>
+                                <span className="hidden truncate text-left lg:inline">{tab.label}</span>
                             </Button>
                         );
                     })}
-                </div>
             </div>
 
             {/* Tab Content */}

@@ -29,6 +29,24 @@ export default function FiscalDashboard() {
         ? fiscalPeriodStatus.isClosed
         : Boolean(commercialFiscalSummary?.isClosed);
 
+    // Fiscal deadline reminder — period being declared (last month) and dia 20 deadline.
+    const deadlineInfo = useMemo(() => {
+        const today = new Date(now);
+        const [yearStr, monthStr] = currentPeriod.split('-');
+        const year = Number(yearStr);
+        const month = Number(monthStr); // 1-12 of the CURRENT month
+        // Period being declared = previous month
+        const declaredYear = month === 1 ? year - 1 : year;
+        const declaredMonth = month === 1 ? 12 : month - 1;
+        const declaredPeriod = `${declaredYear}-${String(declaredMonth).padStart(2, '0')}`;
+        // Deadline: dia 20 of current month
+        const dueDate = new Date(year, month - 1, 20, 23, 59, 59);
+        const msPerDay = 1000 * 60 * 60 * 24;
+        const daysLeft = Math.ceil((dueDate.getTime() - today.getTime()) / msPerDay);
+        const dueDateLabel = dueDate.toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' });
+        return { declaredPeriod, dueDateLabel, daysLeft };
+    }, [now, currentPeriod]);
+
     const getComplianceColor = (status: string) => {
         switch (status) {
             case 'compliant':
@@ -395,23 +413,49 @@ export default function FiscalDashboard() {
                     </div>
             </Card>
 
-            {/* Info Banner */}
-            <Card padding="md" className="bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 border-primary-100 dark:border-primary-800">
-                <div className="flex items-start gap-4">
-                    <div className="p-3 bg-white dark:bg-dark-800 rounded-lg shadow-sm">
-                        <HiOutlineExclamationTriangle className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                    </div>
-                    <div>
-                        <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
-                            Lembre-se dos Prazos Fiscais
-                        </h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Os impostos devem ser declarados e pagos at ao <strong>dia 20 de cada mês</strong> referente ao mês anterior.
-                            Atrasos podem resultar em multas e juros de mora.
-                        </p>
-                    </div>
-                </div>
-            </Card>
+            {/* Info Banner — fiscal deadline reminder */}
+            {(() => {
+                const { declaredPeriod, dueDateLabel, daysLeft } = deadlineInfo;
+                const isOverdue = daysLeft < 0;
+                const isCritical = daysLeft >= 0 && daysLeft <= 3;
+                const isWarning = daysLeft > 3 && daysLeft <= 10;
+                const tone = isOverdue || isCritical
+                    ? { card: 'bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border-red-200 dark:border-red-800', icon: 'text-red-600 dark:text-red-400', countdown: 'text-red-700 dark:text-red-300' }
+                    : isWarning
+                        ? { card: 'bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-amber-200 dark:border-amber-800', icon: 'text-amber-600 dark:text-amber-400', countdown: 'text-amber-700 dark:text-amber-300' }
+                        : { card: 'bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 border-primary-100 dark:border-primary-800', icon: 'text-primary-600 dark:text-primary-400', countdown: 'text-primary-700 dark:text-primary-300' };
+                const countdownLabel = isOverdue
+                    ? `prazo expirado há ${Math.abs(daysLeft)} ${Math.abs(daysLeft) === 1 ? 'dia' : 'dias'}`
+                    : daysLeft === 0
+                        ? 'hoje é o último dia'
+                        : `faltam ${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}`;
+
+                return (
+                    <Card padding="md" className={tone.card}>
+                        <div className="flex items-start gap-4">
+                            <div className="p-3 bg-white dark:bg-dark-800 rounded-lg shadow-sm flex-shrink-0">
+                                <HiOutlineExclamationTriangle className={`w-6 h-6 ${tone.icon}`} />
+                            </div>
+                            <div className="flex-1 min-w-0 space-y-2">
+                                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                                    <h4 className="font-semibold text-gray-900 dark:text-white">
+                                        Prazos fiscais — período {formatPeriod(declaredPeriod)}
+                                    </h4>
+                                    <span className={`text-xs font-bold uppercase tracking-widest ${tone.countdown}`}>
+                                        {countdownLabel}
+                                    </span>
+                                </div>
+                                <p className="text-sm text-gray-700 dark:text-gray-300">
+                                    Declaração e pagamento de <strong>IVA mensal</strong> e <strong>retenções na fonte (IRPS / IRPC)</strong> até <strong>{dueDateLabel}</strong> (dia 20 do mês seguinte ao da operação).
+                                </p>
+                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                    <strong>Atenção:</strong> contribuições para o <strong>INSS</strong> têm prazo distinto — até <strong>dia 10</strong> do mês seguinte. Atrasos geram multa e juros de mora à taxa legal vigente.
+                                </p>
+                            </div>
+                        </div>
+                    </Card>
+                );
+            })()}
 
             <ConfirmationModal
                 isOpen={confirmCloseOpen}

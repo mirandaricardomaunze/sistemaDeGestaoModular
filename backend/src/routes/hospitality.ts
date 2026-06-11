@@ -130,7 +130,7 @@ router.post('/bookings/:id/consumptions', authenticate, async (req: AuthRequest,
     });
     if (!product) throw ApiError.notFound('Produto não encontrado');
 
-    if (product.currentStock < quantity) {
+    if (Number(product.currentStock) < quantity) {
         throw ApiError.badRequest(`Stock insuficiente. Disponível: ${product.currentStock}`);
     }
 
@@ -150,7 +150,7 @@ router.post('/bookings/:id/consumptions', authenticate, async (req: AuthRequest,
         await tx.stockMovement.create({
             data: {
                 productId, movementType: 'sale', quantity: -quantity,
-                balanceBefore: product.currentStock, balanceAfter: product.currentStock - quantity,
+                balanceBefore: Number(product.currentStock), balanceAfter: Number(product.currentStock) - quantity,
                 reason: `Consumo: Quarto ${booking.room.number}`,
                 performedBy: req.userName || 'Sistema',
                 companyId: req.companyId!, originModule: 'hospitality',

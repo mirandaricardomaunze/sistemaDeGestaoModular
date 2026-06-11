@@ -212,7 +212,7 @@ router.post('/credit-notes/:id/send-email', authenticate, async (req: AuthReques
             subtotal: note.subtotal,
             tax: note.tax,
             total: note.total,
-            items: note.items.map(i => ({ description: i.description, quantity: i.quantity, unitPrice: i.unitPrice, total: i.total })),
+            items: note.items.map(i => ({ description: i.description, quantity: Number(i.quantity), unitPrice: i.unitPrice, total: i.total })),
         },
         company: {
             name: companyInfo.tradeName || companyInfo.companyName || 'Empresa',
@@ -279,7 +279,7 @@ router.post('/debit-notes/:id/send-email', authenticate, async (req: AuthRequest
             subtotal: note.subtotal,
             tax: note.tax,
             total: note.total,
-            items: note.items.map(i => ({ description: i.description, quantity: i.quantity, unitPrice: i.unitPrice, total: i.total })),
+            items: note.items.map(i => ({ description: i.description, quantity: Number(i.quantity), unitPrice: i.unitPrice, total: i.total })),
         },
         company: {
             name: companyInfo.tradeName || companyInfo.companyName || 'Empresa',
@@ -357,7 +357,7 @@ router.post('/:id/send-email', authenticate, async (req: AuthRequest, res) => {
             status: invoice.status,
             items: (invoice.items || []).map((i) => ({
                 description: i.description,
-                quantity: i.quantity,
+                quantity: Number(i.quantity),
                 unitPrice: Number(i.unitPrice),
                 total: Number(i.total),
             })),

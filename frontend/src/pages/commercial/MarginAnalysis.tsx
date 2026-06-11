@@ -16,6 +16,7 @@ import {
 } from 'react-icons/hi2';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { useMarginAnalysis, useInventoryTurnover } from '../../hooks/useCommercial';
+import type { InventoryTurnoverItem, MonthlyMarginTrend } from '../../services/api/commercial.api';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { SegmentedControl } from '../../components/common/SegmentedControl';
 
@@ -163,8 +164,7 @@ export default function MarginAnalysis() {
             </div>
 
             {/* Tabs */}
-            <div className="w-full overflow-x-auto overscroll-x-contain scrollbar-none pb-1">
-                <div className="flex w-max min-w-full gap-1 bg-gray-100 dark:bg-dark-800/80 backdrop-blur-sm rounded-lg p-1 border border-gray-200 dark:border-dark-700 shadow-inner">
+            <div className="flex gap-1 overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-200/90 bg-slate-100/80 p-1 shadow-inner scrollbar-none dark:border-white/10 dark:bg-dark-700/50">
                     {TABS.map(tab => {
                         const Icon = tab.icon;
                         return (
@@ -174,14 +174,14 @@ export default function MarginAnalysis() {
                                 variant="ghost"
                                 size="sm"
                                 className={cn(
-                                    'min-w-max sm:min-w-0 sm:flex-1 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-widest whitespace-nowrap flex items-center justify-center gap-1.5 px-2 sm:px-3 transition-all duration-300',
+                                    'min-w-max flex-1 justify-center rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem] lg:justify-start lg:px-4',
                                     activeTab === tab.key
-                                        ? 'bg-white dark:bg-dark-600 text-primary-600 dark:text-white shadow-lg shadow-black/5 scale-[1.02]'
-                                        : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'
+                                        ? 'bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-400'
+                                        : 'text-slate-600 hover:text-slate-950 dark:hover:text-gray-300'
                                 )}
                             >
-                                <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-                                <span>
+                                <Icon className={cn("w-4 h-4 flex-shrink-0", activeTab !== tab.key && "text-primary-500 opacity-50")} />
+                                <span className="hidden truncate text-left lg:inline">
                                     {tab.key === 'category' && (
                                         <>
                                             <span className="hidden md:inline">Por Categoria</span>
@@ -210,7 +210,6 @@ export default function MarginAnalysis() {
                             </Button>
                         );
                     })}
-                </div>
             </div>
 
             {/* Tab content */}
@@ -432,15 +431,15 @@ export default function MarginAnalysis() {
                                             data={data.monthlyTrend}
                                             hideToolbar
                                             columns={[
-                                                { key: 'month', header: 'Mês', render: (m: any) => <span className="font-bold text-gray-700 dark:text-gray-300 uppercase">{m.month}</span> },
-                                                { key: 'revenue', header: 'Receita', align: 'right', render: (m: any) => <span className="text-gray-700 dark:text-gray-300 font-medium">{formatCurrency(m.revenue)}</span> },
-                                                { key: 'cogs', header: 'COGS', align: 'right', render: (m: any) => <span className="text-orange-500 font-medium">-{formatCurrency(m.cogs)}</span> },
-                                                { key: 'profit', header: 'Lucro', align: 'right', render: (m: any) => <span className="font-black text-gray-900 dark:text-white">{formatCurrency(m.revenue - m.cogs)}</span> },
+                                                { key: 'month', header: 'Mês', render: (m: MonthlyMarginTrend) => <span className="font-bold text-gray-700 dark:text-gray-300 uppercase">{m.month}</span> },
+                                                { key: 'revenue', header: 'Receita', align: 'right', render: (m: MonthlyMarginTrend) => <span className="text-gray-700 dark:text-gray-300 font-medium">{formatCurrency(m.revenue)}</span> },
+                                                { key: 'cogs', header: 'COGS', align: 'right', render: (m: MonthlyMarginTrend) => <span className="text-orange-500 font-medium">-{formatCurrency(m.cogs)}</span> },
+                                                { key: 'profit', header: 'Lucro', align: 'right', render: (m: MonthlyMarginTrend) => <span className="font-black text-gray-900 dark:text-white">{formatCurrency(m.revenue - m.cogs)}</span> },
                                                 {
                                                     key: 'margin',
                                                     header: 'Margem',
                                                     align: 'right',
-                                                    render: (m: any, i: any) => {
+                                                    render: (m: MonthlyMarginTrend, i?: number) => {
                                                         const prevMargin = (i ?? 0) > 0 ? data.monthlyTrend[(i ?? 0) - 1].margin : null;
                                                         const trend = prevMargin !== null ? m.margin - prevMargin : null;
                                                         return (
@@ -457,7 +456,7 @@ export default function MarginAnalysis() {
                                                     }
                                                 }
                                             ]}
-                                            mobileCardRender={(m: any) => {
+                                            mobileCardRender={(m: MonthlyMarginTrend) => {
                                                 const i = data.monthlyTrend.indexOf(m);
                                                 const profit = m.revenue - m.cogs;
                                                 const prevMargin = i > 0 ? data.monthlyTrend[i - 1].margin : null;
@@ -520,13 +519,13 @@ export default function MarginAnalysis() {
                                         data={turnoverData}
                                         hideToolbar
                                         columns={[
-                                            { key: 'category', header: 'Categoria', render: (row: any) => <span className="font-bold text-gray-900 dark:text-white capitalize">{row.category}</span> },
-                                            { key: 'cogs', header: 'COGS (período)', align: 'right', render: (row: any) => <span className="text-gray-600 dark:text-gray-400 font-medium">{formatCurrency(row.cogs)}</span> },
-                                            { key: 'value', header: 'Valor Stock', align: 'right', render: (row: any) => <span className="text-gray-600 dark:text-gray-400 font-medium">{formatCurrency(row.inventoryValue)}</span> },
-                                            { key: 'turnover', header: 'Rotatividade', align: 'right', render: (row: any) => <Badge variant={row.turnover >= 6 ? 'success' : row.turnover >= 3 ? 'info' : row.turnover >= 1 ? 'warning' : 'danger'} size="sm" className="font-black">{row.turnover.toFixed(1)}x/ano</Badge> },
-                                            { key: 'days', header: 'Dias em Stock', align: 'right', render: (row: any) => <span className="font-bold text-gray-700 dark:text-gray-300">{row.daysOnHand > 0 ? `${row.daysOnHand} dias` : <span className="text-gray-300 dark:text-gray-600">—</span>}</span> },
+                                            { key: 'category', header: 'Categoria', render: (row: InventoryTurnoverItem) => <span className="font-bold text-gray-900 dark:text-white capitalize">{row.category}</span> },
+                                            { key: 'cogs', header: 'COGS (período)', align: 'right', render: (row: InventoryTurnoverItem) => <span className="text-gray-600 dark:text-gray-400 font-medium">{formatCurrency(row.cogs)}</span> },
+                                            { key: 'value', header: 'Valor Stock', align: 'right', render: (row: InventoryTurnoverItem) => <span className="text-gray-600 dark:text-gray-400 font-medium">{formatCurrency(row.inventoryValue)}</span> },
+                                            { key: 'turnover', header: 'Rotatividade', align: 'right', render: (row: InventoryTurnoverItem) => <Badge variant={row.turnover >= 6 ? 'success' : row.turnover >= 3 ? 'info' : row.turnover >= 1 ? 'warning' : 'danger'} size="sm" className="font-black">{row.turnover.toFixed(1)}x/ano</Badge> },
+                                            { key: 'days', header: 'Dias em Stock', align: 'right', render: (row: InventoryTurnoverItem) => <span className="font-bold text-gray-700 dark:text-gray-300">{row.daysOnHand > 0 ? `${row.daysOnHand} dias` : <span className="text-gray-300 dark:text-gray-600">—</span>}</span> },
                                         ]}
-                                        mobileCardRender={(row: any) => (
+                                        mobileCardRender={(row: InventoryTurnoverItem) => (
                                             <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-4">
                                                 <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2">
                                                     <span className="font-black text-sm text-gray-900 dark:text-white uppercase tracking-widest">{row.category}</span>

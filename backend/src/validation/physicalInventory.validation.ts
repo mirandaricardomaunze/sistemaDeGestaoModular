@@ -7,7 +7,7 @@ export const CreateInventorySchema = z.object({
 
 export const CountLineSchema = z.object({
     lineId: z.string().uuid('Linha invalida'),
-    countedQuantity: z.number().int('Quantidade deve ser inteira').min(0, 'Quantidade nao pode ser negativa'),
+    countedQuantity: z.number().min(0, 'Quantidade nao pode ser negativa'),
     notes: z.string().max(500, 'Notas muito longas').optional().nullable()
 });
 

@@ -10,7 +10,7 @@ import {
 } from 'react-icons/hi2';
 import { useFiscalStore } from '../../stores/useFiscalStore';
 import { Button, Card, Input, Modal, Select, Badge, Pagination, usePagination, ConfirmationModal } from '../ui';
-import { formatCurrency, generateId } from '../../utils/helpers';
+import { cn, formatCurrency, generateId } from '../../utils/helpers';
 import type { TaxConfig, IRPSBracket, TaxType, TaxApplicableTo } from '../../types/fiscal';
 import toast from 'react-hot-toast';
 
@@ -147,27 +147,47 @@ export default function TaxConfigManager() {
     return (
         <div className="space-y-6">
             {/* Tabs */}
-            <div className="flex gap-2 border-b border-gray-200 dark:border-dark-700">
-                <Button variant="ghost"
-                    onClick={() => setActiveTab('taxes')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'taxes'
-                        ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                        }`}
+            <div className="w-full">
+                <div
+                    role="tablist"
+                    aria-label="Configuração fiscal"
+                    className="flex gap-1 overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-200/90 bg-slate-100/80 p-1 shadow-inner scrollbar-none dark:border-white/10 dark:bg-dark-700/50"
                 >
-                    <HiOutlineCog className="w-4 h-4 inline mr-2" />
-                    Configuração de Impostos
-                </Button>
-                <Button variant="ghost"
-                    onClick={() => setActiveTab('irt')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'irt'
-                        ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                        }`}
-                >
-                    <HiOutlineInformationCircle className="w-4 h-4 inline mr-2" />
-                    Tabela IRPS Progressivo
-                </Button>
+                    <Button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeTab === 'taxes'}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setActiveTab('taxes')}
+                        leftIcon={<HiOutlineCog className={cn('h-4 w-4', activeTab !== 'taxes' && 'text-slate-500 opacity-50')} />}
+                        className={cn(
+                            'min-w-max flex-1 justify-center rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem] lg:justify-start lg:px-4',
+                            activeTab === 'taxes'
+                                ? 'bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-400'
+                                : 'text-slate-600 hover:text-slate-950 dark:hover:text-gray-300'
+                        )}
+                    >
+                        <span className="hidden truncate text-left lg:inline">Configuração de Impostos</span>
+                    </Button>
+                    <Button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeTab === 'irt'}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setActiveTab('irt')}
+                        leftIcon={<HiOutlineInformationCircle className={cn('h-4 w-4', activeTab !== 'irt' && 'text-blue-500 opacity-50')} />}
+                        className={cn(
+                            'min-w-max flex-1 justify-center rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem] lg:justify-start lg:px-4',
+                            activeTab === 'irt'
+                                ? 'bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-400'
+                                : 'text-slate-600 hover:text-slate-950 dark:hover:text-gray-300'
+                        )}
+                    >
+                        <span className="hidden truncate text-left lg:inline">Tabela IRPS Progressivo</span>
+                    </Button>
+                </div>
             </div>
 
             {activeTab === 'taxes' ? (

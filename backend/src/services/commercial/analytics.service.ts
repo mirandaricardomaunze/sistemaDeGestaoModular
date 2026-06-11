@@ -11,7 +11,7 @@ type SaleFilter = Prisma.SaleWhereInput;
 type CostedSaleItem = {
     costPrice?: unknown;
     product?: { costPrice?: unknown } | null;
-    quantity: number;
+    quantity: unknown;
 };
 
 const COMMERCIAL_PRODUCT_ORIGINS = ['commercial', 'COMMERCIAL'];
@@ -93,7 +93,7 @@ export class CommercialAnalyticsService {
             // fall back to the live product cost only for legacy rows that
             // pre-date the snapshot column.
             const itemCogs = (i: CostedSaleItem) =>
-                Number(i.costPrice ?? i.product?.costPrice ?? 0) * i.quantity;
+                Number(i.costPrice ?? i.product?.costPrice ?? 0) * Number(i.quantity);
 
             const revenue = monthItems.reduce((s, i) => s + Number(i.total), 0);
             const cogs = monthItems.reduce((s, i) => s + itemCogs(i), 0);
@@ -104,8 +104,8 @@ export class CommercialAnalyticsService {
             const lastCogs = lastMonthItems.reduce((s, i) => s + itemCogs(i), 0);
             const lastMargin = calcMargin(lastRevenue, lastCogs);
 
-            const inventoryValue = allActiveProducts.reduce((s, p) => s + Number(p.costPrice) * p.currentStock, 0);
-            const reorderNeeded = allActiveProducts.filter(p => p.currentStock <= p.minStock).length;
+            const inventoryValue = allActiveProducts.reduce((s, p) => s + Number(p.costPrice) * Number(p.currentStock), 0);
+            const reorderNeeded = allActiveProducts.filter(p => Number(p.currentStock) <= (p.minStock ? Number(p.minStock) : 5)).length;
             const inventoryTurnover = inventoryValue > 0 ? round2((cogs * 12) / inventoryValue) : 0;
             const poSpend = Number(totalPOSpend._sum?.total ?? 0);
 
@@ -151,7 +151,7 @@ export class CommercialAnalyticsService {
             SELECT category,
                    COALESCE(SUM(total), 0)::float AS revenue,
                    COALESCE(SUM(cost), 0)::float AS cogs,
-                   COALESCE(SUM(quantity), 0)::int AS qty
+                   COALESCE(SUM(quantity), 0)::float AS qty
             FROM (
                 SELECT COALESCE(
                            NULLIF(TRIM(c.name), ''),
@@ -200,7 +200,7 @@ export class CommercialAnalyticsService {
                    ) AS category,
                    COALESCE(SUM(si.total), 0)::float AS revenue,
                    COALESCE(SUM(COALESCE(si."cost_price", p."costPrice", 0) * si.quantity), 0)::float AS cogs,
-                   COALESCE(SUM(si.quantity), 0)::int AS qty
+                   COALESCE(SUM(si.quantity), 0)::float AS qty
             FROM sale_items si
             JOIN sales s ON s.id = si."saleId"
             JOIN products p ON p.id = si."productId"
@@ -342,9 +342,9 @@ export class CommercialAnalyticsService {
             return {
                 id: p.id, name: p.name, code: p.code,
                 category: resolveCategoryName(p.category, p.categoryName),
-                currentStock: p.currentStock,
-                stockValue: round2(Number(p.costPrice) * p.currentStock),
-                potentialRevenue: round2(Number(p.price) * p.currentStock),
+                currentStock: Number(p.currentStock),
+                stockValue: round2(Number(p.costPrice) * Number(p.currentStock)),
+                potentialRevenue: round2(Number(p.price) * Number(p.currentStock)),
                 daysSinceLastSale,
                 lastSaleDate: lastSale?.toISOString() || null,
                 agingBucket
@@ -409,11 +409,11 @@ export class CommercialAnalyticsService {
 
         for (const item of saleItems) {
             const cat = resolveCategoryName(item.product?.category, item.product?.categoryModel?.name);
-            cogsByCategory[cat] = (cogsByCategory[cat] || 0) + Number(item.product?.costPrice ?? 0) * item.quantity;
+            cogsByCategory[cat] = (cogsByCategory[cat] || 0) + Number(item.product?.costPrice ?? 0) * Number(item.quantity);
         }
         for (const p of products) {
             const cat = resolveCategoryName(p.category, p.categoryName);
-            inventoryByCategory[cat] = (inventoryByCategory[cat] || 0) + Number(p.costPrice) * p.currentStock;
+            inventoryByCategory[cat] = (inventoryByCategory[cat] || 0) + Number(p.costPrice) * Number(p.currentStock);
         }
 
         const allCats = new Set([...Object.keys(cogsByCategory), ...Object.keys(inventoryByCategory)]);
@@ -486,7 +486,7 @@ export class CommercialAnalyticsService {
             const key = (item.productId ?? item.productName) as string;
             if (!productAgg[key]) productAgg[key] = { name: item.productName ?? '', revenue: 0, qty: 0 };
             productAgg[key].revenue += Number(item.total);
-            productAgg[key].qty += item.quantity;
+            productAgg[key].qty += Number(item.quantity);
         }
         const topProducts = Object.values(productAgg)
             .sort((a, b) => b.revenue - a.revenue)
@@ -580,7 +580,7 @@ export class CommercialAnalyticsService {
         }>>`
             SELECT ws."warehouseId" AS "warehouseId",
                    COALESCE(SUM(p."costPrice" * ws.quantity), 0)::float AS valuation,
-                   COALESCE(SUM(ws.quantity), 0)::int AS volume,
+                   COALESCE(SUM(ws.quantity), 0)::float AS volume,
                    COUNT(*)::int AS "productCount"
             FROM warehouse_stocks ws
             JOIN products p ON p.id = ws."productId"

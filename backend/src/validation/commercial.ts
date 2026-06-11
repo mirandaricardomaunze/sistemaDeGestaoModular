@@ -13,7 +13,7 @@ export const commercialWarehouseQuerySchema = z.object({
 export const predictiveSuggestionsSchema = z.object({
     suggestions: z.array(z.object({
         productId: z.string().min(1),
-        quantity: z.coerce.number().int().min(1),
+        quantity: z.coerce.number().positive(),
     })).min(1),
 });
 
@@ -43,7 +43,7 @@ export const createCommercialQuotationSchema = z.object({
     items: z.array(z.object({
         productId: z.string().min(1).optional().nullable(),
         productName: z.string().min(1),
-        quantity: z.coerce.number().int().min(1),
+        quantity: z.coerce.number().positive(),
         price: z.coerce.number().min(0),
     })).min(1),
 });
@@ -63,13 +63,13 @@ export const partialDeliverySchema = z.object({
     warehouseId: z.string().min(1).optional(),
     deliveries: z.array(z.object({
         itemId: z.string().min(1),
-        receivedQty: z.coerce.number().int().min(1),
+        receivedQty: z.coerce.number().positive(),
     })).min(1),
 });
 
 export const reserveItemSchema = z.object({
     productId: z.string().min(1),
-    quantity: z.coerce.number().int().min(1),
+    quantity: z.coerce.number().positive(),
     sessionId: z.string().min(1).optional(),
     warehouseId: z.string().min(1).optional(),
 });

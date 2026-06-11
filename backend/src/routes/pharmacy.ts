@@ -957,8 +957,8 @@ router.get('/reports/stock', authorize(...STAFF_ROLES), async (req: AuthRequest,
     ]);
 
     let data = medications.map(m => {
-        const totalStock = m.product.currentStock;
-        const isLowStock = totalStock <= (m.product.minStock || 5);
+        const totalStock = Number(m.product.currentStock);
+        const isLowStock = totalStock <= (Number(m.product.minStock) || 5);
         const totalValue = totalStock * Number(m.product.price);
         const totalCost = totalStock * Number(m.product.costPrice || 0);
         const nearestBatch = m.batches[0];
@@ -1120,7 +1120,7 @@ router.get('/alerts', authorize(...STAFF_ROLES), async (req: AuthRequest, res) =
             where: { product: { companyId: req.companyId, currentStock: { gt: 0 } } },
             include: { product: { select: { name: true, code: true, currentStock: true, minStock: true } } },
             take: 20
-        }).then(meds => meds.filter(m => m.product.currentStock > 0 && m.product.currentStock <= (m.product.minStock || 5))),
+        }).then(meds => meds.filter(m => Number(m.product.currentStock) > 0 && Number(m.product.currentStock) <= (Number(m.product.minStock) || 5))),
         // Out of stock
         prisma.medication.findMany({
             where: { product: { companyId: req.companyId, currentStock: 0 } },
@@ -1145,7 +1145,7 @@ router.get('/alerts', authorize(...STAFF_ROLES), async (req: AuthRequest, res) =
         prisma.medication.findMany({
             where: { product: { companyId: req.companyId } },
             include: { product: { select: { name: true, code: true, currentStock: true } } }
-        }).then(meds => meds.filter(m => m.product.currentStock <= m.reorderPoint))
+        }).then(meds => meds.filter(m => Number(m.product.currentStock) <= m.reorderPoint))
     ]);
 
     const alerts = [];
@@ -1189,7 +1189,7 @@ router.get('/alerts', authorize(...STAFF_ROLES), async (req: AuthRequest, res) =
 
     // INFO: Below reorder point
     for (const m of belowReorderMeds) {
-        if (m.product.currentStock <= m.reorderPoint) {
+        if (Number(m.product.currentStock) <= m.reorderPoint) {
             alerts.push({ type: 'reorder', severity: 'info', title: 'Ponto de Reposição', message: `${m.product.name}: stock ${m.product.currentStock} ≤ ponto de reposição ${m.reorderPoint}`, medicationId: m.id, productName: m.product.name, reorderQuantity: m.reorderQuantity });
         }
     }
@@ -1222,18 +1222,18 @@ router.get('/reorder-suggestions', authorize(...STAFF_ROLES), async (req: AuthRe
     });
 
     const suggestions = medications
-        .filter(m => m.product.currentStock <= m.reorderPoint)
+        .filter(m => Number(m.product.currentStock) <= m.reorderPoint)
         .map(m => ({
             medicationId: m.id,
             productId: m.product.id,
             productCode: m.product.code,
             productName: m.product.name,
-            currentStock: m.product.currentStock,
+            currentStock: Number(m.product.currentStock),
             reorderPoint: m.reorderPoint,
             reorderQuantity: m.reorderQuantity,
             supplier: m.product.supplier,
             estimatedCost: m.reorderQuantity * Number(m.product.costPrice || 0),
-            urgency: m.product.currentStock === 0 ? 'critical' : m.product.currentStock <= Math.floor(m.reorderPoint / 2) ? 'high' : 'medium'
+            urgency: Number(m.product.currentStock) === 0 ? 'critical' : Number(m.product.currentStock) <= Math.floor(m.reorderPoint / 2) ? 'high' : 'medium'
         }))
         .sort((a, b) => (a.urgency === 'critical' ? -3 : a.urgency === 'high' ? -1 : 0) - (b.urgency === 'critical' ? -3 : b.urgency === 'high' ? -1 : 0));
 

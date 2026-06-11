@@ -6,6 +6,7 @@ import { useWarehouses, useProducts } from '../../hooks/useData';
 import type { Product } from '../../types';
 import toast from 'react-hot-toast';
 import { cn } from '../../utils/helpers';
+import { isDecimalUnit, formatQuantityWithUnit } from '../../constants/unitOfMeasure';
 
 interface StockAdjustmentModalProps {
     isOpen: boolean;
@@ -86,7 +87,7 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
                         </div>
                         <div className="text-right">
                             <p className="text-xs text-gray-500 uppercase font-semibold">Stock Atual</p>
-                            <p className="text-lg font-bold text-primary-600">{product.currentStock} {product.unit}</p>
+                            <p className="text-lg font-bold text-primary-600">{formatQuantityWithUnit(product.currentStock, product.unit)}</p>
                         </div>
                     </div>
                 </div>
@@ -116,7 +117,7 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
                         label="Quantidade"
                         type="number"
                         min="0"
-                        step="0.01"
+                        step={isDecimalUnit(product.unit) ? "any" : "1"}
                         value={quantity || ''}
                         onChange={(e) => setQuantity(Number(e.target.value))}
                         required
@@ -145,9 +146,12 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
                 <div className="p-3 bg-gray-50 dark:bg-dark-900/50 rounded-lg flex justify-between items-center text-sm">
                     <span className="text-gray-500">Novo saldo previsto:</span>
                     <span className="font-bold text-gray-900 dark:text-white">
-                        {operation === 'add' ? product.currentStock + quantity :
-                            operation === 'subtract' ? Math.max(0, product.currentStock - quantity) :
-                                quantity} {product.unit}
+                        {formatQuantityWithUnit(
+                            operation === 'add' ? product.currentStock + quantity :
+                                operation === 'subtract' ? Math.max(0, product.currentStock - quantity) :
+                                    quantity,
+                            product.unit
+                        )}
                     </span>
                 </div>
 

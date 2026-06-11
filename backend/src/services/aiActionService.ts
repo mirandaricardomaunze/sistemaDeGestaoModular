@@ -134,8 +134,8 @@ export class AIActionService {
             out_of_stock:    outOfStock,
             top_stocked: topByStock.map(p => ({
                 name:                  p.name,
-                stock:                 p.currentStock,
-                estimated_value_mzn:   p.currentStock * Number(p.costPrice),
+                stock:                 Number(p.currentStock),
+                estimated_value_mzn:   Number(p.currentStock) * Number(p.costPrice),
             })),
         };
     }

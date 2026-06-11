@@ -189,21 +189,21 @@ export default function CommercialInventory() {
             </div>
 
             {/* Tabs */}
-            <div className="flex w-full overflow-x-auto overscroll-x-contain p-1 bg-gray-100/50 dark:bg-dark-800/50 rounded-xl border border-gray-200/30 dark:border-dark-700/30 shadow-inner scrollbar-none">
+            <div className="flex gap-1 overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-200/90 bg-slate-100/80 p-1 shadow-inner scrollbar-none dark:border-white/10 dark:bg-dark-700/50">
                 <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => setActiveTab('products')}
                     className={cn(
-                        "flex-1 sm:flex-none justify-center sm:min-w-max px-3 text-[10px] font-black uppercase tracking-widest rounded-lg gap-2",
+                        "min-w-max flex-1 justify-center rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem] lg:justify-start lg:px-4",
                         activeTab === 'products'
-                            ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
-                            : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                            ? "bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-400"
+                            : "text-slate-600 hover:text-slate-950 dark:hover:text-gray-300"
                     )}
                 >
-                    <HiOutlineSquares2X2 className="w-4 h-4" />
-                    <span>Produtos</span>
+                    <HiOutlineSquares2X2 className={cn("w-4 h-4", activeTab !== 'products' && "text-blue-500 opacity-50")} />
+                    <span className="hidden truncate text-left lg:inline">Produtos</span>
                 </Button>
                 <Button
                     type="button"
@@ -211,17 +211,14 @@ export default function CommercialInventory() {
                     size="sm"
                     onClick={() => setActiveTab('batches')}
                     className={cn(
-                        "flex-1 sm:flex-none justify-center sm:min-w-max px-3 text-[10px] font-black uppercase tracking-widest rounded-lg gap-2",
+                        "min-w-max flex-1 justify-center rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem] lg:justify-start lg:px-4",
                         activeTab === 'batches'
-                            ? "bg-white dark:bg-dark-700 text-amber-500 dark:text-white shadow-sm"
-                            : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                            ? "bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-400"
+                            : "text-slate-600 hover:text-slate-950 dark:hover:text-gray-300"
                     )}
                 >
-                    <HiOutlineClock className="w-4 h-4" />
-                    <span>
-                        <span className="hidden sm:inline">Lotes & Validades</span>
-                        <span className="inline sm:hidden">Lotes</span>
-                    </span>
+                    <HiOutlineClock className={cn("w-4 h-4", activeTab !== 'batches' && "text-amber-500 opacity-50")} />
+                    <span className="hidden truncate text-left lg:inline">Lotes & Validades</span>
                 </Button>
             </div>
 

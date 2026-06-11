@@ -17,16 +17,17 @@ import { useStore } from '../stores/useStore';
 import { useFiscalStore } from '../stores/useFiscalStore';
 import { Badge, PageHeader } from '../components/ui';
 import { Button } from '../components/ui/Button';
+import { cn } from '../utils/helpers';
 
 type FiscalTab = 'dashboard' | 'config' | 'reports' | 'audit' | 'deadlines' | 'iva';
 
-const tabs: { id: FiscalTab; label: string; icon: typeof HiOutlineChartPie }[] = [
-    { id: 'dashboard', label: 'Painel', icon: HiOutlineChartPie },
-    { id: 'config', label: 'Configuração', icon: HiOutlineCog },
-    { id: 'reports', label: 'Relatórios', icon: HiOutlineDocumentChartBar },
-    { id: 'deadlines', label: 'Prazos', icon: HiOutlineCalendar },
-    { id: 'iva', label: 'IVA', icon: HiOutlineCurrencyDollar },
-    { id: 'audit', label: 'Auditoria', icon: HiOutlineClipboardDocumentCheck },
+const tabs: { id: FiscalTab; label: string; icon: typeof HiOutlineChartPie; color: string }[] = [
+    { id: 'dashboard', label: 'Painel', icon: HiOutlineChartPie, color: 'text-blue-500' },
+    { id: 'config', label: 'Configuração', icon: HiOutlineCog, color: 'text-slate-500' },
+    { id: 'reports', label: 'Relatórios', icon: HiOutlineDocumentChartBar, color: 'text-indigo-500' },
+    { id: 'deadlines', label: 'Prazos', icon: HiOutlineCalendar, color: 'text-amber-500' },
+    { id: 'iva', label: 'IVA', icon: HiOutlineCurrencyDollar, color: 'text-emerald-500' },
+    { id: 'audit', label: 'Auditoria', icon: HiOutlineClipboardDocumentCheck, color: 'text-violet-500' },
 ];
 
 export default function Fiscal() {
@@ -73,30 +74,40 @@ export default function Fiscal() {
                         {companySettings.tradeName || companySettings.companyName}
                     </Badge>
                 }
-                tabs={
-                    <nav className="flex gap-1 overflow-x-auto pb-px">
-                        {tabs.map((tab) => {
-                            const Icon = tab.icon;
-                            const isActive = activeTab === tab.id;
-                            return (
-                                <Button
-                                    variant="ghost"
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-all whitespace-nowrap focus:ring-0 rounded-t-lg ${
-                                        isActive
-                                            ? 'border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/10'
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-800'
-                                    }`}
-                                >
-                                    <Icon className="w-5 h-5" />
-                                    {tab.label}
-                                </Button>
-                            );
-                        })}
-                    </nav>
-                }
             />
+
+            <div className="w-full">
+                <nav
+                    role="tablist"
+                    aria-label="Navegação da área fiscal"
+                    className="flex gap-1 overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-200/90 bg-slate-100/80 p-1 shadow-inner scrollbar-none dark:border-white/10 dark:bg-dark-700/50"
+                >
+                    {tabs.map((tab) => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <Button
+                                key={tab.id}
+                                type="button"
+                                role="tab"
+                                aria-selected={isActive}
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setActiveTab(tab.id)}
+                                leftIcon={<Icon className={cn('h-4 w-4', !isActive && `${tab.color} opacity-50`)} />}
+                                className={cn(
+                                    'min-w-max flex-1 justify-center rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem] lg:justify-start lg:px-4',
+                                    isActive
+                                        ? 'bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-400'
+                                        : 'text-slate-600 hover:text-slate-950 dark:hover:text-gray-300'
+                                )}
+                            >
+                                <span className="hidden truncate text-left lg:inline">{tab.label}</span>
+                            </Button>
+                        );
+                    })}
+                </nav>
+            </div>
 
             {/* Tab Content */}
             <div className="min-h-[500px]">

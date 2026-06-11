@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const supplierInvoiceItemSchema = z.object({
   purchaseOrderItemId: z.string().uuid(),
-  quantity: z.number().int().positive(),
+  quantity: z.number().positive(),
 });
 
 export const createSupplierInvoiceSchema = z.object({

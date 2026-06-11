@@ -147,7 +147,7 @@ router.get('/price-tiers/batch', authenticate, async (req: AuthRequest, res) => 
     for (const t of tiers) {
         if (!t.productId) continue;
         if (!map[t.productId]) map[t.productId] = [];
-        map[t.productId].push({ minQty: t.minQty, price: Number(t.price) });
+        map[t.productId].push({ minQty: Number(t.minQty), price: Number(t.price) });
     }
     res.json(map);
 });

@@ -104,7 +104,7 @@ export class PhysicalInventoryService {
             for (const count of data.lines) {
                 const line = lineById.get(count.lineId);
                 if (!line) throw ApiError.badRequest('Linha de contagem invalida');
-                const difference = count.countedQuantity - line.expectedQuantity;
+                const difference = count.countedQuantity - Number(line.expectedQuantity);
                 await tx.physicalInventoryLine.update({
                     where: { id: count.lineId },
                     data: {
@@ -135,12 +135,12 @@ export class PhysicalInventoryService {
 
         return prisma.$transaction(async (tx) => {
             for (const line of inventory.lines) {
-                if (line.difference === 0) continue;
+                if (Number(line.difference) === 0) continue;
                 await stockService.recordMovement({
                     companyId,
                     productId: line.productId,
                     warehouseId: inventory.warehouseId,
-                    quantity: line.difference,
+                    quantity: Number(line.difference),
                     movementType: 'adjustment',
                     originModule: 'COMMERCIAL',
                     referenceType: 'PHYSICAL_INVENTORY',

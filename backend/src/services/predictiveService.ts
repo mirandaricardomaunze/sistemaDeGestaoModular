@@ -66,14 +66,14 @@ export class PredictiveService {
             const monthKey = item.sale.createdAt.toISOString().slice(0, 7); // YYYY-MM
             const monthIdx = months.indexOf(monthKey);
             if (monthIdx !== -1) {
-                historyMap[item.productId][monthIdx] += item.quantity;
+                historyMap[item.productId][monthIdx] += Number(item.quantity);
             }
         });
 
         // 4. Batch analysis with AI (to avoid too many separate calls, we'll process 10 at a time or use a consolidated prompt)
         // For simplicity and quality, we'll create a single structured prompt for the top products or those near min stock
         const analysisCandidates = products.filter(p => 
-            p.currentStock <= p.minStock * 2 || historyMap[p.id].some(v => v > 0)
+            Number(p.currentStock) <= Number(p.minStock) * 2 || historyMap[p.id].some(v => v > 0)
         );
 
         if (analysisCandidates.length === 0) return [];
@@ -89,8 +89,8 @@ export class PredictiveService {
             const batchHistory = batch.map(p => ({
                 id: p.id,
                 name: p.name,
-                stock: p.currentStock,
-                min: p.minStock,
+                stock: Number(p.currentStock),
+                min: Number(p.minStock),
                 history: historyMap[p.id]
             }));
 
@@ -133,8 +133,8 @@ export class PredictiveService {
                             productId: p.id,
                             productName: p.name,
                             productCode: p.code,
-                            currentStock: p.currentStock,
-                            minStock: p.minStock,
+                            currentStock: Number(p.currentStock),
+                            minStock: Number(p.minStock),
                             history: historyMap[p.id],
                             forecasted30d: aiInfo?.forecasted30d || 0,
                             confidence: aiInfo?.confidence || 0.5,
@@ -160,10 +160,10 @@ export class PredictiveService {
                     const avg = historyMap[p.id].reduce((a, b) => a + b, 0) / 6;
                     results.push({
                         productId: p.id, productName: p.name, productCode: p.code,
-                        currentStock: p.currentStock, minStock: p.minStock,
+                        currentStock: Number(p.currentStock), minStock: Number(p.minStock),
                         history: historyMap[p.id], forecasted30d: Math.round(avg),
-                        confidence: 0.3, status: p.currentStock < avg ? 'high_risk' : 'stable',
-                        suggestedPurchase: p.currentStock < avg ? Math.round(avg * 1.5) : 0,
+                        confidence: 0.3, status: Number(p.currentStock) < avg ? 'high_risk' : 'stable',
+                        suggestedPurchase: Number(p.currentStock) < avg ? Math.round(avg * 1.5) : 0,
                         reasoning: 'Média linear dos últimos 6 meses (IA indisponível)',
                         supplierId: p.supplierId || undefined,
                         costPrice: Number(p.costPrice),

@@ -296,7 +296,7 @@ export class OrderCancellationService {
             if (!item.productId) continue;
             await stockService.recordMovement({
                 productId: item.productId,
-                quantity: item.quantity,
+                quantity: Number(item.quantity),
                 movementType: 'return_in',
                 originModule: 'COMMERCIAL',
                 referenceType: 'RETURN',
@@ -311,7 +311,7 @@ export class OrderCancellationService {
     private async releaseReservedStock(tx: TxClient, order: OrderWithItems, companyId: string) {
         for (const item of order.items) {
             if (!item.productId) continue;
-            await stockService.releaseReservation(item.productId, item.quantity, companyId, tx);
+            await stockService.releaseReservation(item.productId, Number(item.quantity), companyId, tx);
         }
     }
 

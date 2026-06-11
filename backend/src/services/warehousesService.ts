@@ -259,8 +259,8 @@ export class WarehousesService {
                 const stock = await tx.warehouseStock.findFirst({
                     where: { warehouseId: transfer.sourceWarehouseId, productId: item.productId, warehouse: { companyId } }
                 });
-                const available = (stock?.quantity ?? 0) - (stock?.reservedQuantity ?? 0);
-                if (!stock || available < item.quantity) {
+                const available = Number(stock?.quantity ?? 0) - Number(stock?.reservedQuantity ?? 0);
+                if (!stock || available < Number(item.quantity)) {
                     throw ApiError.badRequest(
                         `Stock disponível insuficiente para produto ${item.productId} no armazém origem (disponível: ${available}, pedido: ${item.quantity})`
                     );
@@ -397,9 +397,9 @@ export class WarehousesService {
             const approverNote = approverName ? ` (aprovada por ${approverName})` : '';
 
             for (const item of transfer.items) {
-                const received = receivedMap.has(item.id) ? Math.max(0, receivedMap.get(item.id)!) : item.quantity;
-                if (received > item.quantity) {
-                    throw ApiError.badRequest(`Quantidade recebida (${received}) excede a expedida (${item.quantity}) para item ${item.id}`);
+                const received = receivedMap.has(item.id) ? Math.max(0, receivedMap.get(item.id)!) : Number(item.quantity);
+                if (received > Number(item.quantity)) {
+                    throw ApiError.badRequest(`Quantidade recebida (${received}) excede a expedida (${Number(item.quantity)}) para item ${item.id}`);
                 }
                 await tx.stockTransferItem.update({
                     where: { id: item.id },
@@ -469,7 +469,7 @@ export class WarehousesService {
                 const approverNote = approverName ? ` (aprovada por ${approverName})` : '';
                 for (const item of transfer.items) {
                     await stockService.recordMovement({
-                        productId: item.productId, warehouseId: transfer.sourceWarehouseId, quantity: item.quantity,
+                        productId: item.productId, warehouseId: transfer.sourceWarehouseId, quantity: Number(item.quantity),
                         movementType: 'adjustment', originModule: 'LOGISTICS', referenceType: 'transfer',
                         referenceContent: transfer.number,
                         reason: `Cancelamento de transferência ${transfer.number}${approverNote} -- stock reposto na origem`,

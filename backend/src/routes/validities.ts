@@ -14,7 +14,7 @@ const router = Router();
 
 const createSchema = z.object({
     lote: z.string().max(100).optional().nullable(),
-    quantity: z.number().int().min(0),
+    quantity: z.number().min(0),
     expiryDate: z.string().min(1, 'Data de validade obrigatória'),
     costPrice: z.number().nonnegative().optional(),
     notes: z.string().max(500).optional().nullable(),

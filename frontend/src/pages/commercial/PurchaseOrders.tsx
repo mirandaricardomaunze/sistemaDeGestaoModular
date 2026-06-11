@@ -625,24 +625,21 @@ export default function PurchaseOrders() {
                 }
             />
 
-            <div className="flex w-full overflow-x-auto overscroll-x-contain p-1 bg-gray-100/50 dark:bg-dark-800/50 rounded-xl border border-gray-200/30 dark:border-dark-700/30 shadow-inner scrollbar-none">
+            <div className="flex gap-1 overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-200/90 bg-slate-100/80 p-1 shadow-inner scrollbar-none dark:border-white/10 dark:bg-dark-700/50">
                 <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => setActiveTab('list')}
                     className={cn(
-                        "flex-1 sm:flex-none justify-center sm:min-w-max px-3 text-[10px] font-black uppercase tracking-widest rounded-lg",
+                        "min-w-max flex-1 justify-center rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem] lg:justify-start lg:px-4",
                         activeTab === 'list'
-                            ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
-                            : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                            ? "bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-400"
+                            : "text-slate-600 hover:text-slate-950 dark:hover:text-gray-300"
                     )}
                 >
-                    <HiOutlineClipboardDocumentList className="w-4 h-4" />
-                    <span>
-                        <span className="hidden sm:inline">Lista de Ordens</span>
-                        <span className="inline sm:hidden">Lista</span>
-                    </span>
+                    <HiOutlineClipboardDocumentList className={cn("w-4 h-4", activeTab !== 'list' && "text-blue-500 opacity-50")} />
+                    <span className="hidden truncate text-left lg:inline">Lista de Ordens</span>
                 </Button>
                 <Button
                     type="button"
@@ -650,17 +647,14 @@ export default function PurchaseOrders() {
                     size="sm"
                     onClick={() => setActiveTab('predictive')}
                     className={cn(
-                        "flex-1 sm:flex-none justify-center sm:min-w-max px-3 text-[10px] font-black uppercase tracking-widest rounded-lg",
+                        "min-w-max flex-1 justify-center rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem] lg:justify-start lg:px-4",
                         activeTab === 'predictive'
-                            ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
-                            : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                            ? "bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-400"
+                            : "text-slate-600 hover:text-slate-950 dark:hover:text-gray-300"
                     )}
                 >
                     <HiOutlineSparkles className={cn("w-4 h-4", activeTab === 'predictive' ? "text-amber-500" : "text-amber-500 opacity-50")} />
-                    <span>
-                        <span className="hidden sm:inline">IA Preditiva & Reposição</span>
-                        <span className="inline sm:hidden">Preditiva</span>
-                    </span>
+                    <span className="hidden truncate text-left lg:inline">IA Preditiva & Reposição</span>
                 </Button>
             </div>
 

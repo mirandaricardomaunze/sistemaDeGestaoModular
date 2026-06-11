@@ -78,8 +78,8 @@ export class BottleStoreService {
             prisma.product.count({ where: { companyId, category: { equals: 'beverages', mode: 'insensitive' }, isActive: true } })
         ]);
 
-        const stockValueCost = beverageProducts.reduce((sum, p) => sum + (p.currentStock * Number(p.costPrice || 0)), 0);
-        const stockValueSale = beverageProducts.reduce((sum, p) => sum + (p.currentStock * Number(p.price || 0)), 0);
+        const stockValueCost = beverageProducts.reduce((sum, p) => sum + (Number(p.currentStock) * Number(p.costPrice || 0)), 0);
+        const stockValueSale = beverageProducts.reduce((sum, p) => sum + (Number(p.currentStock) * Number(p.price || 0)), 0);
 
         const totalSales = Number(saleAggregates._sum?.total || 0);
         const totalTx = saleAggregates._count?.id || 0;
@@ -92,7 +92,7 @@ export class BottleStoreService {
         const totalProfit = saleItems.reduce((acc, item) => {
             const cost = Number(item.product?.costPrice || 0);
             const price = Number(item.unitPrice);
-            return acc + ((price - cost) * item.quantity);
+            return acc + ((price - cost) * Number(item.quantity));
         }, 0);
 
         const salesDates = await prisma.sale.findMany({

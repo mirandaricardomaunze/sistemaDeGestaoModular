@@ -999,7 +999,13 @@ export class PDFService {
             issueDate: string | Date;
             status?: string | null;
             reason: string;
-            items: Array<{ description: string; quantity: number | Prisma.Decimal; unitPrice: Money; total: Money }>;
+            items: Array<{
+                description: string;
+                quantity: number | Prisma.Decimal;
+                unitPrice: Money;
+                total: Money;
+                product?: { unit?: string | null } | null;
+            }>;
             subtotal: Money;
             tax: Money;
             total: Money;
@@ -1093,10 +1099,11 @@ export class PDFService {
                 let rowY = tableY + 22;
                 for (const item of note.items || []) {
                     if (rowY > 680) { doc.addPage(); rowY = 60; }
+                    const unit = item.product?.unit || 'un';
                     doc.fontSize(9).fillColor(black)
                         .text(item.description, 56, rowY, { width: 280 })
-                        .text(formatQuantity(Number(item.quantity), (item as any).product?.unit || 'un'), 340, rowY, { width: 40, align: 'right' })
-                        .text(formatN(Number(item.unitPrice)) + ((item as any).product?.unit ? `/${unitAbbrev((item as any).product.unit)}` : ''), 385, rowY, { width: 60, align: 'right' })
+                        .text(formatQuantity(Number(item.quantity), unit), 340, rowY, { width: 40, align: 'right' })
+                        .text(formatN(Number(item.unitPrice)) + (item.product?.unit ? `/${unitAbbrev(item.product.unit)}` : ''), 385, rowY, { width: 60, align: 'right' })
                         .text(formatN(Number(item.total)), 450, rowY, { width: 90, align: 'right' });
                     rowY += 18;
                     doc.strokeColor('#f1f5f9').lineWidth(0.3)

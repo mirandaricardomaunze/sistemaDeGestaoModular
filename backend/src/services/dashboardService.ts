@@ -93,7 +93,7 @@ export class DashboardService {
                 const unitCost = item.costPrice != null
                     ? Number(item.costPrice)
                     : (item.productId ? legacyCostMap.get(item.productId) ?? 0 : 0);
-                return sum + (Number(item.total) - unitCost * item.quantity);
+                return sum + (Number(item.total) - unitCost * Number(item.quantity));
             }, 0);
 
             return {

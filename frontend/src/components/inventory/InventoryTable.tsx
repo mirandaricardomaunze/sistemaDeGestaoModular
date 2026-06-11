@@ -13,6 +13,7 @@ import { ProductStockHistory } from './ProductStockHistory';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { statusLabels, categoryLabels } from '../../utils/constants';
 import type { Product, StockStatus } from '../../types';
+import { formatQuantity, formatQuantityWithUnit } from '../../constants/unitOfMeasure';
 import type { ExportColumn } from '../../utils/exportUtils';
 
 import { useProducts, useWarehouses } from '../../hooks/useData';
@@ -168,7 +169,7 @@ export default function InventoryTable({
     };
 
     // Define columns
-    const columns = useMemo<ColumnDef<Product, any>[]>(
+    const columns = useMemo<ColumnDef<Product, unknown>[]>(
         () => [
             columnHelper.accessor('barcode', {
                 header: 'Código de Barras',
@@ -237,7 +238,7 @@ export default function InventoryTable({
                                     isLow ? 'text-red-500' : 'text-primary-600 dark:text-primary-400'
                                 )}
                             >
-                                {displayStock}
+                                {formatQuantity(displayStock, product.unit)}
                             </span>
                             {isLow && (
                                 <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse" title="Estoque baixo" />
@@ -528,13 +529,13 @@ export default function InventoryTable({
                                         ? 'text-red-600 dark:text-red-400'
                                         : 'text-gray-900 dark:text-white'
                                 )}>
-                                    {selectedProduct.currentStock} {selectedProduct.unit}
+                                    {formatQuantityWithUnit(selectedProduct.currentStock, selectedProduct.unit)}
                                 </p>
                             </div>
                             <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
                                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Estoque Mínimo</p>
                                 <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
-                                    {selectedProduct.minStock} {selectedProduct.unit}
+                                    {formatQuantityWithUnit(selectedProduct.minStock, selectedProduct.unit)}
                                 </p>
                             </div>
                             {selectedProduct.barcode && (
@@ -568,7 +569,7 @@ export default function InventoryTable({
                                                 <span className="text-xs text-gray-500">{warehouse.location}</span>
                                             </div>
                                             <Badge variant={stock > 0 ? 'success' : 'gray'}>
-                                                {stock} {selectedProduct.unit}
+                                                {formatQuantityWithUnit(stock, selectedProduct.unit)}
                                             </Badge>
                                         </div>
                                     );

@@ -7,6 +7,7 @@ import { Button, Modal, Input, Select } from '../ui';
 import type { Product } from '../../types';
 import { useCategories } from '../../hooks/useCategories';
 import ProductValiditiesSection from './ProductValiditiesSection';
+import { UNIT_OPTIONS, isDecimalUnit } from '../../constants/unitOfMeasure';
 
 import { useSuppliers } from '../../hooks/useData';
 import { productsAPI } from '../../services/api';
@@ -83,6 +84,7 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess, origi
 
     const watchedPrice = watch('price');
     const watchedCostPrice = watch('costPrice');
+    const watchedUnit = watch('unit');
 
     const calcMargin = useCallback((price: number, cost: number) => {
         if (!price || price <= 0 || !cost || cost <= 0) return 0;
@@ -191,16 +193,7 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess, origi
         label: c.name,
     }));
 
-    const unitOptions = [
-        { value: 'un', label: 'Unidade (un)' },
-        { value: 'kg', label: 'Quilograma (kg)' },
-        { value: 'g', label: 'Grama (g)' },
-        { value: 'l', label: 'Litro (l)' },
-        { value: 'ml', label: 'Mililitro (ml)' },
-        { value: 'm', label: 'Metro (m)' },
-        { value: 'cx', label: 'Caixa (cx)' },
-        { value: 'pct', label: 'Pacote (pct)' },
-    ];
+
 
     const supplierOptions = [
         { value: '', label: 'Selecione um fornecedor' },
@@ -274,7 +267,7 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess, origi
                     />
                     <Select
                         label="Unidade Principal *"
-                        options={unitOptions}
+                        options={UNIT_OPTIONS}
                         {...register('unit')}
                         error={errors.unit?.message}
                         placeholder="un"
@@ -305,6 +298,14 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess, origi
                             O sistema usará este valor ({watch('packSize') || 1} un) para calcular automaticamente o total de caixas no inventário.
                         </p>
                     </div>
+                    {isDecimalUnit(watchedUnit) && (
+                        <div className="md:col-span-2 mt-1">
+                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-tight flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/20 p-2 rounded border border-emerald-100 dark:border-emerald-900/30">
+                                <HiOutlineInformationCircle className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                                Esta unidade ({watchedUnit}) permite quantidades decimais fracionadas (ex: 0.750) no POS, vendas e compras.
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Prices + Margin */}
@@ -353,6 +354,7 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess, origi
                             <Input
                                 label="Estoque Atual"
                                 type="number"
+                                step={isDecimalUnit(watchedUnit) ? "any" : "1"}
                                 {...register('currentStock')}
                                 error={errors.currentStock?.message}
                                 readOnly
@@ -383,6 +385,7 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess, origi
                     <Input
                         label="Estoque Mínimo (Alerta)"
                         type="number"
+                        step={isDecimalUnit(watchedUnit) ? "any" : "1"}
                         {...register('minStock')}
                         error={errors.minStock?.message}
                         placeholder="5"

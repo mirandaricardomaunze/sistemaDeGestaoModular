@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import { saftUnitCode } from '../constants/unitOfMeasure';
 import { createSAFTDocument, escapeXml, formatDecimal, formatSAFTDate } from '../utils/xmlBuilder';
 import type { SAFTParams } from '../validation/saft.validation';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -48,7 +49,7 @@ export class SAFTService {
             include: {
                 items: {
                     include: {
-                        product: { select: { name: true, code: true } },
+                        product: { select: { name: true, code: true, unit: true } },
                     },
                 },
                 customer: { select: { id: true, name: true } },
@@ -151,10 +152,10 @@ export class SAFTService {
             atcud: string | null;
             customer: { id: string; name: string } | null;
             items: Array<{
-                quantity: number;
+                quantity: number | Decimal;
                 unitPrice: Decimal;
                 total: Decimal;
-                product: { name: string; code: string } | null;
+                product: { name: string; code: string; unit: string } | null;
             }>;
         }>,
     ) {
@@ -206,8 +207,8 @@ export class SAFTService {
                 lineNode.ele('LineNumber').txt(String(lineNo++));
                 lineNode.ele('ProductCode').txt(escapeXml(item.product?.code ?? 'GENERICO'));
                 lineNode.ele('ProductDescription').txt(escapeXml(item.product?.name ?? 'Produto'));
-                lineNode.ele('Quantity').txt(formatDecimal(item.quantity));
-                lineNode.ele('UnitOfMeasure').txt('UN');
+                lineNode.ele('Quantity').txt(formatDecimal(toNum(item.quantity)));
+                lineNode.ele('UnitOfMeasure').txt(saftUnitCode(item.product?.unit || 'un'));
                 lineNode.ele('UnitPrice').txt(formatDecimal(toNum(item.unitPrice)));
                 lineNode.ele('TaxPointDate').txt(formatSAFTDate(inv.issueDate));
                 lineNode.ele('Description').txt(escapeXml(item.product?.name ?? 'Produto'));

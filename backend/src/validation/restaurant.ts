@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const restaurantOrderItemSchema = z.object({
     menuItemId: z.string().uuid('ID de item de menu inválido'),
-    quantity: z.number().int().positive('Quantidade deve ser positiva'),
+    quantity: z.number().positive('Quantidade deve ser positiva'),
     unitPrice: z.number().nonnegative(),
     notes: z.string().optional()
 });

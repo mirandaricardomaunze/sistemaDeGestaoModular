@@ -105,7 +105,7 @@ type BulkPriceUpdateParams = {
     origin_module?: string;
 };
 
-type ProductForAlert = { id: string; name: string; code: string; currentStock: number; minStock: number };
+type ProductForAlert = { id: string; name: string; code: string; currentStock: number | Prisma.Decimal; minStock: number | Prisma.Decimal };
 
 export class ProductsService {
     /**
@@ -539,7 +539,7 @@ export class ProductsService {
 
             if (!product) throw ApiError.notFound('Produto não encontrado');
 
-            const balanceBefore = product.currentStock;
+            const balanceBefore = Number(product.currentStock);
             let newStock = balanceBefore;
 
             if (operation === 'add') {
@@ -554,7 +554,7 @@ export class ProductsService {
             // Determine Status
             let status: 'in_stock' | 'low_stock' | 'out_of_stock' = 'in_stock';
             if (newStock === 0) status = 'out_of_stock';
-            else if (newStock <= product.minStock) status = 'low_stock';
+            else if (newStock <= Number(product.minStock)) status = 'low_stock';
 
             // Update Product
             await tx.product.update({
@@ -574,7 +574,7 @@ export class ProductsService {
                 const wStock = await tx.warehouseStock.findUnique({
                     where: { warehouseId_productId: { warehouseId, productId: id } }
                 });
-                warehouseBalanceBefore = wStock?.quantity || 0;
+                warehouseBalanceBefore = Number(wStock?.quantity || 0);
 
                 await tx.warehouseStock.upsert({
                     where: { warehouseId_productId: { warehouseId, productId: id } },
@@ -887,7 +887,7 @@ export class ProductsService {
         const categoryData: Record<string, { count: number; value: number }> = {};
 
         products.forEach(p => {
-            const stock = p.currentStock || 0;
+            const stock = Number(p.currentStock) || 0;
             const price = Number(p.price) || 0;
             const cost = Number(p.costPrice) || 0;
 
@@ -903,8 +903,8 @@ export class ProductsService {
         // Here we just return sales in last 30 days per product for the report to process
         const turnoverData = products.map(p => ({
             name: p.name,
-            stock: p.currentStock,
-            salesLast30Days: p.saleItems.reduce((acc, item) => acc + item.quantity, 0)
+            stock: Number(p.currentStock),
+            salesLast30Days: p.saleItems.reduce((acc, item) => acc + Number(item.quantity), 0)
         })).sort((a, b) => b.salesLast30Days - a.salesLast30Days);
 
         return {

@@ -56,8 +56,7 @@ export default function CommercialHistoryHub() {
             />
 
             {/* Premium Segmented Tabs */}
-            <div className="w-full overflow-x-auto overscroll-x-contain scrollbar-none pb-1">
-                <div className="flex w-max min-w-full gap-1 bg-gray-100/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-xl p-1.5 border border-gray-200 dark:border-dark-700 shadow-sm">
+            <div className="flex gap-1 overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-200/90 bg-slate-100/80 p-1 shadow-inner scrollbar-none dark:border-white/10 dark:bg-dark-700/50">
                     {TABS.map(tab => {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
@@ -68,17 +67,17 @@ export default function CommercialHistoryHub() {
                                 variant="ghost"
                                 size="sm"
                                 className={cn(
-                                    'min-w-max sm:min-w-0 sm:flex-1 rounded-lg text-[9px] sm:text-sm font-black normal-case tracking-normal whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-4 transition-all duration-200',
+                                    'min-w-max flex-1 justify-center rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem] lg:justify-start lg:px-4',
                                     isActive
-                                        ? 'bg-white dark:bg-dark-700 text-primary-600 dark:text-primary-400 shadow-md transform scale-[1.02]'
-                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-dark-700/30'
+                                        ? 'bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-400'
+                                        : 'text-slate-600 hover:text-slate-950 dark:hover:text-gray-300'
                                 )}
                             >
                                 <Icon className={cn(
-                                    "hidden sm:inline w-4.5 h-4.5 flex-shrink-0 transition-transform duration-300",
-                                    isActive ? "text-primary-600 dark:text-primary-400 scale-110" : "text-gray-400"
+                                    "w-4 h-4 flex-shrink-0",
+                                    !isActive && "text-primary-500 opacity-50"
                                 )} />
-                                <span>
+                                <span className="hidden truncate text-left lg:inline">
                                     {tab.id === 'sales' && 'Vendas'}
                                     {tab.id === 'voids' && (
                                         <>
@@ -103,7 +102,6 @@ export default function CommercialHistoryHub() {
                             </Button>
                         );
                     })}
-                </div>
             </div>
 
             <div className="min-h-[400px] relative">

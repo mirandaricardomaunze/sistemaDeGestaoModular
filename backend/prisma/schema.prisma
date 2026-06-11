@@ -230,9 +230,9 @@ model Product {
   description            String?
   price                  Decimal                 @db.Decimal(15, 2)
   costPrice              Decimal                 @default(0) @db.Decimal(15, 2)
-  currentStock           Int                     @default(0)
-  minStock               Int                     @default(5)
-  maxStock               Int?
+  currentStock           Decimal                 @default(0) @db.Decimal(10, 3)
+  minStock               Decimal                 @default(5) @db.Decimal(10, 3)
+  maxStock               Decimal?                @db.Decimal(10, 3)
   unit                   String                  @default("un")
   barcode                String?
   location               String?
@@ -250,7 +250,7 @@ model Product {
   taxRate                Decimal?                @map("tax_rate") @db.Decimal(5, 2)
   categoryId             String?
   originModule           String                  @default("inventory") @map("origin_module")
-  reservedStock          Int                     @default(0)
+  reservedStock          Decimal                 @default(0) @db.Decimal(10, 3)
   sku                    String?
   category               String                  @default("other")
   weight                 Decimal?                @db.Decimal(10, 3)
@@ -291,7 +291,7 @@ model PriceTier {
   id        String   @id @default(uuid())
   productId String
   companyId String
-  minQty    Int
+  minQty    Decimal  @db.Decimal(10, 3)
   price     Decimal  @db.Decimal(15, 2)
   label     String?
   createdAt DateTime @default(now())
@@ -359,11 +359,11 @@ model WarehouseStock {
   id               String    @id @default(uuid())
   warehouseId      String
   productId        String
-  quantity         Int       @default(0)
+  quantity         Decimal   @default(0) @db.Decimal(10, 3)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   companyId        String?
-  reservedQuantity Int       @default(0) @map("reserved_quantity")
+  reservedQuantity Decimal   @default(0) @map("reserved_quantity") @db.Decimal(10, 3)
   company          Company?  @relation(fields: [companyId], references: [id])
   product          Product   @relation(fields: [productId], references: [id])
   warehouse        Warehouse @relation(fields: [warehouseId], references: [id])
@@ -413,8 +413,8 @@ model StockTransferItem {
   id               String        @id @default(uuid())
   transferId       String
   productId        String
-  quantity         Int
-  receivedQuantity Int?          @map("received_quantity")
+  quantity         Decimal       @db.Decimal(10, 3)
+  receivedQuantity Decimal?      @map("received_quantity") @db.Decimal(10, 3)
   product          Product       @relation(fields: [productId], references: [id])
   transfer         StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
 
@@ -587,8 +587,8 @@ model PurchaseOrderItem {
   id                   String                @id @default(uuid())
   purchaseOrderId      String
   productId            String
-  quantity             Int
-  receivedQty          Int                   @default(0)
+  quantity             Decimal               @db.Decimal(10, 3)
+  receivedQty          Decimal               @default(0) @db.Decimal(10, 3)
   unitCost             Decimal               @db.Decimal(15, 2)
   total                Decimal               @db.Decimal(15, 2)
   unitWeight           Decimal?              @map("unit_weight") @db.Decimal(10, 3)
@@ -656,7 +656,7 @@ model SupplierInvoiceItem {
   purchaseOrderItemId String?            @map("purchase_order_item_id")
   productId           String
   description         String
-  quantity            Int
+  quantity            Decimal            @db.Decimal(10, 3)
   unitCost            Decimal            @map("unit_cost") @db.Decimal(15, 2)
   taxRate             Decimal            @default(16) @map("tax_rate") @db.Decimal(5, 2)
   taxAmount           Decimal            @default(0) @map("tax_amount") @db.Decimal(15, 2)
@@ -713,7 +713,7 @@ model CustomerOrderItem {
   orderId       String
   productId     String?
   productName   String
-  quantity      Int
+  quantity      Decimal       @db.Decimal(10, 3)
   price         Decimal       @db.Decimal(15, 2)
   total         Decimal       @db.Decimal(15, 2)
   productWeight Decimal?      @map("product_weight") @db.Decimal(10, 3)
@@ -932,7 +932,7 @@ model SaleItem {
   id                String        @id @default(uuid())
   saleId            String
   productId         String?
-  quantity          Int
+  quantity          Decimal       @db.Decimal(10, 3)
   unitPrice         Decimal       @db.Decimal(15, 2)
   discount          Decimal       @default(0) @db.Decimal(15, 2)
   total             Decimal       @db.Decimal(15, 2)
@@ -1009,7 +1009,7 @@ model InvoiceItem {
   invoiceId   String
   productId   String?
   description String
-  quantity    Int
+  quantity    Decimal  @db.Decimal(10, 3)
   unitPrice   Decimal  @db.Decimal(15, 2)
   discount    Decimal  @default(0) @db.Decimal(15, 2)
   total       Decimal  @db.Decimal(15, 2)
@@ -1042,7 +1042,7 @@ model CreditNoteItem {
   creditNoteId          String
   productId             String?
   description           String
-  quantity              Int
+  quantity              Decimal    @db.Decimal(10, 3)
   unitPrice             Decimal    @db.Decimal(15, 2)
   total                 Decimal    @db.Decimal(15, 2)
   originalInvoiceItemId String?
@@ -1057,7 +1057,7 @@ model DebitNoteItem {
   debitNoteId           String
   productId             String?
   description           String
-  quantity              Int
+  quantity              Decimal   @db.Decimal(10, 3)
   unitPrice             Decimal   @db.Decimal(15, 2)
   total                 Decimal   @db.Decimal(15, 2)
   originalInvoiceItemId String?
@@ -2102,9 +2102,9 @@ model StockMovement {
   id             String           @id @default(uuid())
   batchId        String?
   movementType   MovementType
-  quantity       Int
-  balanceBefore  Int
-  balanceAfter   Int
+  quantity       Decimal          @db.Decimal(10, 3)
+  balanceBefore  Decimal          @db.Decimal(10, 3)
+  balanceAfter   Decimal          @db.Decimal(10, 3)
   reference      String?
   reason         String?
   performedBy    String
@@ -2155,9 +2155,9 @@ model PhysicalInventoryLine {
   id                  String            @id @default(uuid())
   physicalInventoryId String
   productId           String
-  expectedQuantity    Int
-  countedQuantity     Int               @default(0)
-  difference          Int               @default(0)
+  expectedQuantity    Decimal           @db.Decimal(10, 3)
+  countedQuantity     Decimal           @default(0) @db.Decimal(10, 3)
+  difference          Decimal           @default(0) @db.Decimal(10, 3)
   notes               String?
   inventory           PhysicalInventory @relation(fields: [physicalInventoryId], references: [id], onDelete: Cascade)
   product             Product           @relation(fields: [productId], references: [id])
@@ -2614,7 +2614,7 @@ model CommissionRule {
 model StockReservation {
   id        String   @id @default(uuid())
   productId String
-  quantity  Int
+  quantity  Decimal  @db.Decimal(10, 3)
   sessionId String?
   companyId String
   expiresAt DateTime
