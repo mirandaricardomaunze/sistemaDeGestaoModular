@@ -17,6 +17,7 @@ import { useProducts } from '../../hooks/useData';
 import { useStore } from '../../stores/useStore';
 import { formatCurrency, cn } from '../../utils/helpers';
 import type { Product } from '../../types';
+import { isDecimalUnit, unitDecimals, unitAbbrev } from '../../constants/unitOfMeasure';
 import toast from 'react-hot-toast';
 
 // Customer Schema
@@ -214,7 +215,11 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete, origi
     // Update quantity (in current mode units — box or unit)
     const handleUpdateQuantity = (index: number, newQty: number) => {
         const item = orderItems[index];
-        if (newQty < 1) return;
+        // Permite decimais para unidades pesáveis (kg, L) — o mínimo é o
+        // step da unidade. Para unidades inteiras, mantém o ≥ 1 original.
+        const unit = item.product.unit || 'un';
+        const minQty = isDecimalUnit(unit) ? 1 / 10 ** unitDecimals(unit) : 1;
+        if (!Number.isFinite(newQty) || newQty < minQty) return;
         const factor = item.unitMode === 'box' ? item.packSize : 1;
         const totalUnits = newQty * factor;
         if (totalUnits > item.product.currentStock) {
@@ -448,13 +453,31 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete, origi
                                     </div>
                                 </div>
                                 <div className="w-24">
-                                    <Input
-                                        label="Qtd"
-                                        type="number"
-                                        min={1}
-                                        value={quantity}
-                                        onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                                    />
+                                    {(() => {
+                                        // Picker quantity input — respeita a unidade do
+                                        // produto seleccionado: 0.001 para kg/L, 1 para
+                                        // unidade/caixa. Sem produto seleccionado, fica
+                                        // em integer (não-destrutivo).
+                                        const unit = selectedProduct?.unit || 'un';
+                                        const weighable = isDecimalUnit(unit);
+                                        const step = weighable ? 1 / 10 ** unitDecimals(unit) : 1;
+                                        const minQty = weighable ? step : 1;
+                                        return (
+                                            <Input
+                                                label={weighable ? `Qtd (${unitAbbrev(unit)})` : 'Qtd'}
+                                                type="number"
+                                                min={minQty}
+                                                step={step}
+                                                value={quantity}
+                                                onChange={(e) => {
+                                                    const raw = weighable
+                                                        ? parseFloat(e.target.value)
+                                                        : parseInt(e.target.value);
+                                                    setQuantity(Number.isFinite(raw) && raw > 0 ? raw : minQty);
+                                                }}
+                                            />
+                                        );
+                                    })()}
                                 </div>
                                 <Button
                                     onClick={handleAddProduct}
@@ -569,13 +592,32 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete, origi
                                                             >
                                                                 −
                                                             </Button>
-                                                            <input
-                                                                type="number"
-                                                                min={1}
-                                                                value={item.quantity}
-                                                                onChange={(e) => handleUpdateQuantity(index, parseInt(e.target.value) || 1)}
-                                                                className="w-12 h-7 text-center text-sm font-bold rounded-md border border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-500/30"
-                                                            />
+                                                            {(() => {
+                                                                // Per-row quantity edit — respeita unit do
+                                                                // produto desta linha (kg/L permitem decimais).
+                                                                const unit = item.product.unit || 'un';
+                                                                const weighable = isDecimalUnit(unit);
+                                                                const step = weighable ? 1 / 10 ** unitDecimals(unit) : 1;
+                                                                const minQty = weighable ? step : 1;
+                                                                return (
+                                                                    <input
+                                                                        type="number"
+                                                                        min={minQty}
+                                                                        step={step}
+                                                                        value={item.quantity}
+                                                                        onChange={(e) => {
+                                                                            const raw = weighable
+                                                                                ? parseFloat(e.target.value)
+                                                                                : parseInt(e.target.value);
+                                                                            handleUpdateQuantity(index, Number.isFinite(raw) && raw > 0 ? raw : minQty);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "h-7 text-center text-sm font-bold rounded-md border border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-500/30",
+                                                                            weighable ? "w-16" : "w-12"
+                                                                        )}
+                                                                    />
+                                                                );
+                                                            })()}
                                                             <Button
                                                                 type="button"
                                                                 variant="ghost"

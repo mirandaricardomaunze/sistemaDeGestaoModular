@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { logger } from '../utils/logger';
 import type { Prisma } from '@prisma/client';
+import { formatQuantity, unitAbbrev } from '../constants/unitOfMeasure';
 
 // Numeric payloads coming from Prisma may be Decimal; the routes also pass
 // numbers/strings/undefined. Use `Number(value)` before any math.
@@ -29,21 +30,21 @@ type ProductSummary = {
     name: string;
     code?: string;
     barcode?: string;
-    currentStock?: number;
-    minStock?: number;
+    currentStock?: number | Prisma.Decimal;
+    minStock?: number | Prisma.Decimal;
     price?: number;
     salesLast30Days?: number;
-    stock?: number;
+    stock?: number | Prisma.Decimal;
     batchNumber?: string;
     expiryDate?: string | Date;
     daysToExpiry?: number;
 };
 type CustomerSummary = { name: string; email?: string; phone?: string };
-type CancellationItem = { quantity: number; productName: string; total: number };
-type QuoteItem = { productName: string; quantity: number; price: number; total: number };
+type CancellationItem = { quantity: number | Prisma.Decimal; productName: string; total: number };
+type QuoteItem = { productName: string; quantity: number | Prisma.Decimal; price: number; total: number };
 type SaleItem = {
     productName: string;
-    quantity: number;
+    quantity: number | Prisma.Decimal;
     unitPrice: number;
     total: number;
     posologyLabel?: string;
@@ -52,11 +53,12 @@ type SaleItem = {
 type InvoiceItem = {
     description?: string | null;
     productName?: string | null;
-    quantity: number;
+    quantity: number | Prisma.Decimal;
     unitPrice: Money;
     total: Money;
     posologyLabel?: string | null;
     batch?: { batchNumber?: string | null; expiryDate?: string | Date | null } | null;
+    product?: { unit?: string | null } | null;
 };
 type InvoicePayload = {
     invoiceNumber: string;
@@ -875,8 +877,8 @@ export class PDFService {
                         .text(itemName, 56, rowY, { width: 180 })
                         .fontSize(7).fillColor(gray).text(batchInfo, 240, rowY, { width: 90 })
                         .fontSize(9).fillColor(black)
-                        .text(String(item.quantity), 340, rowY, { width: 40, align: 'right' })
-                        .text(formatN(Number(item.unitPrice)), 385, rowY, { width: 60, align: 'right' })
+                        .text(formatQuantity(Number(item.quantity), item.product?.unit || 'un'), 340, rowY, { width: 40, align: 'right' })
+                        .text(formatN(Number(item.unitPrice)) + (item.product?.unit ? `/${unitAbbrev(item.product.unit)}` : ''), 385, rowY, { width: 60, align: 'right' })
                         .text(formatN(Number(item.total)), 450, rowY, { width: 90, align: 'right' });
                     
                     // Posology if pharmacy
@@ -997,7 +999,7 @@ export class PDFService {
             issueDate: string | Date;
             status?: string | null;
             reason: string;
-            items: Array<{ description: string; quantity: number; unitPrice: Money; total: Money }>;
+            items: Array<{ description: string; quantity: number | Prisma.Decimal; unitPrice: Money; total: Money }>;
             subtotal: Money;
             tax: Money;
             total: Money;
@@ -1093,8 +1095,8 @@ export class PDFService {
                     if (rowY > 680) { doc.addPage(); rowY = 60; }
                     doc.fontSize(9).fillColor(black)
                         .text(item.description, 56, rowY, { width: 280 })
-                        .text(String(item.quantity), 340, rowY, { width: 40, align: 'right' })
-                        .text(formatN(Number(item.unitPrice)), 385, rowY, { width: 60, align: 'right' })
+                        .text(formatQuantity(Number(item.quantity), (item as any).product?.unit || 'un'), 340, rowY, { width: 40, align: 'right' })
+                        .text(formatN(Number(item.unitPrice)) + ((item as any).product?.unit ? `/${unitAbbrev((item as any).product.unit)}` : ''), 385, rowY, { width: 60, align: 'right' })
                         .text(formatN(Number(item.total)), 450, rowY, { width: 90, align: 'right' });
                     rowY += 18;
                     doc.strokeColor('#f1f5f9').lineWidth(0.3)

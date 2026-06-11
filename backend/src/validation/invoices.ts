@@ -71,7 +71,7 @@ export const creditNoteSchema = z.object({
     items: z.array(z.object({
         productId: z.string().uuid('ID do produto inválido').optional().nullable(),
         description: z.string().min(1, 'Descrição obrigatória'),
-        quantity: z.number().int('Quantidade deve ser um numero inteiro').positive('Quantidade deve ser maior que zero'),
+        quantity: z.number().positive('Quantidade deve ser maior que zero'),
         unitPrice: z.number().positive('Preço unitrio deve ser maior que zero'),
         total: z.number().positive('Total deve ser maior que zero'),
         originalInvoiceItemId: z.string().uuid('ID do item original inválido').optional().nullable()

@@ -32,7 +32,7 @@ export const updateWarehouseSchema = createWarehouseSchema.partial();
 
 export const transferItemSchema = z.object({
     productId: z.string().uuid('ID do produto inválido'),
-    quantity: z.number().int().positive('Quantidade deve ser maior que zero')
+    quantity: z.number().positive('Quantidade deve ser maior que zero')
 });
 
 export const createStockTransferSchema = z.object({

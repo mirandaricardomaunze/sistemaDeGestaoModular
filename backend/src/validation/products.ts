@@ -21,9 +21,9 @@ export const createProductSchema = z.object({
     categoryId: z.string().uuid('ID da categoria inválido').optional().nullable(),
     price: z.number().positive('Preço deve ser maior que zero'),
     costPrice: z.number().min(0, 'Custo não pode ser negativo').optional().default(0),
-    currentStock: z.number().int().min(0, 'Stock não pode ser negativo').optional().default(0),
-    minStock: z.number().int().min(0, 'Stock mínimo não pode ser negativo').optional().default(0),
-    maxStock: z.number().int().min(0, 'Stock máximo não pode ser negativo').optional().nullable(),
+    currentStock: z.number().min(0, 'Stock não pode ser negativo').optional().default(0),
+    minStock: z.number().min(0, 'Stock mínimo não pode ser negativo').optional().default(0),
+    maxStock: z.number().min(0, 'Stock máximo não pode ser negativo').optional().nullable(),
     unit: z.string().max(20, 'Unidade muito longa').optional().default('un'),
     location: z.string().max(100, 'Localização muito longa').optional().nullable(),
     warehouseId: z.string().uuid('ID do armazém inválido').optional().nullable(),
@@ -50,7 +50,7 @@ export const createProductSchema = z.object({
 export const updateProductSchema = createProductSchema.partial();
 
 export const adjustStockSchema = z.object({
-    quantity: z.number().int('Quantidade deve ser um número inteiro'),
+    quantity: z.number(),
     operation: z.enum(['add', 'subtract', 'set']),
     warehouseId: z.string().uuid('ID do armazém inválido').optional().nullable(),
     reason: z.string().max(500, 'Motivo muito longo').optional().nullable()

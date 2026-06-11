@@ -276,7 +276,7 @@ export class SuppliersService {
             where: { id: orderId, companyId },
             include: { items: true }
         });
-        const allReceived = updatedOrder?.items.every(i => i.receivedQty >= i.quantity);
+        const allReceived = updatedOrder?.items.every(i => Number(i.receivedQty) >= Number(i.quantity));
 
         await prisma.purchaseOrder.updateMany({
             where: { id: orderId, companyId },
@@ -317,7 +317,7 @@ export class SuppliersService {
             throw ApiError.badRequest('Apenas encomendas em rascunho ou encomendadas podem ser canceladas');
         }
 
-        const hasReceivedItems = order.items.some((item) => item.receivedQty > 0);
+        const hasReceivedItems = order.items.some((item) => Number(item.receivedQty) > 0);
         if (hasReceivedItems) {
             throw ApiError.badRequest('Esta encomenda já tem itens recebidos. Use o fluxo de devolução/ajuste de stock.');
         }

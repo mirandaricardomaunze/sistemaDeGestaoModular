@@ -2,6 +2,7 @@ import { Prisma, StockStatus } from '@prisma/client';
 import { prisma as defaultPrisma, ExtendedPrismaClient } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { emitToCompany } from '../lib/socket';
+import { formatQuantityWithUnit } from '../constants/unitOfMeasure';
 
 export type OriginModule = 'PHARMACY' | 'COMMERCIAL' | 'BOTTLE_STORE' | 'HOTEL' | 'RESTAURANT' | 'LOGISTICS';
 export type MovementReferenceType = 'SALE' | 'PURCHASE' | 'TRANSFER' | 'ADJUSTMENT' | 'RETURN' | 'EXPIRY';
@@ -60,7 +61,7 @@ export class StockService {
             throw ApiError.notFound('Produto não encontrado ou não pertence a esta empresa');
         }
 
-        const balanceBefore = currentProduct.currentStock || 0;
+        const balanceBefore = Number(currentProduct.currentStock) || 0;
         const balanceAfter = balanceBefore + quantity;
 
         // 2. Update Product Global Stock
@@ -123,15 +124,18 @@ export class StockService {
     private async updateProductStatus(productId: string, tx: StockTransactionClient | ExtendedPrismaClient) {
         const product = await tx.product.findUnique({
             where: { id: productId },
-            select: { id: true, name: true, currentStock: true, minStock: true, status: true, companyId: true }
+            select: { id: true, name: true, currentStock: true, minStock: true, status: true, companyId: true, unit: true }
         });
 
         if (!product || !product.companyId) return;
 
+        const currentStockNum = Number(product.currentStock);
+        const minStockNum = product.minStock ? Number(product.minStock) : 5;
+
         let newStatus: StockStatus = StockStatus.in_stock;
-        if (product.currentStock <= 0) {
+        if (currentStockNum <= 0) {
             newStatus = StockStatus.out_of_stock;
-        } else if (product.minStock && product.currentStock <= product.minStock) {
+        } else if (minStockNum && currentStockNum <= minStockNum) {
             newStatus = StockStatus.low_stock;
         }
 
@@ -143,12 +147,13 @@ export class StockService {
 
             // Trigger alert if needed
             if (newStatus !== StockStatus.in_stock) {
+                const displayStock = formatQuantityWithUnit(currentStockNum, product.unit || 'un');
                 await tx.alert.create({
                     data: {
                         type: 'low_stock',
                         priority: newStatus === StockStatus.out_of_stock ? 'critical' : 'high',
                         title: newStatus === StockStatus.out_of_stock ? `Stock Esgotado: ${product.name}` : `Stock Baixo: ${product.name}`,
-                        message: `${product.name} tem agora ${product.currentStock} unidades em stock.`,
+                        message: `${product.name} tem agora ${displayStock} em stock.`,
                         relatedId: product.id,
                         relatedType: 'product',
                         companyId: product.companyId
@@ -159,7 +164,7 @@ export class StockService {
                 emitToCompany(product.companyId, 'stock:low_stock_alert', {
                     productId: product.id,
                     productName: product.name,
-                    currentStock: product.currentStock,
+                    currentStock: currentStockNum,
                     status: newStatus,
                     priority: newStatus === StockStatus.out_of_stock ? 'critical' : 'high',
                     timestamp: new Date().toISOString()
@@ -180,7 +185,7 @@ export class StockService {
     ) {
         const product = await tx.product.findFirst({
             where: { id: productId, companyId },
-            select: { id: true, name: true, currentStock: true, reservedStock: true }
+            select: { id: true, name: true, currentStock: true, reservedStock: true, unit: true }
         });
 
         if (!product) {
@@ -203,16 +208,22 @@ export class StockService {
             // Fall back to global stock when no per-warehouse entry exists yet
             const warehouseQty = wStock != null
                 ? Number(wStock.quantity) - Number(wStock.reservedQuantity || 0)
-                : product.currentStock - product.reservedStock;
+                : Number(product.currentStock) - Number(product.reservedStock || 0);
             if (warehouseQty < requestedQuantity) {
-                throw ApiError.badRequest(`Stock insuficiente para o produto "${product.name}". Disponível: ${warehouseQty}, Solicitado: ${requestedQuantity}`);
+                const displayAvailable = formatQuantityWithUnit(warehouseQty, product.unit || 'un');
+                const displayRequested = formatQuantityWithUnit(requestedQuantity, product.unit || 'un');
+                throw ApiError.badRequest(`Stock insuficiente para o produto "${product.name}". Disponível: ${displayAvailable}, Solicitado: ${displayRequested}`);
             }
             return product;
         }
 
-        const availableStock = product.currentStock - product.reservedStock;
+        const currentStockNum = Number(product.currentStock);
+        const reservedStockNum = Number(product.reservedStock || 0);
+        const availableStock = currentStockNum - reservedStockNum;
         if (availableStock < requestedQuantity) {
-            throw ApiError.badRequest(`Stock insuficiente para o produto "${product.name}". Disponível: ${availableStock}, Solicitado: ${requestedQuantity}`);
+            const displayAvailable = formatQuantityWithUnit(availableStock, product.unit || 'un');
+            const displayRequested = formatQuantityWithUnit(requestedQuantity, product.unit || 'un');
+            throw ApiError.badRequest(`Stock insuficiente para o produto "${product.name}". Disponível: ${displayAvailable}, Solicitado: ${displayRequested}`);
         }
 
         return product;
@@ -255,7 +266,7 @@ export class StockService {
 
         if (!product) return;
 
-        const decrementAmount = Math.min(product.reservedStock, quantity);
+        const decrementAmount = Math.min(Number(product.reservedStock), quantity);
 
         if (decrementAmount > 0) {
             await tx.product.update({

@@ -38,6 +38,7 @@ const ORDER_FIELD_ALLOWLIST = [
 import { stockService } from './stockService';
 import { logger } from '../utils/logger';
 import type { CreateOrderInput, UpdateOrderInput, UpdateOrderStatusInput } from '../validation/orders';
+import { validateQuantityForUnit } from '../constants/unitOfMeasure';
 
 // Valid status transitions: enforces sequential flow
 const validTransitions: Record<string, string[]> = {
@@ -124,18 +125,19 @@ export class OrdersService {
             // latency + per-item reservation loop + credit aggregation overruns
             // Prisma's default 5s timeout. Mirrors salesService.create.
             const productIds = items.map(i => i.productId).filter(Boolean) as string[];
-            const productMap = new Map<string, { name: string; price: number; packSize: number }>();
+            const productMap = new Map<string, { name: string; price: number; packSize: number; unit: string }>();
 
             if (productIds.length > 0) {
                 const products = await tx.product.findMany({
                     where: { id: { in: productIds }, companyId },
-                    select: { id: true, name: true, price: true, packSize: true }
+                    select: { id: true, name: true, price: true, packSize: true, unit: true }
                 });
                 for (const p of products) {
                     productMap.set(p.id, {
                         name: p.name,
                         price: Number(p.price),
                         packSize: Number(p.packSize) || 1,
+                        unit: p.unit || 'un',
                     });
                 }
             }
@@ -148,6 +150,13 @@ export class OrdersService {
             const verifiedItems = (items as IncomingOrderItem[]).map((item) => {
                 const product = productMap.get(item.productId);
                 const sentPrice = Number(item.price ?? item.unitPrice ?? 0);
+
+                if (product) {
+                    const uomError = validateQuantityForUnit(item.quantity, product.unit || 'un');
+                    if (uomError) {
+                        throw ApiError.badRequest(`Produto "${product.name}": ${uomError}`);
+                    }
+                }
 
                 if (!product || product.price <= 0) {
                     return {

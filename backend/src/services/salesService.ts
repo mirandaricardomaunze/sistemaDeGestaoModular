@@ -14,6 +14,7 @@ const SALE_FIELD_ALLOWLIST = [
     'user.id', 'user.name'
 ] as const;
 import { stockService } from './stockService';
+import { validateQuantityForUnit } from '../constants/unitOfMeasure';
 import { ResultHandler } from '../utils/result';
 import { invalidateDashboardCache } from './dashboardService';
 import { invalidateCommercialCache } from './commercial/shared';
@@ -278,7 +279,7 @@ export class SalesService {
             const productIds = items.map(i => i.productId);
             const products = await tx.product.findMany({
                 where: { id: { in: productIds }, companyId },
-                select: { id: true, name: true, price: true, costPrice: true, packSize: true, currentStock: true }
+                select: { id: true, name: true, price: true, costPrice: true, packSize: true, currentStock: true, unit: true }
             });
             const productMap = new Map(products.map((p) => [p.id, p] as const));
 
@@ -299,6 +300,11 @@ export class SalesService {
                 const product = productMap.get(item.productId);
                 if (!product) {
                     throw ApiError.notFound(`Produto não encontrado: ${item.productId}`);
+                }
+
+                const uomError = validateQuantityForUnit(item.quantity, product.unit || 'un');
+                if (uomError) {
+                    throw ApiError.badRequest(`Produto "${product.name}": ${uomError}`);
                 }
 
                 const packSize = Number(product.packSize) || 1;
@@ -876,7 +882,7 @@ export class SalesService {
                 if (!item.productId) continue;
                 await stockService.recordMovement({
                     productId: item.productId,
-                    quantity: item.quantity,
+                    quantity: Number(item.quantity),
                     movementType: 'return_in',
                     originModule: 'COMMERCIAL',
                     referenceType: 'SALE',

@@ -35,7 +35,7 @@ export const updateMedicationSchema = createMedicationSchema.partial().omit({ pr
 export const createBatchSchema = z.object({
     medicationId: z.string().uuid('ID do medicamento invalido'),
     batchNumber: z.string().min(1, 'Numero do lote e obrigatorio'),
-    quantity: z.number().int().positive('Quantidade deve ser positiva'),
+    quantity: z.number().positive('Quantidade deve ser positiva'),
     expiryDate: z.string().refine(
         (date) => new Date(date) > new Date(),
         'Data de validade deve ser futura'
@@ -52,7 +52,7 @@ export const createBatchSchema = z.object({
 
 export const pharmacySaleItemSchema = z.object({
     batchId: z.string().uuid('ID do lote invalido'),
-    quantity: z.number().int().positive('Quantidade deve ser positiva'),
+    quantity: z.number().positive('Quantidade deve ser positiva'),
     discount: z.number().nonnegative().default(0),
     posologyLabel: z.string().optional()
 });
@@ -96,7 +96,7 @@ export const createPrescriptionSchema = z.object({
         medicationName: z.string(),
         medicationId: z.string().uuid().optional().nullable(),
         dosage: z.string().optional(),
-        quantity: z.number().int().positive(),
+        quantity: z.number().positive(),
         posology: z.string().optional(),
         duration: z.string().optional(),
         notes: z.string().optional()

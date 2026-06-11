@@ -44,8 +44,8 @@ export const createMedicationSchema = z.object({
     expiryDate: z.string().datetime({ message: 'Data de validade inválida' }),
     price: z.number().positive('Preço deve ser maior que zero'),
     costPrice: z.number().min(0, 'Custo não pode ser negativo').optional().default(0),
-    stock: z.number().int().min(0, 'Stock não pode ser negativo').optional().default(0),
-    minStock: z.number().int().min(0, 'Stock mínimo não pode ser negativo').optional().default(5),
+    stock: z.number().min(0, 'Stock não pode ser negativo').optional().default(0),
+    minStock: z.number().min(0, 'Stock mínimo não pode ser negativo').optional().default(5),
     requiresPrescription: z.boolean().optional().default(false),
     controlled: z.boolean().optional().default(false),
     storageConditions: z.string().max(200, 'Condições de armazenamento muito longas').optional().nullable(),
@@ -64,7 +64,7 @@ export const createPrescriptionSchema = z.object({
     prescriptionDate: z.string().datetime({ message: 'Data da prescrição inválida' }),
     items: z.array(z.object({
         medicationId: z.string().uuid('ID do medicamento inválido'),
-        quantity: z.number().int().positive('Quantidade deve ser maior que zero'),
+        quantity: z.number().positive('Quantidade deve ser maior que zero'),
         dosage: z.string().max(200, 'Dosagem muito longa').optional().nullable(),
         frequency: z.string().max(100, 'Frequência muito longa').optional().nullable(),
         duration: z.string().max(100, 'Duração muito longa').optional().nullable(),
@@ -75,7 +75,7 @@ export const createPrescriptionSchema = z.object({
 
 export const dispenseMedicationSchema = z.object({
     medicationId: z.string().uuid('ID do medicamento inválido'),
-    quantity: z.number().int().positive('Quantidade deve ser maior que zero'),
+    quantity: z.number().positive('Quantidade deve ser maior que zero'),
     patientName: z.string().max(200, 'Nome do paciente muito longo').optional().nullable(),
     prescriptionId: z.string().uuid('ID da prescrição inválido').optional().nullable(),
     notes: z.string().max(500, 'Notas muito longas').optional().nullable()

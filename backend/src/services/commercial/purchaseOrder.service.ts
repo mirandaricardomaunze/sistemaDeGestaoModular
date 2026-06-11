@@ -9,6 +9,7 @@ import { fiscalService } from '../fiscalService';
 import { approvalsService } from '../approvalsService';
 import { getThresholds, isOverThreshold } from '../approvals/thresholds';
 import type { CommercialListQuery, PartialDeliveryInput } from '../../validation/commercial';
+import { validateQuantityForUnit } from '../../constants/unitOfMeasure';
 import type {
     AddSupplierInvoicePaymentInput,
     CreateSupplierInvoiceInput,
@@ -171,7 +172,7 @@ export class CommercialPurchaseOrderService {
             },
             include: {
                 supplier: true,
-                items: { include: { product: { select: { id: true, name: true, code: true } } } }
+                items: { include: { product: { select: { id: true, name: true, code: true, unit: true } } } }
             }
         });
         if (!order) throw ApiError.badRequest('A factura so pode ser registada para uma ordem recebida ou parcialmente recebida');
@@ -200,6 +201,7 @@ export class CommercialPurchaseOrderService {
             select: { purchaseOrderItemId: true, quantity: true }
         });
 
+
         const alreadyInvoiced = existingItems.reduce((map: Map<string, number>, item) => {
             if (!item.purchaseOrderItemId) return map;
             map.set(item.purchaseOrderItemId, (map.get(item.purchaseOrderItemId) || 0) + Number(item.quantity || 0));
@@ -220,8 +222,13 @@ export class CommercialPurchaseOrderService {
 
                 const quantity = Number(requested.quantity || 0);
                 const available = Number(orderItem.receivedQty || 0) - (alreadyInvoiced.get(orderItem.id) || 0);
-                if (!Number.isInteger(quantity) || quantity <= 0) {
-                    throw ApiError.badRequest('Quantidade da factura deve ser inteira e positiva');
+
+                if (quantity <= 0) {
+                    throw ApiError.badRequest('Quantidade da factura deve ser positiva');
+                }
+                const uomError = validateQuantityForUnit(quantity, orderItem.product?.unit || 'un');
+                if (uomError) {
+                    throw ApiError.badRequest(`Produto "${orderItem.product?.name || orderItem.productId}": ${uomError}`);
                 }
                 if (quantity > available) {
                     throw ApiError.badRequest(`Quantidade facturada excede a quantidade recebida disponivel para ${orderItem.product?.name || orderItem.productId}`);
@@ -675,7 +682,7 @@ export class CommercialPurchaseOrderService {
 
             if (status === 'received') {
                 for (const item of order.items) {
-                    const qtyToAdd = item.quantity - item.receivedQty;
+                    const qtyToAdd = Number(item.quantity) - Number(item.receivedQty);
                     if (qtyToAdd > 0) {
                         await stockService.recordMovement({
                             productId: item.productId,
@@ -733,8 +740,8 @@ export class CommercialPurchaseOrderService {
                 const item = order.items.find(i => i.id === delivery.itemId);
                 if (!item) continue;
 
-                const newReceived = Math.min(item.receivedQty + delivery.receivedQty, item.quantity);
-                const addedQty = newReceived - item.receivedQty;
+                const newReceived = Math.min(Number(item.receivedQty) + delivery.receivedQty, Number(item.quantity));
+                const addedQty = newReceived - Number(item.receivedQty);
 
                 if (addedQty > 0) {
                     await tx.purchaseOrderItem.update({ where: { id: item.id }, data: { receivedQty: newReceived } });
@@ -752,7 +759,7 @@ export class CommercialPurchaseOrderService {
                     }, tx);
                 }
 
-                if (newReceived < item.quantity) allReceived = false;
+                if (newReceived < Number(item.quantity)) allReceived = false;
             }
 
             const newStatus = allReceived ? PurchaseOrderStatus.received : PurchaseOrderStatus.partial;

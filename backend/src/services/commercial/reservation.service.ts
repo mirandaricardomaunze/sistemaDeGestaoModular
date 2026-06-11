@@ -109,7 +109,7 @@ export class CommercialReservationService {
         // Aggregate decrements by productId to minimise DB round-trips
         const byProduct: Record<string, number> = {};
         for (const res of expired) {
-            byProduct[res.productId] = (byProduct[res.productId] || 0) + res.quantity;
+            byProduct[res.productId] = (byProduct[res.productId] || 0) + Number(res.quantity);
         }
         const sessionIds = expired.map(res => res.sessionId).filter((id): id is string => Boolean(id));
         const sessions = sessionIds.length > 0

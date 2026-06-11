@@ -35,7 +35,7 @@ export const updateSupplierSchema = createSupplierSchema.partial();
 
 export const purchaseOrderItemSchema = z.object({
     productId: z.string().uuid('ID do produto inválido'),
-    quantity: z.number().int().positive('Quantidade deve ser maior que zero'),
+    quantity: z.number().positive('Quantidade deve ser maior que zero'),
     unitCost: z.number().positive('Custo unitrio deve ser maior que zero').optional()
 });
 
@@ -50,7 +50,7 @@ export const createPurchaseOrderSchema = z.object({
 
 export const receivePurchaseOrderItemSchema = z.object({
     itemId: z.string().uuid('ID do item inválido'),
-    receivedQty: z.number().int().min(0, 'Quantidade recebida não pode ser negativa')
+    receivedQty: z.number().min(0, 'Quantidade recebida não pode ser negativa')
 }).passthrough();
 
 export const receivePurchaseOrderSchema = z.object({
