@@ -54,25 +54,28 @@ export function unitAbbrev(unit: string): string {
  * console.warn so it shows in dev/console telemetry. Valid integers
  * still render as integers — no visual change in the happy path.
  */
-export function formatQuantity(quantity: number, unit: string): string {
+export function formatQuantity(quantity: number | string | null | undefined, unit: string): string {
+    // Prisma serializes Decimal columns as strings; coerce so .toFixed is safe.
+    const value = typeof quantity === 'number' ? quantity : Number(quantity ?? 0);
+    const safe = Number.isFinite(value) ? value : 0;
     const decimals = unitDecimals(unit);
-    if (decimals > 0) return quantity.toFixed(decimals);
-    if (Number.isInteger(quantity)) return String(quantity);
+    if (decimals > 0) return safe.toFixed(decimals);
+    if (Number.isInteger(safe)) return String(safe);
     // Integer-only unit received a decimal value — surface it instead of rounding.
     if (typeof console !== 'undefined') {
         console.warn(
-            `[formatQuantity] non-integer ${quantity} for integer unit '${unit}'. ` +
+            `[formatQuantity] non-integer ${safe} for integer unit '${unit}'. ` +
             `Upstream validation should have rejected this.`,
         );
     }
-    return quantity.toFixed(Math.min(3, (String(quantity).split('.')[1] || '').length));
+    return safe.toFixed(Math.min(3, (String(safe).split('.')[1] || '').length));
 }
 
 /**
  * Formats quantity with unit abbreviation.
  * E.g. formatQuantityWithUnit(0.75, 'kg') → '0.750 kg'
  */
-export function formatQuantityWithUnit(quantity: number, unit: string): string {
+export function formatQuantityWithUnit(quantity: number | string | null | undefined, unit: string): string {
     return `${formatQuantity(quantity, unit)} ${unitAbbrev(unit)}`;
 }
 

@@ -90,9 +90,12 @@ export function validateQuantityForUnit(quantity: number, unit: string): string 
  * E.g. formatQuantity(0.75, 'kg') → '0.750'
  *      formatQuantity(5, 'un') → '5'
  */
-export function formatQuantity(quantity: number, unit: string): string {
+export function formatQuantity(quantity: number | string | null | undefined, unit: string): string {
+    // Prisma returns Decimal columns as strings/Decimal; coerce so .toFixed is safe.
+    const value = typeof quantity === 'number' ? quantity : Number(quantity ?? 0);
+    const safe = Number.isFinite(value) ? value : 0;
     const decimals = unitDecimals(unit);
-    return decimals > 0 ? quantity.toFixed(decimals) : String(Math.round(quantity));
+    return decimals > 0 ? safe.toFixed(decimals) : String(Math.round(safe));
 }
 
 /**
@@ -100,6 +103,6 @@ export function formatQuantity(quantity: number, unit: string): string {
  * E.g. formatQuantityWithUnit(0.75, 'kg') → '0.750 kg'
  *      formatQuantityWithUnit(5, 'un') → '5 un'
  */
-export function formatQuantityWithUnit(quantity: number, unit: string): string {
+export function formatQuantityWithUnit(quantity: number | string | null | undefined, unit: string): string {
     return `${formatQuantity(quantity, unit)} ${unitAbbrev(unit)}`;
 }
