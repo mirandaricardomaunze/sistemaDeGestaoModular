@@ -514,6 +514,53 @@ export default function CommercialReports({ initialTab = 'sales' }: CommercialRe
                             columns={agingColumns}
                             isLoading={agingLoading}
                             onRefresh={refetchAging}
+                            mobileCardRender={(p) => {
+                                const cfg = STOCK_AGING_CONFIG[p.agingBucket as keyof typeof STOCK_AGING_CONFIG];
+                                return (
+                                    <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-4">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="font-black text-sm text-gray-900 dark:text-white uppercase tracking-tight truncate">
+                                                    {p.name}
+                                                </span>
+                                                <span className="text-[10px] text-gray-400 font-mono">
+                                                    {p.code}
+                                                </span>
+                                            </div>
+                                            <div className="shrink-0">
+                                                <Badge variant={cfg.badgeVariant} size="sm" className="font-black text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded-full">
+                                                    {cfg.label}
+                                                </Badge>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4 py-2 text-xs border-t border-b border-slate-100 dark:border-white/5">
+                                            <div>
+                                                <p className="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Stock Disponível</p>
+                                                <span className="font-bold text-gray-700 dark:text-gray-300">{p.currentStock} un.</span>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Dias Sem Venda</p>
+                                                <span className={cn(
+                                                    'font-black',
+                                                    p.agingBucket === 'critical' ? 'text-red-500' :
+                                                    p.agingBucket === 'aging' ? 'text-orange-500' :
+                                                    p.agingBucket === 'slow' ? 'text-yellow-500' : 'text-green-500'
+                                                )}>
+                                                    {p.daysSinceLastSale} dias
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between pt-2">
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Valor do Stock</span>
+                                            <span className="text-sm font-black text-gray-900 dark:text-white">
+                                                {formatCurrency(p.stockValue)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            }}
                             renderFilters={
                                 <div className="flex flex-wrap items-center gap-2">
                                     <span className={cn(
@@ -613,6 +660,64 @@ export default function CommercialReports({ initialTab = 'sales' }: CommercialRe
                             columns={supplierColumns}
                             isLoading={supplierLoading}
                             onRefresh={refetchSuppliers}
+                            mobileCardRender={(s) => {
+                                return (
+                                    <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-4">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="font-black text-sm text-gray-900 dark:text-white uppercase tracking-tight truncate">
+                                                    {s.name}
+                                                </span>
+                                                {s.contactPerson && (
+                                                    <span className="text-[10px] text-gray-400 font-mono mt-0.5">
+                                                        Contacto: {s.contactPerson}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="shrink-0">
+                                                {s.onTimeRate !== null && s.onTimeRate !== undefined ? (
+                                                    <Badge
+                                                        variant={s.onTimeRate >= 80 ? 'success' : s.onTimeRate >= 50 ? 'warning' : 'danger'}
+                                                        size="sm"
+                                                        className="font-black text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded-full"
+                                                    >
+                                                        {s.onTimeRate.toFixed(0)}% pontual
+                                                    </Badge>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs font-semibold">--</span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 py-2 text-xs border-t border-b border-slate-100 dark:border-white/5">
+                                            <div>
+                                                <p className="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Ordens</p>
+                                                <span className="font-bold text-gray-700 dark:text-gray-300">{s.totalOrders}</span>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Média/Ordem</p>
+                                                <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(s.avgOrderValue)}</span>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Pendentes</p>
+                                                <span className={cn(
+                                                    'font-black',
+                                                    s.pendingOrders > 0 ? (s.overdueOrders > 0 ? 'text-red-500' : 'text-yellow-500') : 'text-gray-500'
+                                                )}>
+                                                    {s.pendingOrders} {s.overdueOrders > 0 && `(${s.overdueOrders} atr)`}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between pt-2">
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Gasto Total</span>
+                                            <span className="text-sm font-black text-gray-900 dark:text-white">
+                                                {formatCurrency(s.totalSpend)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            }}
                             exportConfig={{
                                 filename: 'performance_fornecedores',
                                 title: 'Relatório de Performance de Fornecedores',
@@ -658,7 +763,7 @@ export default function CommercialReports({ initialTab = 'sales' }: CommercialRe
                                 icon={<HiOutlineCube className="w-5 h-5" />}
                             />
                             <MetricCard
-                                label="Localizaces Activas"
+                                label="Localizações Activas"
                                 value={warehouseData.length}
                                 color="blue"
                                 icon={<HiOutlineTruck className="w-5 h-5" />}
@@ -689,16 +794,7 @@ export default function CommercialReports({ initialTab = 'sales' }: CommercialRe
                                             </Pie>
                                             <RechartsTooltip
                                                 formatter={(value?: number | string) => [formatCurrency(Number(value || 0)), 'Valor']}
-                                                contentStyle={{
-                                                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                                                    backdropFilter: 'blur(12px)',
-                                                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                                                    borderRadius: '12px',
-                                                    fontSize: '12px',
-                                                    color: '#fff',
-                                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
-                                                    padding: '10px'
-                                                }}
+                                                contentStyle={CHART_TOOLTIP_STYLE}
                                                 itemStyle={{ color: '#fff', fontWeight: '600' }}
                                                 labelStyle={{ color: '#94a3b8', fontWeight: 'bold', marginBottom: '4px' }}
                                             />
@@ -727,16 +823,7 @@ export default function CommercialReports({ initialTab = 'sales' }: CommercialRe
                                             <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} width={80} />
                                             <RechartsTooltip
                                                 cursor={{ fill: 'rgba(59,130,246,0.05)' }}
-                                                contentStyle={{
-                                                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                                                    backdropFilter: 'blur(12px)',
-                                                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                                                    borderRadius: '12px',
-                                                    fontSize: '12px',
-                                                    color: '#fff',
-                                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
-                                                    padding: '10px'
-                                                }}
+                                                contentStyle={CHART_TOOLTIP_STYLE}
                                                 itemStyle={{ color: '#fff', fontWeight: '600' }}
                                                 labelStyle={{ color: '#94a3b8', fontWeight: 'bold', marginBottom: '4px' }}
                                             />

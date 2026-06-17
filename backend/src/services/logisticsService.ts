@@ -45,10 +45,11 @@ export class LogisticsService {
     // ── Deliveries ────────────────────────────────────────────────────────────
     getDeliveries(companyId: string, query: ParamOf<Ops, 'getDeliveries', 1>) { return this.operations.getDeliveries(companyId, query); }
     getDelivery(companyId: string, id: string) { return this.operations.getDelivery(companyId, id); }
-    createDelivery(companyId: string, data: ParamOf<Ops, 'createDelivery', 1>) { return this.operations.createDelivery(companyId, data); }
+    getDeliveryPdfData(companyId: string, id: string) { return this.operations.getDeliveryPdfData(companyId, id); }
+    createDelivery(companyId: string, data: ParamOf<Ops, 'createDelivery', 1>, actor?: ParamOf<Ops, 'createDelivery', 2>) { return this.operations.createDelivery(companyId, data, actor); }
     updateDelivery(companyId: string, id: string, data: ParamOf<Ops, 'updateDelivery', 2>) { return this.operations.updateDelivery(companyId, id, data); }
     deleteDelivery(companyId: string, id: string) { return this.operations.deleteDelivery(companyId, id); }
-    updateDeliveryStatus(companyId: string, id: string, status: string, extra: ParamOf<Ops, 'updateDeliveryStatus', 3>) { return this.operations.updateDeliveryStatus(companyId, id, status, extra); }
+    updateDeliveryStatus(companyId: string, id: string, status: string, extra: ParamOf<Ops, 'updateDeliveryStatus', 3>, actor?: ParamOf<Ops, 'updateDeliveryStatus', 4>) { return this.operations.updateDeliveryStatus(companyId, id, status, extra, actor); }
     payDelivery(companyId: string, id: string, data: ParamOf<Ops, 'payDelivery', 2>) { return this.operations.payDelivery(companyId, id, data); }
 
     // ── Parcels ───────────────────────────────────────────────────────────────

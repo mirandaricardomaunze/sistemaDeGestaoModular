@@ -377,7 +377,7 @@ export default function VehiclesPage() {
                 size="lg"
             >
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Input
                             label={`${t('logistics_module.vehicles.plate')} *`}
                             placeholder="AAA-000-BB"
@@ -394,7 +394,7 @@ export default function VehiclesPage() {
                         />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <Input
                             label={`${t('logistics_module.vehicles.brand')} *`}
                             placeholder="Toyota"
@@ -418,7 +418,7 @@ export default function VehiclesPage() {
                         />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <Input
                             label={t('logistics_module.vehicles.capacity')}
                             type="number"
@@ -444,7 +444,7 @@ export default function VehiclesPage() {
                         />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <Select
                             label={`${t('logistics_module.vehicles.status')} *`}
                             options={vehicleStatuses.map(s => ({ value: s.value, label: s.label }))}

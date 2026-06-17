@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
     createColumnHelper,
     type SortingState,
@@ -114,7 +114,7 @@ export default function InventoryTable({
         if (initialSearch !== undefined && initialSearch !== globalFilter) {
             setGlobalFilter(initialSearch);
         }
-    }, [initialSearch]);
+    }, [initialSearch, globalFilter]);
 
     // Debounced search avoids one network call per keystroke. Filters/page/sort
     // change immediately because they're not character-by-character.
@@ -167,6 +167,12 @@ export default function InventoryTable({
         const config = configs[status];
         return <Badge variant={config.variant} className={cn("font-black text-[9px] uppercase tracking-[0.1em] px-2.5 py-1 rounded-lg", config.className)}>{config.label}</Badge>;
     };
+
+    const handleView = useCallback((product: Product) => {
+        setSelectedProduct(product);
+        setDetailModalOpen(true);
+        onView?.(product);
+    }, [onView]);
 
     // Define columns
     const columns = useMemo<ColumnDef<Product, unknown>[]>(
@@ -312,15 +318,8 @@ export default function InventoryTable({
                 ),
             }),
         ],
-        [onEdit, selectedWarehouse]
+        [handleView, onEdit, selectedWarehouse]
     );
-
-
-    const handleView = (product: Product) => {
-        setSelectedProduct(product);
-        setDetailModalOpen(true);
-        onView?.(product);
-    };
 
     const handleDeleteClick = (product: Product) => {
         setProductToDelete(product);

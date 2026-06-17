@@ -14,7 +14,10 @@ export interface AuthRequest extends Request {
 
 export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) throw ApiError.unauthorized('Token não fornecido');
+    if (!authHeader?.startsWith('Bearer ')) {
+        console.warn(`[AUTH] Missing or invalid authorization header for path: ${req.path}`, { authHeader });
+        throw ApiError.unauthorized('Token não fornecido');
+    }
 
     const secret = process.env.JWT_SECRET;
     if (!secret) throw ApiError.internal('JWT_SECRET não configurado');
@@ -26,6 +29,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
 
         // Check if this token was explicitly revoked (logout)
         if (await isTokenBlacklisted(token)) {
+            console.warn(`[AUTH] Token is blacklisted for user ${decoded.userId}`);
             throw ApiError.unauthorized('Sessão terminada. Faça login novamente.');
         }
 
@@ -35,6 +39,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
         });
 
         if (!user || !user.isActive) {
+            console.warn(`[AUTH] User not found or inactive for id: ${decoded.userId}`);
             throw ApiError.unauthorized('Utilizador bloqueado ou desativado.');
         }
 
@@ -48,6 +53,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
         tenantContext.run({ companyId: req.companyId, userId: req.userId }, () => next());
     } catch (error) {
         if (error instanceof ApiError) throw error;
+        console.warn(`[AUTH] JWT verify failed for path: ${req.path}`, { message: error instanceof Error ? error.message : String(error) });
         throw ApiError.unauthorized('Token inválido ou expirado');
     }
 };

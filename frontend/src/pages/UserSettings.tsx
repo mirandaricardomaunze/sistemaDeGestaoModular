@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -404,7 +404,7 @@ export default function Settings() {
     };
 
     // User Management Functions
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         setIsLoadingUsers(true);
         try {
             if (user?.role === 'super_admin') {
@@ -429,13 +429,13 @@ export default function Settings() {
         } finally {
             setIsLoadingUsers(false);
         }
-    };
+    }, [user?.role]);
 
     useEffect(() => {
         if (activeTab === 'users') {
             fetchUsers();
         }
-    }, [activeTab, user?.role]);
+    }, [activeTab, user?.role, fetchUsers]);
 
     const handleEditUser = (user: UserRow) => {
         setSelectedUser(user);
@@ -1757,4 +1757,3 @@ export default function Settings() {
         </div>
     );
 }
-

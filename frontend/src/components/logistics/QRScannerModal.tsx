@@ -80,7 +80,7 @@ export default function QRScannerModal({
                 }
             };
         }
-    }, [isOpen]);
+    }, [isOpen, onScan]);
 
     const handleClose = () => {
         if (scannerRef.current) {

@@ -450,7 +450,7 @@ export default function BottleStoreInventory() {
                         <h4 className="font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-2">
                             <HiOutlineArchiveBox className="w-4 h-4" /> Registar Novo Lote
                         </h4>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <Input
                                 label="Nº Lote *"
                                 value={newBatch.batchNumber}
@@ -468,7 +468,7 @@ export default function BottleStoreInventory() {
                                 required
                             />
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <Input
                                 label="Data de Validade"
                                 type="date"
@@ -549,7 +549,7 @@ export default function BottleStoreInventory() {
                         <h4 className="font-semibold text-purple-800 dark:text-purple-300 flex items-center gap-2">
                             <HiOutlineTag className="w-4 h-4" /> Novo Nível de Preço
                         </h4>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <Input
                                 label="Qtd Mínima *"
                                 type="number"

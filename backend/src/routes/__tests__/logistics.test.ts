@@ -21,6 +21,7 @@ import request from 'supertest';
 import type { Request, Response, NextFunction } from 'express';
 import { app } from '../../index';
 import { prisma } from '../../lib/prisma';
+import { warehousesService } from '../../services/warehousesService';
 
 const CO  = 'lg-test-co';
 const UID = 'lg-test-user';
@@ -49,12 +50,26 @@ jest.setTimeout(120000);
 
 const unwrap = (res: { body: unknown }) => (res.body as { data?: unknown })?.data ?? res.body;
 
+// Shared Neon DB occasionally refuses connections (cold start / pool saturation).
+// Retry transient DB ops so setup doesn't nuke the whole suite. See memory:
+// project-tests-share-prod-db.
+async function dbRetry<T>(fn: () => Promise<T>, attempts = 5): Promise<T> {
+    let err: unknown;
+    for (let i = 0; i < attempts; i++) {
+        try { return await fn(); }
+        catch (e) { err = e; await new Promise((r) => setTimeout(r, 2500)); }
+    }
+    throw err;
+}
+
 let vehicleId: string;
 let driverId: string;
 let routeId: string;
 
 async function cleanup() {
     await Promise.all([
+        prisma.stockMovement.deleteMany({ where: { companyId: CO } }).catch(() => {}),
+        prisma.approvalRequest.deleteMany({ where: { companyId: CO } }).catch(() => {}),
         prisma.deliveryItem.deleteMany({ where: { delivery: { companyId: CO } } }).catch(() => {}),
         prisma.parcelNotification.deleteMany({ where: { parcel: { companyId: CO } } }).catch(() => {}),
         prisma.vehicleIncident.deleteMany({ where: { companyId: CO } }).catch(() => {}),
@@ -69,6 +84,13 @@ async function cleanup() {
         prisma.delivery.deleteMany({ where: { companyId: CO } }).catch(() => {}),
         prisma.parcel.deleteMany({ where: { companyId: CO } }).catch(() => {}),
     ]);
+    // Stock transfer graph + inventory (after deliveries/movements that reference them)
+    await prisma.stockTransferItem.deleteMany({ where: { transfer: { companyId: CO } } }).catch(() => {});
+    await prisma.stockTransfer.deleteMany({ where: { companyId: CO } }).catch(() => {});
+    await prisma.warehouseStock.deleteMany({ where: { companyId: CO } }).catch(() => {});
+    await prisma.productBatch.deleteMany({ where: { companyId: CO } }).catch(() => {});
+    await prisma.product.deleteMany({ where: { companyId: CO } }).catch(() => {});
+    await prisma.warehouse.deleteMany({ where: { companyId: CO } }).catch(() => {});
     await Promise.all([
         prisma.deliveryRoute.deleteMany({ where: { companyId: CO } }).catch(() => {}),
         prisma.driver.deleteMany({ where: { companyId: CO } }).catch(() => {}),
@@ -80,9 +102,20 @@ async function cleanup() {
 }
 
 beforeAll(async () => {
-    await cleanup();
-    await prisma.company.create({ data: { id: CO, name: 'Logistics Test Co', nuit: `LG-${Date.now()}`, status: 'active' } });
-    await prisma.user.create({ data: { id: UID, name: 'Admin', email: `lg-${Date.now()}@t.com`, password: 'x', role: 'admin', companyId: CO, isActive: true } });
+    await dbRetry(() => cleanup());
+    // upsert (not create) so dbRetry is idempotent: if a write commits but the
+    // connection drops before the response, the retry must not blow up on a
+    // unique-constraint violation.
+    await dbRetry(() => prisma.company.upsert({
+        where: { id: CO },
+        update: {},
+        create: { id: CO, name: 'Logistics Test Co', nuit: `LG-${Date.now()}`, status: 'active' },
+    }));
+    await dbRetry(() => prisma.user.upsert({
+        where: { id: UID },
+        update: {},
+        create: { id: UID, name: 'Admin', email: `lg-${Date.now()}@t.com`, password: 'x', role: 'admin', companyId: CO, isActive: true },
+    }));
 });
 
 afterAll(async () => { await cleanup(); await prisma.$disconnect(); });
@@ -286,6 +319,174 @@ describe('Logistics - Deliveries', () => {
             data: { number: `DL-DEL-${Date.now()}`, deliveryAddress: 'X', companyId: CO }
         });
         await request(app).delete(`/api/logistics/deliveries/${d.id}`).expect(200);
+    });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// WAREHOUSE-TRANSFER GUIAS (kind = 'warehouse_transfer')
+// ═════════════════════════════════════════════════════════════════════════════
+describe('Logistics - Guia de Transferência (warehouse_transfer)', () => {
+    const APPROVER = 'lg-approver-uid';
+    // The shared Neon DB occasionally drops a connection mid-run (503) or times a
+    // transaction out (504). Retry transient 5xx so these chained tests don't
+    // cascade-fail on infrastructure blips. See memory: tests share the Neon DB.
+    const send = async (build: () => request.Test, status: number) => {
+        let res!: Awaited<request.Test>;
+        for (let attempt = 1; attempt <= 4; attempt++) {
+            res = await build();
+            if ((res.status === 503 || res.status === 504) && attempt < 4) {
+                await new Promise((r) => setTimeout(r, 2500));
+                continue;
+            }
+            break;
+        }
+        expect(res.status).toBe(status);
+        return res;
+    };
+    // Same Neon resiliency for direct DB reads used in assertions.
+    const retryDb = async <T>(fn: () => Promise<T>): Promise<T> => {
+        let err: unknown;
+        for (let attempt = 1; attempt <= 4; attempt++) {
+            try { return await fn(); }
+            catch (e) { err = e; await new Promise((r) => setTimeout(r, 2000)); }
+        }
+        throw err;
+    };
+    let sourceWH: string;
+    let targetWH: string;
+    let productId: string;
+    let deliveryId: string;
+    let transferId: string;
+
+    const sourceQty = () => retryDb(() => prisma.warehouseStock.findUnique({
+        where: { warehouseId_productId: { warehouseId: sourceWH, productId } },
+        select: { quantity: true }
+    }).then((s) => Number(s?.quantity ?? 0)));
+    const targetQty = () => retryDb(() => prisma.warehouseStock.findUnique({
+        where: { warehouseId_productId: { warehouseId: targetWH, productId } },
+        select: { quantity: true }
+    }).then((s) => Number(s?.quantity ?? 0)));
+    const transferMovements = () => retryDb(() => prisma.stockMovement.count({
+        where: { companyId: CO, referenceType: 'transfer', reference: { startsWith: 'GT-' } }
+    }));
+    const findTransfer = () => retryDb(() => prisma.stockTransfer.findUnique({ where: { id: transferId } }));
+
+    beforeAll(async () => {
+        // Pre-generated ids + upsert → idempotent and safe to retry on Neon blips.
+        const stamp = Date.now();
+        sourceWH = `wt-src-${stamp}`;
+        targetWH = `wt-tgt-${stamp}`;
+        productId = `wt-prod-${stamp}`;
+        await retryDb(() => prisma.warehouse.upsert({
+            where: { id: sourceWH }, update: {},
+            create: { id: sourceWH, code: `SRC-${stamp}`, name: 'Armazém Origem', companyId: CO },
+        }));
+        await retryDb(() => prisma.warehouse.upsert({
+            where: { id: targetWH }, update: {},
+            create: { id: targetWH, code: `TGT-${stamp}`, name: 'Armazém Destino', companyId: CO },
+        }));
+        await retryDb(() => prisma.product.upsert({
+            where: { id: productId }, update: {},
+            create: { id: productId, code: `WT-${stamp}`, name: 'Produto Transferível', price: 100, unit: 'un', currentStock: 100, companyId: CO, barcode: '600123456789', weight: 2 },
+        }));
+        // Seed source-warehouse stock so the transfer can be reserved + dispatched.
+        await retryDb(() => prisma.warehouseStock.upsert({
+            where: { warehouseId_productId: { warehouseId: sourceWH, productId } },
+            update: { quantity: 50 },
+            create: { warehouseId: sourceWH, productId, quantity: 50, companyId: CO },
+        }));
+    });
+
+    it('T2: rejects when source equals target', async () => {
+        await send(() => request(app).post('/api/logistics/deliveries').send({
+            kind: 'warehouse_transfer', sourceWarehouseId: sourceWH, targetWarehouseId: sourceWH,
+            items: [{ productId, description: 'x', quantity: 5 }]
+        }), 400);
+    });
+
+    it('T1: rejects a transfer without product items', async () => {
+        await send(() => request(app).post('/api/logistics/deliveries').send({
+            kind: 'warehouse_transfer', sourceWarehouseId: sourceWH, targetWarehouseId: targetWH,
+            items: [{ description: 'sem produto', quantity: 5 }]
+        }), 400);
+    });
+
+    it('T3: creates Guia + pending transfer + approval, without moving stock', async () => {
+        const before = await transferMovements();
+        const res = await send(() => request(app).post('/api/logistics/deliveries').send({
+            kind: 'warehouse_transfer', sourceWarehouseId: sourceWH, targetWarehouseId: targetWH,
+            reason: 'Reposição filial',
+            items: [{ productId, description: 'Produto Transferível', quantity: 10 }]
+        }), 201);
+        const body = unwrap(res);
+        deliveryId = body.id;
+        transferId = body.transferId;
+        expect(body.kind).toBe('warehouse_transfer');
+        expect(transferId).toBeTruthy();
+
+        const transfer = await findTransfer();
+        expect(transfer?.status).toBe('pending');
+        const approval = await retryDb(() => prisma.approvalRequest.findFirst({ where: { companyId: CO, resourceId: transferId, requestType: 'warehouse_transfer' } }));
+        expect(approval).toBeTruthy();
+        // No stock movement yet.
+        expect(await transferMovements()).toBe(before);
+        expect(await sourceQty()).toBe(50);
+    });
+
+    it('T4: Guia cannot depart before the transfer is approved', async () => {
+        const res = await send(() => request(app).put(`/api/logistics/deliveries/${deliveryId}/status`).send({ status: 'in_transit' }), 400);
+        expect(JSON.stringify(res.body)).toMatch(/aprova/i);
+        expect(await sourceQty()).toBe(50);
+    });
+
+    it('T5: after approval, departing deducts source stock + records a transfer movement', async () => {
+        // Approve via the transfer engine (different approver — 4-eyes).
+        await retryDb(() => warehousesService.approveTransfer(CO, transferId, APPROVER, 'Gestor'));
+        const before = await transferMovements();
+
+        const res = await send(() => request(app).put(`/api/logistics/deliveries/${deliveryId}/status`).send({ status: 'in_transit' }), 200);
+        expect(unwrap(res).status).toBe('in_transit');
+
+        expect(await sourceQty()).toBe(40);            // 50 − 10
+        expect(await transferMovements()).toBe(before + 1);
+        const t = await findTransfer();
+        expect(t?.status).toBe('in_transit');
+
+        // Idempotency: a second in_transit must not deduct again.
+        await send(() => request(app).put(`/api/logistics/deliveries/${deliveryId}/status`).send({ status: 'in_transit' }), 400);
+        expect(await sourceQty()).toBe(40);
+    });
+
+    it('T6: confirming delivery credits the destination warehouse', async () => {
+        const before = await transferMovements();
+        const res = await send(() => request(app).put(`/api/logistics/deliveries/${deliveryId}/status`).send({ status: 'delivered' }), 200);
+        expect(unwrap(res).status).toBe('delivered');
+
+        expect(await targetQty()).toBe(10);            // 0 + 10
+        expect(await transferMovements()).toBe(before + 1);
+        const t = await findTransfer();
+        expect(t?.status).toBe('received');
+    });
+
+    it('T11: a Guia with an active transfer cannot be deleted', async () => {
+        // Fresh transfer Guia left in `pending` (active).
+        const res = await send(() => request(app).post('/api/logistics/deliveries').send({
+            kind: 'warehouse_transfer', sourceWarehouseId: sourceWH, targetWarehouseId: targetWH,
+            items: [{ productId, description: 'Produto Transferível', quantity: 3 }]
+        }), 201);
+        const id = unwrap(res).id;
+        await send(() => request(app).delete(`/api/logistics/deliveries/${id}`), 400);
+    });
+
+    it('T8: a normal shipment Guia creates no stock movement', async () => {
+        const before = await transferMovements();
+        const allMovesBefore = await retryDb(() => prisma.stockMovement.count({ where: { companyId: CO } }));
+        await send(() => request(app).post('/api/logistics/deliveries').send({
+            recipientName: 'Cliente', deliveryAddress: 'Rua A',
+            items: [{ description: 'Caixa', quantity: 2 }]
+        }), 201);
+        expect(await transferMovements()).toBe(before);
+        expect(await retryDb(() => prisma.stockMovement.count({ where: { companyId: CO } }))).toBe(allMovesBefore);
     });
 });
 

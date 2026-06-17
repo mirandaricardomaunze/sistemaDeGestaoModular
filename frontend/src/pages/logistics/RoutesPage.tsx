@@ -313,7 +313,7 @@ export default function RoutesPage() {
                 size="lg"
             >
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Input
                             label={`${t('logistics_module.routes.code')} *`}
                             placeholder="RT001"
@@ -331,7 +331,7 @@ export default function RoutesPage() {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Input
                             label={`${t('common.origin')} *`}
                             placeholder="Cidade/Local de partida"
@@ -348,7 +348,7 @@ export default function RoutesPage() {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Input
                             label={t('logistics_module.routes.distance')}
                             type="number"
@@ -366,7 +366,7 @@ export default function RoutesPage() {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Input
                             label={t('logistics_module.routes.tollCost')}
                             type="number"
@@ -445,7 +445,7 @@ export default function RoutesPage() {
             >
                 {previewRoute && (
                     <div className="space-y-4">
-                        <div className="grid grid-cols-3 gap-4 mb-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                             <div className="bg-gray-50 dark:bg-dark-800 p-3 rounded-lg border border-gray-100 dark:border-dark-700">
                                 <p className="text-[10px] font-bold text-gray-500 uppercase">{t('logistics_module.routes.distance')}</p>
                                 <p className="text-lg font-black text-primary-600">{previewRoute.distance || '--'} km</p>

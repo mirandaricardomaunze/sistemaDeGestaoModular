@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, Button, Badge, LoadingSpinner, EmptyState, ConfirmationModal } from '../ui';
 import { hospitalityAPI } from '../../services/api';
@@ -47,7 +47,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
 
-    const fetchTasks = async () => {
+    const fetchTasks = useCallback(async () => {
         setIsLoading(true);
         try {
             const data = await hospitalityAPI.getHousekeepingTasks(
@@ -59,11 +59,11 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [filter]);
 
     useEffect(() => {
         fetchTasks();
-    }, [filter]);
+    }, [fetchTasks]);
 
     const handleStatusChange = async (taskId: string, newStatus: 'in_progress' | 'completed') => {
         try {

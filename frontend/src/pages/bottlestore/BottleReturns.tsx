@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, Button, Input, Badge, Modal, Select, EmptyState, LoadingSpinner } from '../../components/ui';
 import {
     HiOutlineArrowPath,
@@ -79,7 +79,7 @@ export default function BottleReturns() {
     const returnableProducts = (products as BottleProduct[]).filter((p) => p.isReturnable);
 
     // Fetch movements
-    const fetchMovements = async () => {
+    const fetchMovements = useCallback(async () => {
         setLoading(true);
         try {
             const res = await bottleStoreAPI.getBottleReturns({ page, limit: pageSize });
@@ -90,7 +90,7 @@ export default function BottleReturns() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, pageSize]);
 
     // Fetch summary
     const fetchSummary = async () => {
@@ -105,7 +105,7 @@ export default function BottleReturns() {
     useEffect(() => {
         fetchMovements();
         fetchSummary();
-    }, [page, pageSize]);
+    }, [page, pageSize, fetchMovements]);
 
     // Handle form submit
     const handleSubmit = async (e: React.FormEvent) => {

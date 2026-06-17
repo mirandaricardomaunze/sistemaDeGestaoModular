@@ -66,6 +66,7 @@ export default function CommercialHistoryHub() {
                                 onClick={() => handleTabChange(tab.id)}
                                 variant="ghost"
                                 size="sm"
+                                leftIcon={<Icon className={cn("w-4 h-4 flex-shrink-0", !isActive && "text-primary-500 opacity-50")} />}
                                 className={cn(
                                     'min-w-max flex-1 justify-center rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem] lg:justify-start lg:px-4',
                                     isActive
@@ -73,10 +74,6 @@ export default function CommercialHistoryHub() {
                                         : 'text-slate-600 hover:text-slate-950 dark:hover:text-gray-300'
                                 )}
                             >
-                                <Icon className={cn(
-                                    "w-4 h-4 flex-shrink-0",
-                                    !isActive && "text-primary-500 opacity-50"
-                                )} />
                                 <span className="hidden truncate text-left lg:inline">
                                     {tab.id === 'sales' && 'Vendas'}
                                     {tab.id === 'voids' && (

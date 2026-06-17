@@ -99,7 +99,7 @@ export const prisma = basePrisma.$extends({
                     // Hospitality
                     'HousekeepingTask', 'BookingConsumption',
                     // Config & audit (company-scoped)
-                    'AlertConfig', 'AuditLog', 'SalesTarget',
+                    'AlertConfig', 'AuditLog', 'NotificationPreference', 'SalesTarget',
                     // Approvals workflow (generic request/approve flow shared by every module)
                     'ApprovalRequest',
                 ];

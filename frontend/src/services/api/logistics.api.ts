@@ -58,6 +58,10 @@ export interface ParcelNotification {
 }
 
 export type CreateDeliveryInput = Omit<Partial<Delivery>, 'items'> & {
+    // Warehouse-transfer Guia fields (kind = 'warehouse_transfer')
+    sourceWarehouseId?: string;
+    targetWarehouseId?: string;
+    reason?: string;
     items?: Array<{
         productId?: string;
         description: string;

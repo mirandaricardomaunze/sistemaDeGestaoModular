@@ -30,7 +30,7 @@ export const usePharmacySuppliers = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [search, page]);
+    }, [search]);
 
     useEffect(() => { fetchSuppliers(); }, [fetchSuppliers]);
 

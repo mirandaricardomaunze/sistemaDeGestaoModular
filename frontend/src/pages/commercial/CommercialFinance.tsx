@@ -14,7 +14,7 @@ import {
     HiOutlineCurrencyDollar,
     HiOutlineClipboardDocumentList,
 } from 'react-icons/hi2';
-import { Card, Button, Input, Select, Modal, Badge, PageHeader, SmartTable, ResponsiveValue } from '../../components/ui';
+import { Card, Button, Input, Select, Modal, Badge, PageHeader, SmartTable, ResponsiveValue, ConfirmationModal } from '../../components/ui';
 import { StatCard } from '../../components/common/ModuleMetricCard';
 import { formatCurrency, formatDate, cn } from '../../utils/helpers';
 import { commercialAPI } from '../../services/api';
@@ -66,6 +66,7 @@ export default function CommercialFinance() {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<CommercialTransaction | null>(null);
     const [editingTransaction, setEditingTransaction] = useState<CommercialTransaction | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -156,6 +157,7 @@ export default function CommercialFinance() {
 
     const handleDelete = async () => {
         if (!transactionToDelete) return;
+        setIsDeleting(true);
         try {
             await commercialAPI.deleteTransaction(transactionToDelete.id);
             toast.success('Lançamento eliminado!');
@@ -165,6 +167,8 @@ export default function CommercialFinance() {
         } catch (error) {
             logger.error('Failed to delete commercial finance transaction:', error);
             toast.error('Erro ao eliminar lançamento');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -195,7 +199,7 @@ export default function CommercialFinance() {
     ];
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-in pb-10">
             <PageHeader 
                 title="Gestão Financeira Comercial" 
                 subtitle="Controle de receitas, custos e margens de lucro"
@@ -497,7 +501,7 @@ export default function CommercialFinance() {
                                     : 'border-gray-100 dark:border-dark-700'
                             )}
                         >
-                            <Input type="radio" value="income" {...register('type')} className="hidden" />
+                            <input type="radio" value="income" {...register('type')} className="hidden" />
                             <HiOutlineArrowTrendingUp className={cn(
                                 'w-6 h-6',
                                 selectedType === 'income' ? 'text-orange-600' : 'text-gray-400'
@@ -517,7 +521,7 @@ export default function CommercialFinance() {
                                     : 'border-gray-100 dark:border-dark-700'
                             )}
                         >
-                            <Input type="radio" value="expense" {...register('type')} className="hidden" />
+                            <input type="radio" value="expense" {...register('type')} className="hidden" />
                             <HiOutlineArrowTrendingDown className={cn(
                                 'w-6 h-6',
                                 selectedType === 'expense' ? 'text-rose-600' : 'text-gray-400'
@@ -601,26 +605,17 @@ export default function CommercialFinance() {
             </Modal>
 
             {/* Modal de Eliminação */}
-            <Modal
+            <ConfirmationModal
                 isOpen={deleteModalOpen}
-                onClose={() => setDeleteModalOpen(false)}
+                onClose={() => !isDeleting && setDeleteModalOpen(false)}
+                onConfirm={handleDelete}
                 title="Eliminar Operação Comercial"
-                size="sm"
-            >
-                <div className="space-y-4 py-2">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                        Deseja realmente eliminar este lançamento permanente? Esta acção é irreversível e afectar a margem histórica.
-                    </p>
-                    <div className="flex gap-3 justify-end pt-4">
-                        <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>
-                            Cancelar
-                        </Button>
-                        <Button variant="danger" onClick={handleDelete}>
-                            Eliminar Permanentemente
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
+                message="Deseja realmente eliminar este lançamento? Esta acção é irreversível e afecta a margem histórica."
+                confirmText="Eliminar Permanentemente"
+                cancelText="Cancelar"
+                variant="danger"
+                isLoading={isDeleting}
+            />
         </div>
     );
 }

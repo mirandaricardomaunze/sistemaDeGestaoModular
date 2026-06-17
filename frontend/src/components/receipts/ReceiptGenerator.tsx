@@ -35,7 +35,7 @@ export default function ReceiptGenerator() {
     const [searchProduct, setSearchProduct] = useState('');
 
     // Products come from a data hook
-    const products: Product[] = [];
+    const products = useMemo<Product[]>(() => [], []);
 
     // Format company info for receipt display with null safety
     const companyInfo: CompanyInfo = useMemo(() => ({

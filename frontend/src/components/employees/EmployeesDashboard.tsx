@@ -100,8 +100,8 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
     const { insights } = useSmartInsights();
 
     // Ensure arrays are never undefined
-    const employees = Array.isArray(employeesData) ? employeesData : [];
-    const attendance = Array.isArray(attendanceData) ? attendanceData : [];
+    const employees = useMemo(() => Array.isArray(employeesData) ? employeesData : [], [employeesData]);
+    const attendance = useMemo(() => Array.isArray(attendanceData) ? attendanceData : [], [attendanceData]);
 
     const [sorting, setSorting] = useState<SortingState>([]);
     const [searchTerm, setSearchTerm] = useState('');

@@ -87,7 +87,7 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete, origi
     // Load full catalogue once (client-side search). Pass originModule so the
     // backend returns module-specific products (e.g. commercial) + shared inventory.
     const { products: productsData } = useProducts({ limit: 2000, originModule });
-    const products = Array.isArray(productsData) ? productsData : [];
+    const products = useMemo(() => Array.isArray(productsData) ? productsData : [], [productsData]);
     const { companySettings } = useStore();
     const ivaRate = (companySettings?.ivaRate ?? 16) / 100;
 

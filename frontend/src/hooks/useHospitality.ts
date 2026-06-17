@@ -148,7 +148,10 @@ export function useHospitality(_params?: { search?: string; status?: string; pag
     });
 
     const rawData = roomsQuery.data;
-    const rooms: HotelRoom[] = Array.isArray(rawData) ? rawData : ((rawData as { data?: HotelRoom[] } | undefined)?.data || []);
+    const rooms = useMemo<HotelRoom[]>(
+        () => Array.isArray(rawData) ? rawData : ((rawData as { data?: HotelRoom[] } | undefined)?.data || []),
+        [rawData]
+    );
     const pagination = (rawData as { pagination?: { total: number; page: number; pageSize?: number } } | undefined)?.pagination
         || { total: rooms.length, page: 1, pageSize: rooms.length };
 

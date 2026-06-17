@@ -1,15 +1,30 @@
 import PDFDocument from 'pdfkit';
 import { Response } from 'express';
 
+export type DeliveryPdfItem = {
+    barcode?: string | null;
+    reference?: string | null;
+    description: string;
+    expiry?: Date | string | null;
+    quantity: number;
+    unit?: string | null;
+    value: number;   // line value (unitPrice × quantity)
+    weight: number;  // line weight in kg (unitWeight × quantity)
+};
+
 type DeliveryPdfInput = {
     trackingNumber: string;
     createdAt: Date | string;
     status: string;
+    kind?: string | null;
     driverName?: string | null;
     vehiclePlate?: string | null;
     customerName?: string | null;
     destination: string;
+    sourceWarehouseName?: string | null;
+    targetWarehouseName?: string | null;
     notes?: string | null;
+    items?: DeliveryPdfItem[];
 };
 
 type CompanyInfoInput = {
@@ -19,81 +34,177 @@ type CompanyInfoInput = {
     phone?: string;
 };
 
+// ── Formatting helpers (locale-independent, safe in any Node build) ──────────
+const fmtMoney = (n: number) =>
+    (Number(n) || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' MT';
+const fmtNum = (n: number) => {
+    const v = Number(n) || 0;
+    return Number.isInteger(v) ? String(v) : v.toFixed(3).replace(/\.?0+$/, '');
+};
+const fmtDate = (d: Date | string) => {
+    const dt = new Date(d);
+    const p = (x: number) => String(x).padStart(2, '0');
+    return `${p(dt.getDate())}/${p(dt.getMonth() + 1)}/${dt.getFullYear()}`;
+};
+const fmtShortDate = (d: Date | string | null | undefined) => {
+    if (!d) return '—';
+    const dt = new Date(d);
+    if (isNaN(dt.getTime())) return '—';
+    const p = (x: number) => String(x).padStart(2, '0');
+    return `${p(dt.getDate())}/${p(dt.getMonth() + 1)}/${String(dt.getFullYear()).slice(-2)}`;
+};
+
+// ── Compact items table column layout (A4, 40pt margins → 515pt usable) ──────
+const COLS = [
+    { key: 'barcode', label: 'Cód. Barras', x: 40, w: 80, align: 'left' as const },
+    { key: 'reference', label: 'Ref.', x: 120, w: 55, align: 'left' as const },
+    { key: 'description', label: 'Descrição', x: 175, w: 140, align: 'left' as const },
+    { key: 'expiry', label: 'Validade', x: 315, w: 50, align: 'center' as const },
+    { key: 'quantity', label: 'Qtd', x: 365, w: 40, align: 'right' as const },
+    { key: 'value', label: 'Valor', x: 405, w: 60, align: 'right' as const },
+    { key: 'weight', label: 'Peso(kg)', x: 465, w: 50, align: 'right' as const },
+];
+const TABLE_LEFT = 40;
+const TABLE_RIGHT = 515;
+const ROW_H = 16;
+
 export const generateDeliveryPDF = (res: Response, delivery: DeliveryPdfInput, companyInfo: CompanyInfoInput) => {
-    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    const doc = new PDFDocument({ margin: 40, size: 'A4' });
+    const isTransfer = delivery.kind === 'warehouse_transfer';
 
-    // Set response headers for PDF download
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="Guia-Transporte-${delivery.trackingNumber}.pdf"`);
-
-    // Pipe the PDF directly to the response
+    res.setHeader('Content-Disposition', `attachment; filename="Guia-${delivery.trackingNumber}.pdf"`);
     doc.pipe(res);
 
-    // Document styling
     const pageWidth = doc.page.width;
-    const rightColX = pageWidth - 200;
+    const rightColX = pageWidth - 210;
 
-    // ----- HEADER -----
-    doc.fontSize(24).font('Helvetica-Bold').text('GUIA DE TRANSPORTE', 50, 50);
+    // ----- HEADER (condensed) -----
+    doc.fontSize(18).font('Helvetica-Bold')
+        .text(isTransfer ? 'GUIA DE TRANSFERÊNCIA' : 'GUIA DE TRANSPORTE', 40, 40);
 
-    doc.fontSize(10).font('Helvetica');
-    doc.text(companyInfo.name || 'Empresa Emissora', 50, 85);
-    if (companyInfo.address) doc.text(companyInfo.address, 50, 100);
-    if (companyInfo.nuit) doc.text(`NUIT: ${companyInfo.nuit}`, 50, 115);
-    if (companyInfo.phone) doc.text(`Tel: ${companyInfo.phone}`, 50, 130);
+    doc.fontSize(9).font('Helvetica');
+    let y = 66;
+    doc.font('Helvetica-Bold').text(companyInfo.name || 'Empresa Emissora', 40, y);
+    doc.font('Helvetica');
+    if (companyInfo.address) { y += 12; doc.text(companyInfo.address, 40, y); }
+    if (companyInfo.nuit) { y += 12; doc.text(`NUIT: ${companyInfo.nuit}`, 40, y); }
+    if (companyInfo.phone) { y += 12; doc.text(`Tel: ${companyInfo.phone}`, 40, y); }
 
-    // Delivery Meta
-    doc.fontSize(10).font('Helvetica-Bold').text(`Documento Nº:`, rightColX, 85);
-    doc.font('Helvetica').text(delivery.trackingNumber, rightColX + 80, 85);
+    // Document meta (right column)
+    const meta: Array<[string, string]> = [
+        ['Documento Nº:', delivery.trackingNumber],
+        ['Data de Emissão:', fmtDate(delivery.createdAt)],
+        ['Estado:', delivery.status.toUpperCase()],
+    ];
+    if (isTransfer) {
+        meta.push(['Origem:', delivery.sourceWarehouseName || '—']);
+        meta.push(['Destino:', delivery.targetWarehouseName || '—']);
+    } else {
+        meta.push(['Destinatário:', delivery.customerName || '—']);
+        meta.push(['Morada:', delivery.destination || '—']);
+    }
+    let my = 66;
+    doc.fontSize(9);
+    for (const [label, value] of meta) {
+        doc.font('Helvetica-Bold').text(label, rightColX, my, { width: 80 });
+        doc.font('Helvetica').text(value, rightColX + 82, my, { width: 88 });
+        my += 13;
+    }
 
-    doc.font('Helvetica-Bold').text(`Data de Emissão:`, rightColX, 100);
-    doc.font('Helvetica').text(new Date(delivery.createdAt).toLocaleDateString(), rightColX + 80, 100);
+    // Transport line (driver/vehicle) — compact
+    let cursorY = Math.max(y, my) + 14;
+    doc.fontSize(9).font('Helvetica')
+        .text(`Condutor: ${delivery.driverName || 'N/A'}    |    Veículo: ${delivery.vehiclePlate || 'N/A'}`, 40, cursorY);
+    cursorY += 18;
 
-    doc.font('Helvetica-Bold').text(`Estado Atual:`, rightColX, 115);
-    doc.font('Helvetica').text(delivery.status.toUpperCase(), rightColX + 80, 115);
+    // ----- ITEMS TABLE -----
+    const items = delivery.items ?? [];
 
-    // ----- CUSTOMER INFO & ROUTE -----
-    doc.moveDown(3);
-    const boxY = doc.y;
-    
-    // Origin Box
-    doc.rect(50, boxY, 230, 80).stroke('#cccccc');
-    doc.font('Helvetica-Bold').text('DADOS DA CARGA (ORIGEM)', 60, boxY + 10);
-    doc.font('Helvetica').text(`Condutor: ${delivery.driverName || 'N/A'}`, 60, boxY + 30);
-    doc.text(`Veículo: ${delivery.vehiclePlate || 'N/A'}`, 60, boxY + 45);
+    const drawTableHeader = (top: number) => {
+        doc.rect(TABLE_LEFT, top, TABLE_RIGHT - TABLE_LEFT, ROW_H).fill('#e5e7eb');
+        doc.fillColor('#111827').fontSize(8).font('Helvetica-Bold');
+        for (const c of COLS) {
+            doc.text(c.label, c.x + 2, top + 5, { width: c.w - 4, align: c.align });
+        }
+        doc.fillColor('#000000');
+        return top + ROW_H;
+    };
 
-    // Destination Box
-    doc.rect(300, boxY, 245, 80).stroke('#cccccc');
-    doc.font('Helvetica-Bold').text('MORADA DE DESCARGA (DESTINO)', 310, boxY + 10);
-    doc.font('Helvetica').text(`Destinatrio: ${delivery.customerName || 'N/A'}`, 310, boxY + 30);
-    doc.text(`Endereço: ${delivery.destination}`, 310, boxY + 45);
+    let rowY = drawTableHeader(cursorY);
+
+    const cell = (text: string, c: typeof COLS[number], top: number) => {
+        doc.text(text, c.x + 2, top + 4, { width: c.w - 4, align: c.align, lineBreak: false, ellipsis: true });
+    };
+
+    let totalValue = 0;
+    let totalWeight = 0;
+    let totalQty = 0;
+    doc.fontSize(8).font('Helvetica');
+
+    items.forEach((it, idx) => {
+        // Pagination: repeat header on a new page.
+        if (rowY + ROW_H > doc.page.height - 120) {
+            doc.addPage();
+            rowY = drawTableHeader(40);
+            doc.fontSize(8).font('Helvetica');
+        }
+        if (idx % 2 === 1) {
+            doc.rect(TABLE_LEFT, rowY, TABLE_RIGHT - TABLE_LEFT, ROW_H).fill('#f9fafb');
+            doc.fillColor('#000000');
+        }
+        totalValue += Number(it.value) || 0;
+        totalWeight += Number(it.weight) || 0;
+        totalQty += Number(it.quantity) || 0;
+
+        cell(it.barcode || '—', COLS[0], rowY);
+        cell(it.reference || '—', COLS[1], rowY);
+        cell(it.description || '—', COLS[2], rowY);
+        cell(fmtShortDate(it.expiry), COLS[3], rowY);
+        cell(`${fmtNum(it.quantity)} ${it.unit || ''}`.trim(), COLS[4], rowY);
+        cell(fmtMoney(it.value), COLS[5], rowY);
+        cell(fmtNum(it.weight), COLS[6], rowY);
+        rowY += ROW_H;
+    });
+
+    if (items.length === 0) {
+        doc.fontSize(8).font('Helvetica-Oblique').fillColor('#6b7280')
+            .text('Sem itens registados nesta guia.', TABLE_LEFT + 2, rowY + 4);
+        doc.fillColor('#000000');
+        rowY += ROW_H;
+    }
+
+    // Top border + totals row
+    doc.moveTo(TABLE_LEFT, rowY).lineTo(TABLE_RIGHT, rowY).strokeColor('#9ca3af').stroke();
+    doc.rect(TABLE_LEFT, rowY, TABLE_RIGHT - TABLE_LEFT, ROW_H).fill('#f3f4f6');
+    doc.fillColor('#111827').fontSize(8).font('Helvetica-Bold');
+    doc.text(`Total de itens: ${items.length}`, COLS[0].x + 2, rowY + 5);
+    doc.text(`Qtd: ${fmtNum(totalQty)}`, COLS[4].x - 30, rowY + 5, { width: COLS[4].w + 28, align: 'right' });
+    doc.text(fmtMoney(totalValue), COLS[5].x + 2, rowY + 5, { width: COLS[5].w - 4, align: 'right' });
+    doc.text(`${fmtNum(totalWeight)} kg`, COLS[6].x + 2, rowY + 5, { width: COLS[6].w - 4, align: 'right' });
+    doc.fillColor('#000000');
+    rowY += ROW_H + 12;
 
     // ----- OBSERVATIONS -----
-    doc.moveDown(5);
-    doc.font('Helvetica-Bold').fontSize(12).text('Detalhes e Observaces da Entrega', 50, doc.y);
-    doc.moveDown(0.5);
-    doc.font('Helvetica').fontSize(10).text(delivery.notes || 'Sem observaces adicionais.', 50, doc.y, { width: pageWidth - 100 });
+    if (delivery.notes) {
+        doc.font('Helvetica-Bold').fontSize(9).text('Observações:', 40, rowY);
+        doc.font('Helvetica').fontSize(9).text(delivery.notes, 40, rowY + 12, { width: TABLE_RIGHT - 40 });
+    }
 
-    // ----- SIGNATURES -----
-    const sigY = doc.page.height - 150;
-    
-    doc.moveTo(50, sigY).lineTo(200, sigY).stroke();
-    doc.font('Helvetica-Bold').fontSize(10).text('A Entidade Emissora', 50, sigY + 10, { width: 150, align: 'center' });
+    // ----- SIGNATURES (compact, fixed to bottom) -----
+    const sigY = doc.page.height - 90;
+    doc.fontSize(9).font('Helvetica-Bold').fillColor('#000000');
+    doc.moveTo(40, sigY).lineTo(190, sigY).stroke();
+    doc.text('A Entidade Emissora', 40, sigY + 6, { width: 150, align: 'center' });
+    doc.moveTo(225, sigY).lineTo(375, sigY).stroke();
+    doc.text('O Condutor / Transportador', 225, sigY + 6, { width: 150, align: 'center' });
+    doc.moveTo(410, sigY).lineTo(TABLE_RIGHT, sigY).stroke();
+    doc.text(isTransfer ? 'Recebido no Destino' : 'O Cliente / Recebedor', 410, sigY + 6, { width: TABLE_RIGHT - 410, align: 'center' });
 
-    doc.moveTo(250, sigY).lineTo(400, sigY).stroke();
-    doc.text('O Condutor / Transportador', 250, sigY + 10, { width: 150, align: 'center' });
-
-    doc.moveTo(450, sigY).lineTo(pageWidth - 50, sigY).stroke();
-    doc.text('O Cliente / Recebedor', 450, sigY + 10, { width: pageWidth - 500, align: 'center' });
-
-    // Footer
-    doc.font('Helvetica').fontSize(8).text(
+    doc.font('Helvetica').fontSize(7).fillColor('#6b7280').text(
         'Documento gerado automaticamente pelo sistema MultiCore ERP',
-        50,
-        doc.page.height - 50,
-        { align: 'center', width: pageWidth - 100 }
+        40, doc.page.height - 40, { align: 'center', width: pageWidth - 80 }
     );
 
-    // Finalize PDF file
     doc.end();
 };

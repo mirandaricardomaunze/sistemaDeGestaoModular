@@ -15,12 +15,13 @@ export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user, token } = useAuthStore();
+    const userId = user?.id;
     const [socket, setSocket] = useState<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
         // Only connect if user is authenticated
-        if (user && token) {
+        if (userId && token) {
             let cancelled = false;
             let newSocket: Socket | null = null;
 
@@ -68,13 +69,13 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             };
         } else {
             // Disconnect if user logs out
-            if (socket) {
-                socket.disconnect();
-                setSocket(null);
-                setIsConnected(false);
-            }
+            setSocket((current) => {
+                current?.disconnect();
+                return null;
+            });
+            setIsConnected(false);
         }
-    }, [user?.id]); // Reconnect if user changes
+    }, [userId, token]);
 
     return (
         <SocketContext.Provider value={{ socket, isConnected }}>

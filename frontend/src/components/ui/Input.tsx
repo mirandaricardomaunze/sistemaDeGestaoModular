@@ -18,6 +18,20 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         const isPassword = type === 'password';
         const inputType = isPassword && showPassword ? 'text' : type;
 
+        if (type === 'checkbox') {
+            return (
+                <input
+                    ref={ref}
+                    type="checkbox"
+                    className={cn(
+                        'w-4 h-4 text-primary-600 rounded border-slate-300 dark:border-dark-600 bg-white dark:bg-dark-800 focus:ring-primary-500/20 focus:ring-offset-0 cursor-pointer',
+                        className
+                    )}
+                    {...props}
+                />
+            );
+        }
+
         return (
             <div className="w-full group">
                 {label && (

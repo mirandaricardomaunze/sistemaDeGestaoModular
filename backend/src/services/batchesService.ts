@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { getPaginationParams, createPaginatedResponse, parseFields } from '../utils/pagination';
+import { logger } from '../utils/logger';
 
 type ListQuery = {
     page?: string | number;
@@ -172,12 +173,12 @@ export class BatchesService {
     // =========================================================================
 
     async create(data: CreateBatchInput, companyId: string) {
-        console.log('Creating batch with data:', { ...data, companyId });
+        logger.debug('Creating product batch', { productId: data.productId, batchNumber: data.batchNumber, companyId });
         
         // Validate product belongs to company
         const product = await prisma.product.findFirst({ where: { id: data.productId, companyId } });
         if (!product) {
-            console.error('Product not found or doesn\'t belong to company:', data.productId);
+            logger.warn('Batch creation rejected because product was not found in tenant', { productId: data.productId, companyId });
             throw ApiError.notFound('Produto não encontrado');
         }
 

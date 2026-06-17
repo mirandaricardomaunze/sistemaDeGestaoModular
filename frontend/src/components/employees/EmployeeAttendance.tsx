@@ -20,8 +20,8 @@ import toast from 'react-hot-toast';
 export default function EmployeeAttendance() {
     const { employees: employeesData } = useEmployees();
     const { attendance: attendanceData, recordAttendance } = useAttendance();
-    const employees = Array.isArray(employeesData) ? employeesData : [];
-    const attendance = Array.isArray(attendanceData) ? attendanceData : [];
+    const employees = useMemo(() => Array.isArray(employeesData) ? employeesData : [], [employeesData]);
+    const attendance = useMemo(() => Array.isArray(attendanceData) ? attendanceData : [], [attendanceData]);
     const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
     const [listFilter, setListFilter] = useState<'all' | 'present' | 'absent' | 'vacation'>('all');
     const [selectedDate, setSelectedDate] = useState(() => new Date());

@@ -7,6 +7,7 @@ import { emitToModule } from '../lib/socket';
 import { requireModule } from '../middleware/module';
 import { emailQueue, JOB_OPTIONS } from '../queues/emailQueue';
 import { generateDeliveryPDF } from '../utils/pdf.generator';
+import { createDeliverySchema, updateDeliveryStatusSchema } from '../validation/logistics';
 
 const router = Router();
 router.use(authenticate, requireModule('LOGISTICS'));
@@ -145,7 +146,8 @@ router.get('/deliveries', authenticate, authorize(...STAFF_ROLES), async (req: A
 
 router.post('/deliveries', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const delivery = await logisticsService.createDelivery(req.companyId, req.body);
+    const payload = createDeliverySchema.parse(req.body);
+    const delivery = await logisticsService.createDelivery(req.companyId, payload, { userId: req.userId, userName: req.userName });
 
     // Socket Notification: New Delivery Assigned
     emitToModule(req.companyId, 'logistics', 'logistics:new_delivery', {
@@ -196,9 +198,8 @@ router.delete('/deliveries/:id', authenticate, authorize(...MANAGER_ROLES), asyn
 router.get('/deliveries/:id/pdf', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
 
-    const result = await logisticsService.getDelivery(req.companyId, req.params.id);
-    if (!result?.data) throw ApiError.notFound('Entrega não encontrada');
-    const d = result.data;
+    const { delivery: d, items, sourceWarehouseName, targetWarehouseName } =
+        await logisticsService.getDeliveryPdfData(req.companyId, req.params.id);
 
     const company = await prisma.company.findUnique({
         where: { id: req.companyId },
@@ -209,11 +210,15 @@ router.get('/deliveries/:id/pdf', authenticate, authorize(...STAFF_ROLES), async
         trackingNumber: d.number,
         createdAt: d.createdAt,
         status: d.status,
+        kind: d.kind,
         driverName: d.driver?.name,
         vehiclePlate: d.vehicle?.plate,
         customerName: d.recipientName,
         destination: d.deliveryAddress,
+        sourceWarehouseName,
+        targetWarehouseName,
         notes: d.notes,
+        items,
     }, {
         name: company?.name ?? undefined,
         address: company?.address ?? undefined,
@@ -224,8 +229,8 @@ router.get('/deliveries/:id/pdf', authenticate, authorize(...STAFF_ROLES), async
 
 router.put('/deliveries/:id/status', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const { status, ...extra } = req.body;
-    const delivery = await logisticsService.updateDeliveryStatus(req.companyId, req.params.id, status, extra);
+    const { status, recipientSign, proofOfDelivery, failureReason } = updateDeliveryStatusSchema.parse(req.body);
+    const delivery = await logisticsService.updateDeliveryStatus(req.companyId, req.params.id, status, { recipientSign, proofOfDelivery, failureReason }, { userId: req.userId, userName: req.userName });
 
     // Notify recipient on key status changes — Delivery has no email column, resolve via customer
     const deliveryData = delivery.data;

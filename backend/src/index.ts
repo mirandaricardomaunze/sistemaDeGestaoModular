@@ -1,17 +1,7 @@
 // ── BOOT DIAGNOSTICS (Railway debug) ─────────────────────────────────────────
 // Print before anything else so we can see if dist/index.js is even being
 // executed and which env vars are visible. Remove after the deploy is stable.
-console.log('[BOOT] node', process.version, 'cwd:', process.cwd());
-console.log('[BOOT] PORT=' + process.env.PORT, 'NODE_ENV=' + process.env.NODE_ENV);
-console.log('[BOOT] DATABASE_URL set:', !!process.env.DATABASE_URL);
-console.log('[BOOT] JWT_SECRET set:', !!process.env.JWT_SECRET, 'len:', (process.env.JWT_SECRET || '').length);
-console.log('[BOOT] ALLOWED_ORIGINS:', process.env.ALLOWED_ORIGINS);
-console.log('[BOOT] REDIS_URL set:', !!process.env.REDIS_URL);
-process.on('uncaughtException', (e) => console.error('[BOOT] uncaughtException:', e));
-process.on('unhandledRejection', (e) => console.error('[BOOT] unhandledRejection:', e));
-
 import 'dotenv/config';
-console.log('[BOOT] dotenv loaded');
 import 'express-async-errors';
 import express, { type RequestHandler } from 'express';
 import cors from 'cors';
@@ -83,6 +73,9 @@ import path from 'path';
 import { auditMiddleware } from './middleware/audit';
 import { idempotency } from './middleware/idempotency';
 import { logger } from './utils/logger';
+
+process.on('uncaughtException', (error) => logger.error('Uncaught exception', { error }));
+process.on('unhandledRejection', (error) => logger.error('Unhandled rejection', { error }));
 
 // ── App Initialization ──────────────────────────────────────────────────────
 export const app = express();
@@ -295,7 +288,7 @@ const listenOnPort = (port: number, server = createServer(app), label = 'fallbac
     server.once('error', onError);
     server.listen(port, '0.0.0.0', () => {
         server.off('error', onError);
-        console.log(`[BOOT] ${label} HTTP server listening on port ${port}`);
+        logger.info(`${label} HTTP server listening`, { port });
         resolve();
     });
 });
@@ -309,18 +302,15 @@ const listen = async () => {
 
 const start = async () => {
     try {
-        console.log('[BOOT] start() entered');
-        console.log('[BOOT] calling httpServer.listen on PORT=' + PORT);
         await listen();
     } catch (error) {
-        console.error('[BOOT] Fatal Error while starting HTTP server:', error);
+        logger.error('Fatal error while starting HTTP server', { error });
         process.exit(1);
     }
 
     try {
-        console.log('[BOOT] connecting Prisma...');
         await prisma.$connect();
-        console.log('[BOOT] Prisma connected');
+        logger.info('Prisma connected');
     } catch (error) {
         logger.error('Prisma connection failed during startup; HTTP server remains available', {
             message: getErrorMessage(error)
@@ -330,19 +320,16 @@ const start = async () => {
 
     try {
         // Initialize Redis (probes port first — no noise if Redis is down)
-        console.log('[BOOT] initializing Redis...');
         await initRedis();
-        console.log('[BOOT] Redis init done');
+        logger.info('Redis initialization completed');
 
         // Start background tasks
-        console.log('[BOOT] starting cron jobs...');
         startCronJobs();
-        console.log('[BOOT] cron jobs started');
+        logger.info('Cron jobs started');
 
         // Automatic DB backups (cron + Drive upload)
-        console.log('[BOOT] initializing backup service...');
         await backupService.initialize();
-        console.log('[BOOT] backup service ready');
+        logger.info('Backup service ready');
 
         // BullMQ email worker (only when Redis is available)
         emailWorker = createEmailWorker();
@@ -366,33 +353,32 @@ const start = async () => {
         });
     }
 
-    console.log('[BOOT] startup tasks completed');
+    logger.info('Startup tasks completed');
 };
 
-console.log('[BOOT] env validated, NODE_ENV=' + env.NODE_ENV + ', PORT=' + env.PORT);
+logger.info('Environment validated', { nodeEnv: env.NODE_ENV, port: env.PORT });
 if (env.NODE_ENV !== 'test') {
-    console.log('[BOOT] calling start()');
     start();
 }
 
 // ── Graceful Shutdown ────────────────────────────────────────────────────────
 const shutdown = async (signal: string) => {
-    console.log(`\n${signal} received -- shutting down gracefully...`);
+    logger.info('Shutdown signal received', { signal });
     httpServer.close(async () => {
         try {
             if (emailWorker) await emailWorker.close();
             await prisma.$disconnect();
-            console.log('Database disconnected. Goodbye.');
+            logger.info('Database disconnected');
             process.exit(0);
         } catch (err) {
-            console.error('Error during shutdown:', err);
+            logger.error('Error during shutdown', { error: err });
             process.exit(1);
         }
     });
 
     // Force shutdown after 10s if connections are still open
     setTimeout(() => {
-        console.error('Forcing shutdown after timeout.');
+        logger.error('Forcing shutdown after timeout');
         process.exit(1);
     }, 10_000);
 };

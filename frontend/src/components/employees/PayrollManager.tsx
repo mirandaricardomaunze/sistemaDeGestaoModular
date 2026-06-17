@@ -42,8 +42,8 @@ export default function PayrollManager() {
         originModule: 'hr',
         limit: 500
     });
-    const employees = Array.isArray(employeesData) ? employeesData : [];
-    const payroll = Array.isArray(payrollData) ? payrollData : [];
+    const employees = useMemo(() => Array.isArray(employeesData) ? employeesData : [], [employeesData]);
+    const payroll = useMemo(() => Array.isArray(payrollData) ? payrollData : [], [payrollData]);
     const inssEmployeeRate = 3;
     const [draftPreviews, setDraftPreviews] = useState<Record<string, PayrollPreviewResult>>({});
 

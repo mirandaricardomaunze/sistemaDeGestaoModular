@@ -4,9 +4,9 @@ import {
     HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineClock,
     HiOutlineTruck, HiOutlineExclamationCircle, HiOutlineChevronDown,
     HiOutlineArrowDownTray, HiOutlineCurrencyDollar, HiOutlineSparkles,
-    HiOutlineExclamationTriangle,
+    HiOutlineExclamationTriangle, HiOutlineEye, HiOutlinePrinter,
 } from 'react-icons/hi2';
-import { Card, Badge, Button, Input, Select, Textarea, Modal, Pagination, PageHeader, SmartTable, ConfirmationModal } from '../../components/ui';
+import { Card, Badge, Button, Input, Select, Textarea, Modal, PageHeader, SmartTable, ConfirmationModal } from '../../components/ui';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { ProductSearchInput, type ProductOption } from '../../components/commercial/ProductSearchInput';
 import { formatCurrency, cn } from '../../utils/helpers';
@@ -21,6 +21,9 @@ import { PAGE_SIZE } from '../../utils/constants';
 import { commercialAPI } from '../../services/api/commercial.api';
 import type { InventoryForecast, PurchaseOrder } from '../../services/api/commercial.api';
 import { getApiErrorMessage, getApiErrorStatus } from '../../utils/apiError';
+import { useCompanySettings } from '../../hooks/useSettings';
+import { PurchaseOrderDetailsModal } from '../../components/commercial/PurchaseOrderDetailsModal';
+import { generatePurchaseOrderPDF } from '../../utils/documentGenerator';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -407,9 +410,11 @@ export default function PurchaseOrders() {
     const [search, setSearch]             = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [receivingOrder, setReceivingOrder]   = useState<PurchaseOrder | null>(null);
+    const [viewingOrder, setViewingOrder]       = useState<PurchaseOrder | null>(null);
     const [expandedId, setExpandedId]           = useState<string | null>(null);
     const [page, setPage]                       = useState(1);
     const [activeTab, setActiveTab]             = useState<'list' | 'predictive'>('list');
+    const { settings: companySettings }         = useCompanySettings();
     const [approvalRequest, setApprovalRequest] = useState<{
         resourceId: string;
         amount: number;
@@ -563,7 +568,27 @@ export default function PurchaseOrders() {
                 const isExpanded = expandedId === order.id;
                 const canReceive = ['ordered', 'partial'].includes(order.status);
                 return (
-                    <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-end gap-1.5 opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setViewingOrder(order)}
+                            className="h-9 w-9 p-0 text-primary-600 hover:bg-primary-600 hover:text-white rounded-lg shadow-sm"
+                            title="Visualizar Pré-Visualização"
+                        >
+                            <HiOutlineEye className="w-5 h-5" />
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => generatePurchaseOrderPDF(order, companySettings || {}, 'print')}
+                            className="h-9 w-9 p-0 text-slate-600 hover:bg-slate-600 hover:text-white rounded-lg shadow-sm"
+                            title="Imprimir"
+                        >
+                            <HiOutlinePrinter className="w-5 h-5" />
+                        </Button>
                         {canReceive && (
                             <Button
                                 type="button"
@@ -585,7 +610,7 @@ export default function PurchaseOrders() {
                                 "h-9 w-9 p-0 rounded-lg shadow-sm",
                                 isExpanded ? "bg-primary-600 text-white" : "text-primary-600 hover:bg-primary-600 hover:text-white"
                             )}
-                            title="Ver Detalhes"
+                            title="Transições de Estado"
                         >
                             <HiOutlineChevronDown className={cn("w-5 h-5 transition-transform", isExpanded && "rotate-180")} />
                         </Button>
@@ -595,8 +620,121 @@ export default function PurchaseOrders() {
         }
     ];
 
+    const predictiveColumns = [
+        {
+            key: 'select',
+            header: (
+                <Input
+                    type="checkbox"
+                    className="w-4 h-4 text-primary-600 rounded border-slate-300 dark:border-dark-600 bg-white dark:bg-dark-800 focus:ring-primary-500/20 focus:ring-offset-0 cursor-pointer"
+                    checked={selectedItems.length === predictiveData?.length && (predictiveData?.length ?? 0) > 0}
+                    onChange={(e) => {
+                        if (e.target.checked) setSelectedItems(predictiveData?.map((p) => p.productId) ?? []);
+                        else setSelectedItems([]);
+                    }}
+                />
+            ),
+            render: (item: InventoryForecast) => (
+                <Input
+                    type="checkbox"
+                    className="w-4 h-4 text-primary-600 rounded border-slate-300 dark:border-dark-600 bg-white dark:bg-dark-800 focus:ring-primary-500/20 focus:ring-offset-0 cursor-pointer"
+                    checked={selectedItems.includes(item.productId)}
+                    onChange={() => {
+                        setSelectedItems(prev =>
+                            prev.includes(item.productId)
+                                ? prev.filter(id => id !== item.productId)
+                                : [...prev, item.productId]
+                        );
+                    }}
+                />
+            )
+        },
+        {
+            key: 'product',
+            header: 'Produto',
+            render: (item: InventoryForecast) => (
+                <div className="flex flex-col">
+                    <div className="font-black text-gray-900 dark:text-white uppercase text-xs">{item.productName}</div>
+                    <div className="text-[10px] text-gray-400 font-mono">{item.productCode}</div>
+                </div>
+            )
+        },
+        {
+            key: 'trend',
+            header: 'Tendência 6M',
+            render: (item: InventoryForecast) => (
+                <div className="flex items-end gap-1 h-8 w-24">
+                    {item.history.map((h: number, i: number) => (
+                        <div
+                            key={i}
+                            className="w-full bg-gray-200 dark:bg-dark-600 rounded-t-sm transition-all hover:bg-primary-400"
+                            style={{ height: `${Math.min(100, (h / (Math.max(...item.history) || 1)) * 100)}%` }}
+                        />
+                    ))}
+                </div>
+            )
+        },
+        {
+            key: 'stock',
+            header: 'Stock Atual/Mín',
+            render: (item: InventoryForecast) => (
+                <div className="flex items-center gap-2">
+                    <span className={cn(
+                        "font-black text-xs",
+                        item.currentStock <= item.minStock ? "text-red-500" : "text-gray-900 dark:text-white"
+                    )}>
+                        {item.currentStock}
+                    </span>
+                    <span className="text-[10px] text-gray-400 font-bold">/ {item.minStock}</span>
+                </div>
+            )
+        },
+        {
+            key: 'forecast',
+            header: 'Procura 30d (IA)',
+            render: (item: InventoryForecast) => (
+                <div className="flex flex-col">
+                    <span className="font-black text-xs text-primary-600 dark:text-primary-400">{item.forecasted30d} un.</span>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase">{(item.confidence * 100).toFixed(0)}% confiança</span>
+                </div>
+            )
+        },
+        {
+            key: 'suggestion',
+            header: 'Sugestão',
+            render: (item: InventoryForecast) => (
+                item.suggestedPurchase > 0 ? (
+                    <div className="flex flex-col">
+                        <span className="text-xs font-black text-emerald-600 uppercase">Comprar {item.suggestedPurchase}</span>
+                        <span className="text-[10px] text-gray-400 font-bold">{formatCurrency(item.suggestedPurchase * item.costPrice)}</span>
+                    </div>
+                ) : (
+                    <span className="text-gray-400 italic text-[10px] font-bold uppercase tracking-widest">Suficiente</span>
+                )
+            )
+        },
+        {
+            key: 'status',
+            header: 'Status',
+            render: (item: InventoryForecast) => (
+                <div className="flex flex-col gap-1">
+                    <Badge variant={
+                        item.status === 'critical' ? 'danger' :
+                        item.status === 'high_risk' ? 'danger' :
+                        item.status === 'low_risk' ? 'warning' : 'success'
+                    } size="sm" className="w-fit text-[9px] font-black uppercase tracking-widest">
+                        {item.status.toUpperCase()}
+                    </Badge>
+                    <p className="text-[9px] text-gray-500 mt-1 max-w-[150px] leading-tight italic line-clamp-2" title={item.reasoning}>
+                        {item.reasoning}
+                    </p>
+                </div>
+            )
+        }
+    ];
+
     return (
-        <div className="space-y-6 pb-10">
+        <div className="space-y-6 pb-10 animate-fade-in">
             <PageHeader
                 title="Ordens de Compra"
                 subtitle="Gestão de aprovisionamento e receção de stock profissional"
@@ -637,8 +775,8 @@ export default function PurchaseOrders() {
                             ? "bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-400"
                             : "text-slate-600 hover:text-slate-950 dark:hover:text-gray-300"
                     )}
+                    leftIcon={<HiOutlineClipboardDocumentList className={cn("w-4 h-4", activeTab !== 'list' && "text-blue-500 opacity-50")} />}
                 >
-                    <HiOutlineClipboardDocumentList className={cn("w-4 h-4", activeTab !== 'list' && "text-blue-500 opacity-50")} />
                     <span className="hidden truncate text-left lg:inline">Lista de Ordens</span>
                 </Button>
                 <Button
@@ -652,8 +790,8 @@ export default function PurchaseOrders() {
                             ? "bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-400"
                             : "text-slate-600 hover:text-slate-950 dark:hover:text-gray-300"
                     )}
+                    leftIcon={<HiOutlineSparkles className={cn("w-4 h-4", activeTab === 'predictive' ? "text-amber-500" : "text-amber-500 opacity-50")} />}
                 >
-                    <HiOutlineSparkles className={cn("w-4 h-4", activeTab === 'predictive' ? "text-amber-500" : "text-amber-500 opacity-50")} />
                     <span className="hidden truncate text-left lg:inline">IA Preditiva & Reposição</span>
                 </Button>
             </div>
@@ -733,6 +871,12 @@ export default function PurchaseOrders() {
                     columns={columns}
                     isLoading={isLoading}
                     onRefresh={refetch}
+                    pagination={{
+                        currentPage: page,
+                        totalItems: pagination?.total || 0,
+                        itemsPerPage: pagination?.limit || PAGE_SIZE,
+                        onPageChange: setPage
+                    }}
                     expandedId={expandedId}
                     expandedRowRender={(order) => {
                         const { transitions } = getDocumentWorkflow(order.status as OrderStatus, STATUS_CONFIG, STATUS_TRANSITIONS, 'draft');
@@ -893,41 +1037,53 @@ export default function PurchaseOrders() {
                                 </div>
 
                                 {/* 4. Ações — Espaço Total */}
-                                <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-white/5 w-full">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setExpandedId(isExpanded ? null : order.id)}
-                                        className="flex-1 p-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-500/20 font-black tracking-widest text-[10px] uppercase"
-                                    >
-                                        <HiOutlineChevronDown className={cn("w-4 h-4 mr-2 transition-transform", isExpanded && "rotate-180")} /> {isExpanded ? 'Ocultar' : 'Detalhes'}
-                                    </Button>
-                                    {canReceive && (
+                                <div className="flex flex-col gap-2 pt-2 border-t border-slate-100 dark:border-white/5 w-full">
+                                    <div className="flex gap-2 w-full">
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => setReceivingOrder(order)}
-                                            className="flex-1 p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-500/20 font-black tracking-widest text-[10px] uppercase"
+                                            onClick={() => setViewingOrder(order)}
+                                            className="flex-1 p-2 rounded-lg bg-primary-50/50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-100/50 dark:border-primary-500/20 font-black tracking-widest text-[10px] uppercase"
                                         >
-                                            <HiOutlineArrowDownTray className="w-4 h-4 mr-2" /> Receber Stock
+                                            <HiOutlineEye className="w-4 h-4 mr-2" /> Visualizar (A4)
                                         </Button>
-                                    )}
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => generatePurchaseOrderPDF(order, companySettings || {}, 'print')}
+                                            className="p-2 rounded-lg bg-slate-50/50 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-100/50 dark:border-slate-500/20 font-black"
+                                            title="Imprimir"
+                                        >
+                                            <HiOutlinePrinter className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                    <div className="flex gap-2 w-full">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setExpandedId(isExpanded ? null : order.id)}
+                                            className="flex-1 p-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-500/20 font-black tracking-widest text-[10px] uppercase"
+                                        >
+                                            <HiOutlineChevronDown className={cn("w-4 h-4 mr-2 transition-transform", isExpanded && "rotate-180")} /> {isExpanded ? 'Ocultar' : 'Opções'}
+                                        </Button>
+                                        {canReceive && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setReceivingOrder(order)}
+                                                className="flex-1 p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-500/20 font-black tracking-widest text-[10px] uppercase"
+                                            >
+                                                <HiOutlineArrowDownTray className="w-4 h-4 mr-2" /> Receber Stock
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         );
                     }}
                 />
 
-                {!isLoading && pagination && pagination.totalPages > 1 && (
-                    <div className="px-3 sm:px-6 py-4 border-t border-gray-100 dark:border-dark-700">
-                        <Pagination 
-                            currentPage={page}
-                            totalItems={pagination.total}
-                            itemsPerPage={pagination.limit}
-                            onPageChange={setPage}
-                        />
-                    </div>
-                )}
+
             </Card>
 
             {/* Modals */}
@@ -939,6 +1095,13 @@ export default function PurchaseOrders() {
                     order={receivingOrder}
                     onClose={() => setReceivingOrder(null)}
                     onSuccess={() => { refetch(); setExpandedId(null); }}
+                />
+            )}
+            {viewingOrder && (
+                <PurchaseOrderDetailsModal
+                    order={viewingOrder}
+                    companySettings={companySettings}
+                    onClose={() => setViewingOrder(null)}
                 />
             )}
             {approvalRequest && (
@@ -1038,110 +1201,87 @@ export default function PurchaseOrders() {
                                     </Button>
                                 </div>
                             </div>
-                            <div className="max-w-full overflow-x-auto overscroll-x-contain scrollbar-thin">
-                                <table className="w-full min-w-[760px] text-left text-sm">
-                                    <thead>
-                                        <tr className="bg-gray-50 dark:bg-dark-800 text-gray-400 uppercase text-[10px] font-black tracking-widest">
-                                            <th className="px-6 py-4 w-10 text-center">
-                                                <input 
-                                                    type="checkbox" 
-                                                    className="w-4 h-4 text-primary-600 rounded border-slate-300 dark:border-dark-600 bg-white dark:bg-dark-800 focus:ring-primary-500/20 focus:ring-offset-0 cursor-pointer"
-                                                    checked={selectedItems.length === predictiveData.length && predictiveData.length > 0}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) setSelectedItems(predictiveData.map((p) => p.productId));
-                                                        else setSelectedItems([]);
+                            <SmartTable
+                                data={predictiveData}
+                                columns={predictiveColumns}
+                                isLoading={predictiveLoading}
+                                emptyTitle="Sem previsões de reposição"
+                                emptyDescription="Nenhuma sugestão de compra pendente para os critérios actuais."
+                                mobileCardRender={(item) => (
+                                    <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <Input
+                                                    type="checkbox"
+                                                    className="w-4 h-4 text-primary-600 rounded border-slate-300 dark:border-dark-600 bg-white dark:bg-dark-800 focus:ring-primary-500/20 focus:ring-offset-0 cursor-pointer shrink-0"
+                                                    checked={selectedItems.includes(item.productId)}
+                                                    onChange={() => {
+                                                        setSelectedItems(prev =>
+                                                            prev.includes(item.productId)
+                                                                ? prev.filter(id => id !== item.productId)
+                                                                : [...prev, item.productId]
+                                                        );
                                                     }}
                                                 />
-                                            </th>
-                                            <th className="px-6 py-4">Produto</th>
-                                            <th className="px-6 py-4">Tendência 6M</th>
-                                            <th className="px-6 py-4">Stock Atual/Mín</th>
-                                            <th className="px-6 py-4">Procura 30d (IA)</th>
-                                            <th className="px-6 py-4">Sugestão</th>
-                                            <th className="px-6 py-4">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                                        {predictiveData.map((item) => (
-                                            <tr key={item.productId} className={cn(
-                                                "hover:bg-gray-50 dark:hover:bg-dark-800/50 transition-colors",
-                                                selectedItems.includes(item.productId) && "bg-primary-50/30 dark:bg-primary-900/10"
-                                            )}>
-                                                <td className="px-6 py-4 text-center">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        className="w-4 h-4 text-primary-600 rounded border-slate-300 dark:border-dark-600 bg-white dark:bg-dark-800 focus:ring-primary-500/20 focus:ring-offset-0 cursor-pointer"
-                                                        checked={selectedItems.includes(item.productId)}
-                                                        onChange={() => {
-                                                            setSelectedItems(prev => 
-                                                                prev.includes(item.productId) 
-                                                                    ? prev.filter(id => id !== item.productId)
-                                                                    : [...prev, item.productId]
-                                                            );
-                                                        }}
-                                                    />
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="font-black text-gray-900 dark:text-white uppercase text-xs">{item.productName}</div>
-                                                    <div className="text-[10px] text-gray-400 font-mono">{item.productCode}</div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-end gap-1 h-8 w-24">
-                                                        {item.history.map((h: number, i: number) => (
-                                                            <div 
-                                                                key={i} 
-                                                                className="w-full bg-gray-200 dark:bg-dark-600 rounded-t-sm transition-all hover:bg-primary-400"
-                                                                style={{ height: `${Math.min(100, (h / (Math.max(...item.history) || 1)) * 100)}%` }}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={cn(
-                                                            "font-black text-xs",
-                                                            item.currentStock <= item.minStock ? "text-red-500" : "text-gray-900 dark:text-white"
-                                                        )}>
-                                                            {item.currentStock}
-                                                        </span>
-                                                        <span className="text-[10px] text-gray-400 font-bold">/ {item.minStock}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="font-black text-sm text-gray-900 dark:text-white uppercase tracking-tight truncate">
+                                                        {item.productName}
+                                                    </span>
+                                                    <span className="text-[10px] text-gray-400 font-mono">
+                                                        {item.productCode}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <Badge variant={
+                                                item.status === 'critical' ? 'danger' :
+                                                item.status === 'high_risk' ? 'danger' :
+                                                item.status === 'low_risk' ? 'warning' : 'success'
+                                            } size="sm" className="shrink-0 font-black text-[9px] uppercase tracking-widest">
+                                                {item.status.toUpperCase()}
+                                            </Badge>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4 py-2 text-xs border-t border-b border-slate-100 dark:border-white/5">
+                                            <div>
+                                                <p className="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Stock Atual/Mín</p>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className={cn(
+                                                        "font-black",
+                                                        item.currentStock <= item.minStock ? "text-red-500" : "text-gray-900 dark:text-white"
+                                                    )}>
+                                                        {item.currentStock}
+                                                    </span>
+                                                    <span className="text-[10px] text-gray-400 font-bold">/ {item.minStock}</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Procura 30d (IA)</p>
+                                                <span className="font-black text-primary-600 dark:text-primary-400">{item.forecasted30d} un.</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between pt-2">
+                                            <div>
+                                                <p className="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Sugestão de Compra</p>
+                                                {item.suggestedPurchase > 0 ? (
                                                     <div className="flex flex-col">
-                                                        <span className="font-black text-xs text-primary-600 dark:text-primary-400">{item.forecasted30d} un.</span>
-                                                        <span className="text-[9px] text-gray-400 font-bold uppercase">{(item.confidence * 100).toFixed(0)}% confiança</span>
+                                                        <span className="text-xs font-black text-emerald-600 uppercase">Comprar {item.suggestedPurchase}</span>
+                                                        <span className="text-[10px] text-gray-400 font-bold">{formatCurrency(item.suggestedPurchase * item.costPrice)}</span>
                                                     </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {item.suggestedPurchase > 0 ? (
-                                                        <div className="flex flex-col">
-                                                            <span className="text-xs font-black text-emerald-600 uppercase">Comprar {item.suggestedPurchase}</span>
-                                                            <span className="text-[10px] text-gray-400 font-bold">{formatCurrency(item.suggestedPurchase * item.costPrice)}</span>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-gray-400 italic text-[10px] font-bold uppercase tracking-widest">Suficiente</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col gap-1">
-                                                        <Badge variant={
-                                                            item.status === 'critical' ? 'danger' :
-                                                            item.status === 'high_risk' ? 'danger' :
-                                                            item.status === 'low_risk' ? 'warning' : 'success'
-                                                        } size="sm" className="w-fit text-[9px] font-black uppercase tracking-widest">
-                                                            {item.status.toUpperCase()}
-                                                        </Badge>
-                                                        <p className="text-[9px] text-gray-500 mt-1 max-w-[150px] leading-tight italic line-clamp-2" title={item.reasoning}>
-                                                            {item.reasoning}
-                                                        </p>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                                ) : (
+                                                    <span className="text-gray-400 italic text-[10px] font-bold uppercase tracking-widest">Suficiente</span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {item.reasoning && (
+                                            <p className="text-[10px] text-gray-500 mt-2 italic leading-tight bg-gray-50 dark:bg-dark-900/50 p-2 rounded-lg border border-gray-100 dark:border-dark-700">
+                                                {item.reasoning}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            />
                         </Card>
                     </div>
                 )

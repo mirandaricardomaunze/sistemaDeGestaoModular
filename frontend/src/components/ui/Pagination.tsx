@@ -203,7 +203,7 @@ export function usePagination<T>(items: T[] | undefined | null, initialItemsPerP
     const [itemsPerPage, setItemsPerPage] = useState(initialItemsPerPage);
 
     // Ensure items is always an array
-    const safeItems = Array.isArray(items) ? items : [];
+    const safeItems = useMemo(() => Array.isArray(items) ? items : [], [items]);
 
     const paginatedItems = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;

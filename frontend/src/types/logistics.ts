@@ -133,6 +133,8 @@ export interface DeliveryItem {
 
 export type DeliveryStatus = 'pending' | 'scheduled' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'failed' | 'returned' | 'cancelled';
 export type DeliveryPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type DeliveryKind = 'shipment' | 'warehouse_transfer';
+export type TransferStatus = 'draft' | 'pending' | 'approved' | 'in_transit' | 'received' | 'completed' | 'rejected' | 'cancelled';
 
 export interface Delivery {
     id: string;
@@ -143,6 +145,10 @@ export interface Delivery {
     vehicleId?: string;
     driverId?: string;
     status: DeliveryStatus;
+    kind?: DeliveryKind;
+    transferId?: string | null;
+    /** Present on warehouse-transfer Guias — the backing transfer's state. */
+    transfer?: { id: string; number: string; status: TransferStatus } | null;
     priority: DeliveryPriority;
     scheduledDate?: string;
     departureDate?: string;

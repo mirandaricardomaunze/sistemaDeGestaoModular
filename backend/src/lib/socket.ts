@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from './prisma';
 import { isTokenBlacklisted } from './redis';
 import { isCorsOriginAllowed } from '../config/cors';
+import { logger } from '../utils/logger';
 
 let io: Server;
 
@@ -76,7 +77,7 @@ export function initSocket(server: HttpServer) {
 
     io.on('connection', async (socket) => {
         const companyId = socket.data.companyId;
-        if (process.env.NODE_ENV !== 'production') console.log(`Socket connected: user to company room`);
+        logger.debug('Socket connected to company room', { companyId });
 
         // Join company-wide room (core events)
         socket.join(companyId);
@@ -94,7 +95,6 @@ export function initSocket(server: HttpServer) {
             // Non-fatal — user stays in company room
         }
 
-        socket.on('disconnect', () => {});
     });
 
     return io;

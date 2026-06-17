@@ -3,11 +3,11 @@ import {
     HiOutlineDocumentText, HiOutlinePlus, HiOutlineArrowPath,
     HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineClock,
     HiOutlineCurrencyDollar, HiOutlineExclamationCircle,
-    HiOutlineChevronDown, HiOutlineBanknotes,
+    HiOutlineChevronDown, HiOutlineBanknotes, HiOutlineEye, HiOutlinePrinter,
 } from 'react-icons/hi2';
 import {
     Card, Badge, Button, Input, Select, Textarea, Modal,
-    Pagination, PageHeader, ConfirmationModal, SmartTable,
+    PageHeader, ConfirmationModal, SmartTable,
 } from '../../components/ui';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { RequestApprovalModal } from '../../components/common/RequestApprovalModal';
@@ -20,6 +20,9 @@ import { getApiErrorMessage, getApiErrorStatus } from '../../utils/apiError';
 import { format, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
 import { PAGE_SIZE } from '../../utils/constants';
+import { useCompanySettings } from '../../hooks/useSettings';
+import { SupplierInvoiceDetailsModal } from '../../components/commercial/SupplierInvoiceDetailsModal';
+import { generateSupplierInvoicePDF } from '../../utils/documentGenerator';
 
 const STATUS_CONFIG: Record<SupplierInvoiceStatus, { label: string; variant: 'gray' | 'info' | 'warning' | 'success' | 'danger'; icon: React.ComponentType<{ className?: string }> }> = {
     registered: { label: 'Por Pagar', variant: 'info',    icon: HiOutlineClock },
@@ -209,7 +212,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: CreateModalProps) {
                     />
                     <div className="flex items-end">
                         <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 pb-2">
-                            <input
+                            <Input
                                 type="checkbox"
                                 checked={markPaid}
                                 onChange={e => setMarkPaid(e.target.checked)}
@@ -307,6 +310,8 @@ export default function SupplierInvoices() {
     const [confirmAction, setConfirmAction] = useState<{ id: string; status: 'paid' | 'cancelled'; invoiceNumber: string } | null>(null);
     const [payingInvoice, setPayingInvoice] = useState<SupplierInvoice | null>(null);
     const [paymentApprovalRequest, setPaymentApprovalRequest] = useState<{ invoice: SupplierInvoice; amount: number } | null>(null);
+    const [viewingInvoice, setViewingInvoice] = useState<SupplierInvoice | null>(null);
+    const { settings: companySettings } = useCompanySettings();
 
     const { invoices, pagination, isLoading, refetch, updateStatus, addPayment, deletePayment } = useSupplierInvoices({
         status: statusFilter || undefined,
@@ -472,7 +477,27 @@ export default function SupplierInvoices() {
                 const isExpanded = expandedId === invoice.id;
                 const canPay = invoice.status === 'registered' || invoice.status === 'partial';
                 return (
-                    <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-end gap-1.5 opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setViewingInvoice(invoice)}
+                            className="h-9 w-9 p-0 text-primary-600 hover:bg-primary-600 hover:text-white rounded-lg shadow-sm"
+                            title="Visualizar Pré-Visualização"
+                        >
+                            <HiOutlineEye className="w-5 h-5" />
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => generateSupplierInvoicePDF(invoice, companySettings || {}, 'print')}
+                            className="h-9 w-9 p-0 text-slate-600 hover:bg-slate-600 hover:text-white rounded-lg shadow-sm"
+                            title="Imprimir"
+                        >
+                            <HiOutlinePrinter className="w-5 h-5" />
+                        </Button>
                         {canPay && (
                             <Button
                                 type="button"
@@ -577,10 +602,8 @@ export default function SupplierInvoices() {
             <Card padding="md" className="border-none shadow-none bg-gray-100/50 dark:bg-dark-800/50 rounded-lg">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                     <div>
-                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-1.5 uppercase tracking-widest pl-1">
-                            Estado
-                        </label>
                         <Select
+                            label="Estado"
                             options={statusOptions}
                             value={statusFilter}
                             onChange={e => { setStatusFilter(e.target.value as SupplierInvoiceStatus | ''); setPage(1); }}
@@ -588,10 +611,8 @@ export default function SupplierInvoices() {
                         />
                     </div>
                     <div>
-                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-1.5 uppercase tracking-widest pl-1">
-                            Período (AAAA-MM)
-                        </label>
                         <Input
+                            label="Período (AAAA-MM)"
                             type="month"
                             value={period}
                             onChange={e => { setPeriod(e.target.value); setPage(1); }}
@@ -614,6 +635,12 @@ export default function SupplierInvoices() {
                     columns={columns}
                     isLoading={isLoading}
                     onRefresh={refetch}
+                    pagination={{
+                        currentPage: page,
+                        totalItems: pagination?.total || 0,
+                        itemsPerPage: pagination?.limit || PAGE_SIZE,
+                        onPageChange: setPage
+                    }}
                     expandedRowRender={(invoice) => (
                         <ExpandedInvoiceDetails
                             invoice={invoice}
@@ -697,51 +724,63 @@ export default function SupplierInvoices() {
                                 </div>
 
                                 {/* 4. Ações — Espaço Total */}
-                                <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-white/5 w-full">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setExpandedId(isExpanded ? null : invoice.id)}
-                                        className="flex-1 p-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-500/20 font-black tracking-widest text-[10px] uppercase"
-                                    >
-                                        <HiOutlineChevronDown className={cn("w-4 h-4 mr-2 transition-transform", isExpanded && "rotate-180")} /> {isExpanded ? 'Ocultar' : 'Detalhes'}
-                                    </Button>
-                                    {canPay && (
+                                <div className="flex flex-col gap-2 pt-2 border-t border-slate-100 dark:border-white/5 w-full">
+                                    <div className="flex gap-2 w-full">
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => setPayingInvoice(invoice)}
-                                            className="flex-1 p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-500/20 font-black tracking-widest text-[10px] uppercase"
+                                            onClick={() => setViewingInvoice(invoice)}
+                                            className="flex-1 p-2 rounded-lg bg-primary-50/50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-100/50 dark:border-primary-500/20 font-black tracking-widest text-[10px] uppercase"
                                         >
-                                            <HiOutlineBanknotes className="w-4 h-4 mr-2" /> Pagar
+                                            <HiOutlineEye className="w-4 h-4 mr-2" /> Visualizar (A4)
                                         </Button>
-                                    )}
-                                    {invoice.status !== 'cancelled' && (
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => setConfirmAction({ id: invoice.id, status: 'cancelled', invoiceNumber: invoice.invoiceNumber })}
-                                            className="flex-1 p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-100/50 dark:border-red-500/20 font-black tracking-widest text-[10px] uppercase"
+                                            onClick={() => generateSupplierInvoicePDF(invoice, companySettings || {}, 'print')}
+                                            className="p-2 rounded-lg bg-slate-50/50 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-100/50 dark:border-slate-500/20 font-black"
+                                            title="Imprimir"
                                         >
-                                            <HiOutlineXCircle className="w-4 h-4 mr-2" /> Anular
+                                            <HiOutlinePrinter className="w-4 h-4" />
                                         </Button>
-                                    )}
+                                    </div>
+                                    <div className="flex gap-2 w-full">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setExpandedId(isExpanded ? null : invoice.id)}
+                                            className="flex-1 p-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-500/20 font-black tracking-widest text-[10px] uppercase"
+                                        >
+                                            <HiOutlineChevronDown className={cn("w-4 h-4 mr-2 transition-transform", isExpanded && "rotate-180")} /> {isExpanded ? 'Ocultar' : 'Itens'}
+                                        </Button>
+                                        {canPay && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setPayingInvoice(invoice)}
+                                                className="flex-1 p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-500/20 font-black tracking-widest text-[10px] uppercase"
+                                            >
+                                                <HiOutlineBanknotes className="w-4 h-4 mr-2" /> Pagar
+                                            </Button>
+                                        )}
+                                        {invoice.status !== 'cancelled' && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setConfirmAction({ id: invoice.id, status: 'cancelled', invoiceNumber: invoice.invoiceNumber })}
+                                                className="flex-1 p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-100/50 dark:border-red-500/20 font-black tracking-widest text-[10px] uppercase"
+                                            >
+                                                <HiOutlineXCircle className="w-4 h-4 mr-2" /> Anular
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         );
                     }}
                 />
 
-                {!isLoading && pagination && pagination.totalPages > 1 && (
-                    <div className="px-3 sm:px-6 py-4 border-t border-gray-100 dark:border-dark-700">
-                        <Pagination
-                            currentPage={page}
-                            totalItems={pagination.total}
-                            itemsPerPage={pagination.limit}
-                            onPageChange={setPage}
-                        />
-                    </div>
-                )}
+
             </Card>
 
             {showCreateModal && (
@@ -811,6 +850,14 @@ export default function SupplierInvoices() {
                     onSubmitted={() => toast.success('Pedido de aprovação enviado. Depois de aprovado, volte a registar o pagamento.')}
                 />
             )}
+
+            {viewingInvoice && (
+                <SupplierInvoiceDetailsModal
+                    invoice={viewingInvoice}
+                    companySettings={companySettings}
+                    onClose={() => setViewingInvoice(null)}
+                />
+            )}
         </div>
     );
 }
@@ -866,7 +913,7 @@ function PaymentModal({ invoice, onClose, onSubmit }: PaymentModalProps) {
     return (
         <Modal isOpen onClose={onClose} title={`Pagamento — ${invoice.invoiceNumber}`} size="md">
             <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="bg-primary-50/50 dark:bg-primary-900/10 p-4 rounded-lg border border-primary-100 dark:border-primary-900/20 grid grid-cols-3 gap-3">
+                <div className="bg-primary-50/50 dark:bg-primary-900/10 p-4 rounded-lg border border-primary-100 dark:border-primary-900/20 grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                         <p className="text-[9px] uppercase font-black text-gray-400 tracking-widest">Total</p>
                         <p className="text-sm font-black text-gray-900 dark:text-white">{formatCurrency(Number(invoice.total))}</p>
@@ -946,57 +993,59 @@ function ExpandedInvoiceDetails({
                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] p-4 border-b border-gray-100 dark:border-dark-700">
                     Itens da Factura
                 </h4>
-                <table className="w-full text-sm">
-                    <thead>
-                        <tr className="bg-gray-50/50 dark:bg-dark-900/50 text-[10px] text-gray-400 uppercase tracking-widest font-black">
-                            <th className="px-4 py-2 text-left">Produto</th>
-                            <th className="px-4 py-2 text-right">Qtd</th>
-                            <th className="px-4 py-2 text-right">Custo Un.</th>
-                            <th className="px-4 py-2 text-right">IVA</th>
-                            <th className="px-4 py-2 text-right">Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                        {invoice.items.map(item => (
-                            <tr key={item.id}>
-                                <td className="px-4 py-2">
-                                    <p className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase">
-                                        {item.product?.name || item.description}
-                                    </p>
-                                    {item.product?.code && (
-                                        <p className="text-[10px] text-gray-400 font-mono">{item.product.code}</p>
-                                    )}
-                                </td>
-                                <td className="px-4 py-2 text-right text-xs">{item.quantity}</td>
-                                <td className="px-4 py-2 text-right text-xs">{formatCurrency(Number(item.unitCost))}</td>
-                                <td className="px-4 py-2 text-right text-xs">{formatCurrency(Number(item.taxAmount))}</td>
-                                <td className="px-4 py-2 text-right text-xs font-bold">{formatCurrency(Number(item.total))}</td>
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[600px] text-sm">
+                        <thead>
+                            <tr className="bg-gray-50/50 dark:bg-dark-900/50 text-[10px] text-gray-400 uppercase tracking-widest font-black">
+                                <th className="px-4 py-2 text-left">Produto</th>
+                                <th className="px-4 py-2 text-right">Qtd</th>
+                                <th className="px-4 py-2 text-right">Custo Un.</th>
+                                <th className="px-4 py-2 text-right">IVA</th>
+                                <th className="px-4 py-2 text-right">Subtotal</th>
                             </tr>
-                        ))}
-                    </tbody>
-                    <tfoot className="bg-gray-50/50 dark:bg-dark-900/50 text-xs">
-                        <tr>
-                            <td colSpan={4} className="px-4 py-2 text-right font-bold uppercase tracking-widest text-gray-500">Subtotal</td>
-                            <td className="px-4 py-2 text-right font-bold">{formatCurrency(Number(invoice.subtotal))}</td>
-                        </tr>
-                        <tr>
-                            <td colSpan={4} className="px-4 py-2 text-right font-bold uppercase tracking-widest text-gray-500">IVA ({Number(invoice.taxRate)}%)</td>
-                            <td className="px-4 py-2 text-right font-bold">{formatCurrency(Number(invoice.tax))}</td>
-                        </tr>
-                        <tr>
-                            <td colSpan={4} className="px-4 py-2 text-right font-black uppercase tracking-widest text-primary-600">Total</td>
-                            <td className="px-4 py-2 text-right font-black text-primary-600 text-base">{formatCurrency(Number(invoice.total))}</td>
-                        </tr>
-                        <tr>
-                            <td colSpan={4} className="px-4 py-2 text-right font-bold uppercase tracking-widest text-emerald-600">Pago</td>
-                            <td className="px-4 py-2 text-right font-bold text-emerald-600">{formatCurrency(Number(invoice.amountPaid))}</td>
-                        </tr>
-                        <tr>
-                            <td colSpan={4} className="px-4 py-2 text-right font-bold uppercase tracking-widest text-amber-600">Em Dívida</td>
-                            <td className="px-4 py-2 text-right font-bold text-amber-600">{formatCurrency(Number(invoice.amountDue))}</td>
-                        </tr>
-                    </tfoot>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
+                            {invoice.items.map(item => (
+                                <tr key={item.id}>
+                                    <td className="px-4 py-2">
+                                        <p className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase">
+                                            {item.product?.name || item.description}
+                                        </p>
+                                        {item.product?.code && (
+                                            <p className="text-[10px] text-gray-400 font-mono">{item.product.code}</p>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-2 text-right text-xs">{item.quantity}</td>
+                                    <td className="px-4 py-2 text-right text-xs">{formatCurrency(Number(item.unitCost))}</td>
+                                    <td className="px-4 py-2 text-right text-xs">{formatCurrency(Number(item.taxAmount))}</td>
+                                    <td className="px-4 py-2 text-right text-xs font-bold">{formatCurrency(Number(item.total))}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        <tfoot className="bg-gray-50/50 dark:bg-dark-900/50 text-xs">
+                            <tr>
+                                <td colSpan={4} className="px-4 py-2 text-right font-bold uppercase tracking-widest text-gray-500">Subtotal</td>
+                                <td className="px-4 py-2 text-right font-bold">{formatCurrency(Number(invoice.subtotal))}</td>
+                            </tr>
+                            <tr>
+                                <td colSpan={4} className="px-4 py-2 text-right font-bold uppercase tracking-widest text-gray-500">IVA ({Number(invoice.taxRate)}%)</td>
+                                <td className="px-4 py-2 text-right font-bold">{formatCurrency(Number(invoice.tax))}</td>
+                            </tr>
+                            <tr>
+                                <td colSpan={4} className="px-4 py-2 text-right font-black uppercase tracking-widest text-primary-600">Total</td>
+                                <td className="px-4 py-2 text-right font-black text-primary-600 text-base">{formatCurrency(Number(invoice.total))}</td>
+                            </tr>
+                            <tr>
+                                <td colSpan={4} className="px-4 py-2 text-right font-bold uppercase tracking-widest text-emerald-600">Pago</td>
+                                <td className="px-4 py-2 text-right font-bold text-emerald-600">{formatCurrency(Number(invoice.amountPaid))}</td>
+                            </tr>
+                            <tr>
+                                <td colSpan={4} className="px-4 py-2 text-right font-bold uppercase tracking-widest text-amber-600">Em Dívida</td>
+                                <td className="px-4 py-2 text-right font-bold text-amber-600">{formatCurrency(Number(invoice.amountDue))}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
             </div>
 
             <div className="bg-white dark:bg-dark-900 rounded-xl border border-gray-100 dark:border-dark-700 shadow-sm overflow-hidden">
@@ -1008,43 +1057,45 @@ function ExpandedInvoiceDetails({
                         Nenhum pagamento registado.
                     </p>
                 ) : (
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="bg-gray-50/50 dark:bg-dark-900/50 text-[10px] text-gray-400 uppercase tracking-widest font-black">
-                                <th className="px-4 py-2 text-left">Data</th>
-                                <th className="px-4 py-2 text-left">Método</th>
-                                <th className="px-4 py-2 text-left">Referência</th>
-                                <th className="px-4 py-2 text-right">Montante</th>
-                                <th className="px-4 py-2 text-center w-16">Acções</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                            {payments.map(p => (
-                                <tr key={p.id}>
-                                    <td className="px-4 py-2 text-xs text-gray-600 dark:text-gray-400">
-                                        {format(parseISO(p.paymentDate), 'dd/MM/yyyy')}
-                                    </td>
-                                    <td className="px-4 py-2 text-xs font-medium">{PAYMENT_METHOD_LABEL[p.method]}</td>
-                                    <td className="px-4 py-2 text-xs text-gray-500 font-mono">{p.reference || '—'}</td>
-                                    <td className="px-4 py-2 text-right text-xs font-black text-emerald-600">{formatCurrency(Number(p.amount))}</td>
-                                    <td className="px-4 py-2 text-center">
-                                        {invoice.status !== 'cancelled' && (
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="xs"
-                                                onClick={() => onDeletePayment(p.id)}
-                                                className="h-8 w-8 p-0 text-red-500 hover:bg-red-600 hover:text-white rounded-lg"
-                                                title="Remover pagamento"
-                                            >
-                                                <HiOutlineXCircle className="w-4 h-4" />
-                                            </Button>
-                                        )}
-                                    </td>
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[600px] text-sm">
+                            <thead>
+                                <tr className="bg-gray-50/50 dark:bg-dark-900/50 text-[10px] text-gray-400 uppercase tracking-widest font-black">
+                                    <th className="px-4 py-2 text-left">Data</th>
+                                    <th className="px-4 py-2 text-left">Método</th>
+                                    <th className="px-4 py-2 text-left">Referência</th>
+                                    <th className="px-4 py-2 text-right">Montante</th>
+                                    <th className="px-4 py-2 text-center w-16">Acções</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
+                                {payments.map(p => (
+                                    <tr key={p.id}>
+                                        <td className="px-4 py-2 text-xs text-gray-600 dark:text-gray-400">
+                                            {format(parseISO(p.paymentDate), 'dd/MM/yyyy')}
+                                        </td>
+                                        <td className="px-4 py-2 text-xs font-medium">{PAYMENT_METHOD_LABEL[p.method]}</td>
+                                        <td className="px-4 py-2 text-xs text-gray-500 font-mono">{p.reference || '—'}</td>
+                                        <td className="px-4 py-2 text-right text-xs font-black text-emerald-600">{formatCurrency(Number(p.amount))}</td>
+                                        <td className="px-4 py-2 text-center">
+                                            {invoice.status !== 'cancelled' && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="xs"
+                                                    onClick={() => onDeletePayment(p.id)}
+                                                    className="h-8 w-8 p-0 text-red-500 hover:bg-red-600 hover:text-white rounded-lg"
+                                                    title="Remover pagamento"
+                                                >
+                                                    <HiOutlineXCircle className="w-4 h-4" />
+                                                </Button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
 

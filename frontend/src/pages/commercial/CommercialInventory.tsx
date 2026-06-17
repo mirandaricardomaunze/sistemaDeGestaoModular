@@ -4,7 +4,7 @@ import InventoryTable from '../../components/inventory/InventoryTable';
 import ProductForm from '../../components/inventory/ProductForm';
 import InventoryPrintReport from '../../components/inventory/InventoryPrintReport';
 import BatchManager from '../../components/inventory/BatchManager';
-import { Button } from '../../components/ui';
+import { Button, Card, Badge, LoadingOverlay, PageHeader } from '../../components/ui';
 import {
     HiOutlineArrowPath,
     HiOutlinePlus,
@@ -19,7 +19,7 @@ import {
 } from 'react-icons/hi2';
 import { useDerivedCommercialAnalytics } from '../../hooks/useCommercialAnalytics';
 import { useCommercialAnalytics } from '../../hooks/useCommercial';
-import { Card, Badge, LoadingOverlay } from '../../components/ui';
+
 import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { useBatches } from '../../hooks/useBatches';
@@ -96,55 +96,45 @@ export default function CommercialInventory() {
                     message="Sincronizando em Tempo Real" 
                 />
             )}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
-                <div className="min-w-0">
-                    <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-3 break-words">
-                        <span className="w-10 h-10 rounded-2xl bg-primary-100 dark:bg-primary-500/15 border border-primary-200 dark:border-primary-500/25 flex items-center justify-center">
-                            <HiOutlineCube className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                        </span>
-                        Inventário Comercial
-                    </h1>
-                    <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1 ml-1">
-                        Gestão Avançada de Produtos e Valor de Stock
-                    </p>
-                </div>
+            <PageHeader
+                title="Inventário Comercial"
+                subtitle="Gestão Avançada de Produtos e Valor de Stock"
+                icon={<HiOutlineCube />}
+                actions={
+                    <>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                                setRefreshKey(prev => prev + 1);
+                                refetchBasic();
+                            }}
+                            disabled={basicLoading || advancedLoading}
+                            leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-primary-600", (basicLoading || advancedLoading) && "animate-spin")} />}
+                        >
+                            Actualizar
+                        </Button>
 
-                <div className="grid w-full md:w-auto md:flex-1 max-w-[600px] grid-cols-2 sm:grid-cols-3 gap-2 bg-white/40 dark:bg-dark-900/40 p-2 rounded-2xl border border-slate-200/60 dark:border-white/5 backdrop-blur-md">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                            setRefreshKey(prev => prev + 1);
-                            refetchBasic();
-                        }}
-                        disabled={basicLoading || advancedLoading}
-                        className="w-full"
-                        leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-primary-600", (basicLoading || advancedLoading) && "animate-spin")} />}
-                    >
-                        Actualizar
-                    </Button>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            leftIcon={<HiOutlinePrinter className="w-4 h-4" />}
+                            onClick={() => setShowPrintReport(true)}
+                        >
+                            Relatório
+                        </Button>
 
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full"
-                        leftIcon={<HiOutlinePrinter className="w-4 h-4" />}
-                        onClick={() => setShowPrintReport(true)}
-                    >
-                        Relatório
-                    </Button>
-
-                    <Button
-                        size="sm"
-                        variant="primary"
-                        className="w-full col-span-2 sm:col-span-1"
-                        leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />}
-                        onClick={handleAddProduct}
-                    >
-                        Novo Produto
-                    </Button>
-                </div>
-            </div>
+                        <Button
+                            size="sm"
+                            variant="primary"
+                            leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />}
+                            onClick={handleAddProduct}
+                        >
+                            Novo Produto
+                        </Button>
+                    </>
+                }
+            />
 
             {/* Metrics Dashboard */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -195,6 +185,7 @@ export default function CommercialInventory() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setActiveTab('products')}
+                    leftIcon={<HiOutlineSquares2X2 className={cn("w-4 h-4", activeTab !== 'products' && "text-blue-500 opacity-50")} />}
                     className={cn(
                         "min-w-max flex-1 justify-center rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem] lg:justify-start lg:px-4",
                         activeTab === 'products'
@@ -202,7 +193,6 @@ export default function CommercialInventory() {
                             : "text-slate-600 hover:text-slate-950 dark:hover:text-gray-300"
                     )}
                 >
-                    <HiOutlineSquares2X2 className={cn("w-4 h-4", activeTab !== 'products' && "text-blue-500 opacity-50")} />
                     <span className="hidden truncate text-left lg:inline">Produtos</span>
                 </Button>
                 <Button
@@ -210,6 +200,7 @@ export default function CommercialInventory() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setActiveTab('batches')}
+                    leftIcon={<HiOutlineClock className={cn("w-4 h-4", activeTab !== 'batches' && "text-amber-500 opacity-50")} />}
                     className={cn(
                         "min-w-max flex-1 justify-center rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem] lg:justify-start lg:px-4",
                         activeTab === 'batches'
@@ -217,7 +208,6 @@ export default function CommercialInventory() {
                             : "text-slate-600 hover:text-slate-950 dark:hover:text-gray-300"
                     )}
                 >
-                    <HiOutlineClock className={cn("w-4 h-4", activeTab !== 'batches' && "text-amber-500 opacity-50")} />
                     <span className="hidden truncate text-left lg:inline">Lotes & Validades</span>
                 </Button>
             </div>

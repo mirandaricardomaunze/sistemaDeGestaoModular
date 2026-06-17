@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Button, Badge, Card, LoadingSpinner } from '../ui';
 import { useStore } from '../../stores/useStore';
@@ -82,16 +82,7 @@ export default function GuestProfileModal({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (isOpen && bookingId) {
-            fetchBookingDetails();
-        } else {
-            setBooking(null);
-            setError(null);
-        }
-    }, [isOpen, bookingId]);
-
-    const fetchBookingDetails = async () => {
+    const fetchBookingDetails = useCallback(async () => {
         if (!bookingId) return;
 
         setIsLoading(true);
@@ -105,7 +96,16 @@ export default function GuestProfileModal({
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [bookingId, t]);
+
+    useEffect(() => {
+        if (isOpen && bookingId) {
+            fetchBookingDetails();
+        } else {
+            setBooking(null);
+            setError(null);
+        }
+    }, [isOpen, bookingId, fetchBookingDetails]);
 
     const formatCurrency = (value: number) => {
         return formatC(value);
@@ -354,4 +354,3 @@ export default function GuestProfileModal({
         </Modal>
     );
 }
-

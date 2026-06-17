@@ -30,6 +30,7 @@ export default function CheckInModal({
     ];
 
     const stepper = useStepper(steps.length);
+    const { reset: resetStepper } = stepper;
     const [selectedRoom, setSelectedRoom] = useState<Room | null>(room);
     
     const [data, setData] = useState({
@@ -49,7 +50,7 @@ export default function CheckInModal({
     useEffect(() => {
         if (isOpen) {
             setSelectedRoom(room);
-            stepper.reset();
+            resetStepper();
             // Reset form if opening without a specific room
             if (!room) {
                 setData(prev => ({
@@ -60,7 +61,7 @@ export default function CheckInModal({
                 }));
             }
         }
-    }, [isOpen, room]);
+    }, [isOpen, room, resetStepper]);
 
     const handleConfirm = async (e: React.FormEvent) => {
         e.preventDefault();

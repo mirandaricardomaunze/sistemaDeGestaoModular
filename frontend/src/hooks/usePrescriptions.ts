@@ -25,7 +25,12 @@ export function usePrescriptions(params?: PharmacyPrescriptionsParams) {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await pharmacyAPI.getPrescriptions(params);
+            const response = await pharmacyAPI.getPrescriptions({
+                status: params?.status,
+                search: params?.search,
+                page: params?.page,
+                limit: params?.limit,
+            });
 
             if (response.data && response.pagination) {
                 setPrescriptions(response.data);

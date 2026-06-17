@@ -39,7 +39,10 @@ export default function BatchPrintReport({ isOpen, onClose, productId, status, s
         }
     }, [isOpen, loadCompanySettings]);
 
-    const batches = Array.isArray(batchesData?.data) ? batchesData.data : [];
+    const batches = useMemo(
+        () => Array.isArray(batchesData?.data) ? batchesData.data : [],
+        [batchesData?.data]
+    );
 
     // Handle autoAction
     useEffect(() => {

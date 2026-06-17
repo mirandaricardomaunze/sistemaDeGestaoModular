@@ -100,7 +100,9 @@ export default function HotelRooms() {
             await updateRoom(roomId, { status: 'available' });
             refetch();
             toast.success(t('hotel_module.housekeeping.inspect'));
-        } catch (err) {}
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : t('messages.errorOccurred'));
+        }
     };
 
     // Small Components

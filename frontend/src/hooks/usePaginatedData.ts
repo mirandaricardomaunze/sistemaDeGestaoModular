@@ -63,8 +63,18 @@ export function usePaginatedData<T = unknown>({
 
     const abortControllerRef = useRef<AbortController | null>(null);
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const dataLengthRef = useRef(data.length);
+    const filtersRef = useRef(filters);
+    const onSuccessRef = useRef(onSuccess);
+    const onErrorRef = useRef(onError);
+    dataLengthRef.current = data.length;
+    filtersRef.current = filters;
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+    const filtersKey = JSON.stringify(filters);
 
     const fetchData = useCallback(async () => {
+        void filtersKey;
         if (!enabled) return;
 
         // Cancel previous request
@@ -75,7 +85,7 @@ export function usePaginatedData<T = unknown>({
         // Create new abort controller
         abortControllerRef.current = new AbortController();
 
-        const isInitialLoad = data.length === 0;
+        const isInitialLoad = dataLengthRef.current === 0;
         if (isInitialLoad) {
             setIsLoading(true);
         } else {
@@ -89,7 +99,7 @@ export function usePaginatedData<T = unknown>({
                 limit: limit.toString(),
                 sortBy,
                 sortOrder,
-                ...filters,
+                ...filtersRef.current,
             };
 
             const response = await api.get(`/${endpoint}`, {
@@ -116,9 +126,7 @@ export function usePaginatedData<T = unknown>({
                 });
             }
 
-            if (onSuccess) {
-                onSuccess(responseData.data || responseData);
-            }
+            onSuccessRef.current?.(responseData.data || responseData);
         } catch (err) {
             const anyErr = err as Error & { code?: string; response?: { data?: { error?: string } } };
             if (anyErr.name === 'CanceledError' || anyErr.code === 'ERR_CANCELED') {
@@ -129,14 +137,12 @@ export function usePaginatedData<T = unknown>({
             const errorMessage = anyErr.response?.data?.error || anyErr.message || 'Erro ao carregar dados';
             setError(errorMessage);
 
-            if (onError) {
-                onError(err);
-            }
+            onErrorRef.current?.(err);
         } finally {
             setIsLoading(false);
             setIsFetching(false);
         }
-    }, [endpoint, page, limit, sortBy, sortOrder, JSON.stringify(filters), enabled]);
+    }, [endpoint, page, limit, sortBy, sortOrder, filtersKey, enabled]);
 
     // Debounced fetch
     useEffect(() => {

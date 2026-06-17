@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, Button, Input, Badge, Modal, Select, LoadingSpinner, EmptyState } from '../../components/ui';
 import {
     HiOutlineCreditCard,
@@ -96,7 +96,7 @@ export default function CreditSales() {
     const [activeTab, setActiveTab] = useState<'sales' | 'debtors'>('sales');
 
     // Fetch credit sales
-    const fetchCreditSales = async () => {
+    const fetchCreditSales = useCallback(async () => {
         setLoading(true);
         try {
             const res = await bottleStoreAPI.getCreditSales({
@@ -111,7 +111,7 @@ export default function CreditSales() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, pageSize, statusFilter]);
 
     // Fetch debtors
     const fetchDebtors = async () => {
@@ -127,7 +127,7 @@ export default function CreditSales() {
     useEffect(() => {
         fetchCreditSales();
         fetchDebtors();
-    }, [page, pageSize, statusFilter]);
+    }, [page, pageSize, statusFilter, fetchCreditSales]);
 
     // Open payment modal
     const openPaymentModal = (sale: CreditSaleRow) => {

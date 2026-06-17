@@ -5,9 +5,10 @@ module.exports = {
     moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',
     },
+    globalSetup: '<rootDir>/jest.globalSetup.ts',
     setupFiles: ['<rootDir>/jest.setup.ts'],
     transform: {
-        '^.+\\.tsx?$': ['ts-jest', { isolatedModules: true }],
+        '^.+\\.tsx?$': 'ts-jest',
     },
     maxWorkers: 1,
     workerIdleMemoryLimit: '512MB',

@@ -348,14 +348,12 @@ export default function Sidebar() {
 
     // Auto-expand submenu if current path matches a submenu item
     useEffect(() => {
-        menuItems.forEach(item => {
-            if (item.submenu) {
-                const hasActiveSubmenu = item.submenu.some(sub => location.pathname === sub.path);
-                if (hasActiveSubmenu && !expandedMenus.includes(item.id)) {
-                    setExpandedMenus(prev => [...prev, item.id]);
-                }
-            }
-        });
+        const activeMenuIds = menuItems
+            .filter(item => item.submenu?.some(sub => location.pathname === sub.path))
+            .map(item => item.id);
+        if (activeMenuIds.length > 0) {
+            setExpandedMenus(prev => Array.from(new Set([...prev, ...activeMenuIds])));
+        }
     }, [location.pathname]);
 
     // Close sidebar on mobile when navigating (prevents overlay from blocking page content)
@@ -363,14 +361,14 @@ export default function Sidebar() {
         if (window.innerWidth < 1024) {
             setSidebarOpen(false);
         }
-    }, [location.pathname]);
+    }, [location.pathname, setSidebarOpen]);
 
     // Close sidebar on first mount if screen is small
     useEffect(() => {
         if (window.innerWidth < 1024) {
             setSidebarOpen(false);
         }
-    }, []);
+    }, [setSidebarOpen]);
 
     // Modules that each have their own dedicated sidebar section
     const SPECIALIZED_MODULES = ['pharmacy', 'commercial', 'hospitality', 'bottle_store', 'logistics', 'restaurant'];

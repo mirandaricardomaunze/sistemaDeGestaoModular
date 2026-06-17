@@ -12,6 +12,7 @@ import {
 } from '../../hooks/useIva';
 import type { IvaRate, CreateIvaRateDto } from '../../services/api';
 import { formatCurrency, cn } from '../../utils';
+import { logger } from '../../utils/logger';
 
 // ============================================================================
 // RATE BADGE
@@ -194,7 +195,13 @@ export default function IvaManager() {
     const handleCloseModal = () => { setModalOpen(false); setEditing(null); refetch(); refetchDash(); };
     const handleDelete = async () => {
         if (!deleting) return;
-        try { await deleteRate.mutateAsync(deleting.id); refetch(); refetchDash(); } catch { }
+        try {
+            await deleteRate.mutateAsync(deleting.id);
+            refetch();
+            refetchDash();
+        } catch (error) {
+            logger.warn('IVA rate deletion failed', error);
+        }
         setDeleting(null);
     };
 

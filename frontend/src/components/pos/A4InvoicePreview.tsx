@@ -5,9 +5,7 @@
 
 import { useRef, useEffect, useMemo } from 'react';
 import {
-    HiOutlineArrowDownTray as HiOutlineArrowDownTray,
     HiOutlineDocumentText,
-    HiOutlineEnvelope as HiOutlineEnvelope,
     HiOutlinePrinter,
     HiOutlineXMark as HiOutlineXMark,
 } from 'react-icons/hi2';
@@ -201,15 +199,7 @@ export default function A4InvoicePreview({ isOpen, onClose, sale }: A4InvoicePre
                     <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={handlePrint}>
                             <HiOutlinePrinter className="w-4 h-4 mr-2" />
-                            Imprimir
-                        </Button>
-                        <Button variant="outline" size="sm">
-                            <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
-                            Baixar PDF
-                        </Button>
-                        <Button variant="outline" size="sm">
-                            <HiOutlineEnvelope className="w-4 h-4 mr-2" />
-                            Enviar por Email
+                            Imprimir / Guardar PDF
                         </Button>
                         <Button
                             variant="primary"
@@ -400,7 +390,7 @@ export default function A4InvoicePreview({ isOpen, onClose, sale }: A4InvoicePre
                                                 </p>
                                             ))
                                         ) : (
-                                            <p className="text-[8px] text-gray-400 italic text-center">Numerrio / M-Pesa</p>
+                                            <p className="text-[8px] text-gray-400 italic text-center">Numerário / M-Pesa</p>
                                         )}
                                     </div>
                                 </div>

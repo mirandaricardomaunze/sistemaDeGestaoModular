@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { basePrisma } from '../../lib/prismaBase';
 import { tenantContext, TenantContext } from '../../lib/context';
 
@@ -12,6 +12,21 @@ const DEFAULT_TENANT: Required<TenantContext> = {
     userId: 'test-user-id',
     userName: 'Test User',
 };
+
+/**
+ * True for connection-level errors that mean "the database was momentarily
+ * unreachable" — typically the Neon free-tier instance scaling to zero between
+ * queries. These are safe to retry. Genuine test failures (assertion errors,
+ * constraint violations, etc.) are NOT transient and must propagate immediately.
+ */
+function isTransientDbError(err: unknown): boolean {
+    if (err instanceof Prisma.PrismaClientInitializationError) return true;
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+        // P1001 can't reach server | P1002 timeout | P1008 op timeout | P1017 connection closed
+        return ['P1001', 'P1002', 'P1008', 'P1017'].includes(err.code);
+    }
+    return false;
+}
 
 /**
  * Runs a test inside an interactive Prisma transaction and ALWAYS rolls back
@@ -34,16 +49,28 @@ export async function withTestTx<T>(
 ): Promise<T> {
     const ctx = { ...DEFAULT_TENANT, ...tenant };
     const sentinel = Symbol('test-rollback');
+    const maxAttempts = 4;
     let value: T;
 
-    try {
-        await basePrisma.$transaction(async (tx) => {
-            value = await tenantContext.run(ctx, () => fn(tx as TxClient));
-            // Force rollback — Prisma rolls back when the callback throws.
-            throw sentinel;
-        }, { timeout: 30000, maxWait: 10000 });
-    } catch (err) {
-        if (err !== sentinel) throw err;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            await basePrisma.$transaction(async (tx) => {
+                value = await tenantContext.run(ctx, () => fn(tx as TxClient));
+                // Force rollback — Prisma rolls back when the callback throws.
+                throw sentinel;
+            }, { timeout: 30000, maxWait: 10000 });
+        } catch (err) {
+            if (err === sentinel) break; // success — the test body ran, tx rolled back
+            // Retry only transient connection drops (e.g. Neon waking up); a real
+            // test failure or constraint error rethrows on the first attempt.
+            if (isTransientDbError(err) && attempt < maxAttempts) {
+                try { await basePrisma.$disconnect(); } catch { /* reconnects on next query */ }
+                await new Promise((resolve) => setTimeout(resolve, Math.min(500 * attempt, 2000)));
+                continue;
+            }
+            throw err;
+        }
+        break;
     }
 
     return value!;

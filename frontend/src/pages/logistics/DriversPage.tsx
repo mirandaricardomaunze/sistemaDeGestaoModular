@@ -350,7 +350,7 @@ export default function DriversPage() {
                 size="lg"
             >
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Input
                             label={`${t('logistics_module.drivers.code')} *`}
                             placeholder="MOT001"
@@ -376,7 +376,7 @@ export default function DriversPage() {
                         required
                     />
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Input
                             label={`${t('logistics_module.drivers.phone')} *`}
                             placeholder="+258 84 000 0000"
@@ -393,7 +393,7 @@ export default function DriversPage() {
                         />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <Input
                             label={`${t('logistics_module.drivers.license')} *`}
                             placeholder="123456789"

@@ -445,7 +445,6 @@ export const generateHospitalityReport = (data: HospitalityReportData, companyIn
 export const generatePharmacyStockReport = (data: PharmacyStockReportData, companyInfo?: CompanyInfo, action: 'save' | 'print' = 'save') => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
 
     addProfessionalHeader(doc, 'RELATÓRIO DE STOCK', companyInfo || {});
 
@@ -492,7 +491,7 @@ export const generatePharmacyStockReport = (data: PharmacyStockReportData, compa
         item.batchNumber || item.batches?.[0]?.batchNumber || '-',
         item.expiryDate || item.batches?.[0]?.expiryDate ? new Date((item.expiryDate || item.batches![0].expiryDate) as string).toLocaleDateString('pt-MZ') : '-',
         (item.totalStock ?? item.currentStock ?? 0).toString(),
-        item.isLowStock ? '⚠️' : '✓',
+        item.isLowStock ? '!' : 'OK',
         `${Number(item.totalValue || (Number(item.price) * (item.totalStock || item.currentStock || 0)) || 0).toLocaleString()} MT`
     ]);
 
@@ -526,17 +525,8 @@ export const generatePharmacyStockReport = (data: PharmacyStockReportData, compa
         }
     });
 
-    // Footer
-    const footerY = pageHeight - 20;
-    doc.setDrawColor(200, 200, 200);
-    doc.line(15, footerY - 5, pageWidth - 15, footerY - 5);
-    doc.setFontSize(7);
-    doc.setTextColor(150, 150, 150);
-    doc.text(`Gerado automaticamente pelo Multicore • ${new Date().toLocaleString('pt-MZ')}`, pageWidth / 2, footerY, { align: 'center' });
-    doc.text(`Página 1 de 1`, pageWidth - 15, footerY, { align: 'right' });
-
     addProfessionalFooter(doc, companyInfo || {});
-    
+
     if (action === 'print') {
         doc.autoPrint();
         const pdfBlob = new Blob([doc.output('arraybuffer')], { type: 'application/pdf' });
@@ -578,7 +568,6 @@ export type PharmacySaleRow = {
 export const generatePharmacySalesReport = (sales: PharmacySaleRow[], period: string, companyInfo?: CompanyInfo, action: 'save' | 'print' = 'save') => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
 
     addProfessionalHeader(doc, 'RELATÓRIO DE VENDAS', companyInfo || {}, period);
 
@@ -632,16 +621,8 @@ export const generatePharmacySalesReport = (sales: PharmacySaleRow[], period: st
         margin: { left: 15, right: 15 }
     });
 
-    // Footer
-    const footerY = pageHeight - 20;
-    doc.setDrawColor(200, 200, 200);
-    doc.line(15, footerY - 5, pageWidth - 15, footerY - 5);
-    doc.setFontSize(7);
-    doc.setTextColor(150, 150, 150);
-    doc.text(`Relatório gerado em ${new Date().toLocaleString('pt-MZ')} • Multicore`, pageWidth / 2, footerY, { align: 'center' });
-
     addProfessionalFooter(doc, companyInfo || {});
-    
+
     if (action === 'print') {
         doc.autoPrint();
         const pdfBlob = new Blob([doc.output('arraybuffer')], { type: 'application/pdf' });
@@ -704,7 +685,7 @@ export const generatePharmacyExpiringReport = (data: { items: ExpiringItem[]; su
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(185, 28, 28);
-    doc.text('⚠️ AÇÃO URGENTE NECESSÁRIA', 20, 60);
+    doc.text('AÇÃO URGENTE NECESSÁRIA', 20, 60);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(0, 0, 0);
@@ -1166,7 +1147,7 @@ export const generateHRPayrollSummaryReport = (data: PayrollReportData, companyI
         `${emp.inssDeduction.toLocaleString()}`,
         `${emp.irtDeduction.toLocaleString()}`,
         `${emp.netSalary.toLocaleString()}`,
-        emp.status === 'paid' ? '✓ Pago' : emp.status === 'processed' ? '⏳ Proc.' : '📝 Rasc.'
+        emp.status === 'paid' ? 'Pago' : emp.status === 'processed' ? 'Proc.' : 'Rasc.'
     ]);
 
     autoTable(doc, {
@@ -1289,7 +1270,7 @@ export const generatePaymentConfirmation = (data: PaymentConfirmationData, compa
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.setTextColor(22, 163, 74);
-    doc.text('✓ PAGAMENTO CONFIRMADO', 20, 60);
+    doc.text('PAGAMENTO CONFIRMADO', 20, 60);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
@@ -1439,7 +1420,7 @@ export const generateQuotationPDF = (quote: QuotationPdfQuote, companyInfo: Comp
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.text('DADOS DO CLIENTE', 15, 52);
-    
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Cliente: ${quote.customerName}`, 15, 59);
@@ -1535,6 +1516,328 @@ export const generateQuotationPDF = (quote: QuotationPdfQuote, companyInfo: Comp
         doc.save(`Cotacao_${quote.orderNumber}.pdf`);
     }
 };
+
+// ── Purchase Order PDF Generator ──────────────────────────────────────────────
+
+interface PdfPurchaseOrderItem {
+    id: string;
+    productId: string;
+    quantity: number;
+    receivedQty: number;
+    unitCost: number;
+    total: number;
+    product: { id: string; name: string; code: string; unit?: string };
+}
+
+interface PdfPurchaseOrder {
+    id: string;
+    orderNumber: string;
+    supplierId: string;
+    total: number;
+    status: string;
+    expectedDeliveryDate?: string | null;
+    receivedDate?: string | null;
+    notes?: string | null;
+    createdAt: string;
+    updatedAt: string;
+    supplier: { id: string; name: string; code: string; phone: string; nuit?: string | null; email?: string | null };
+    items: PdfPurchaseOrderItem[];
+}
+
+export const generatePurchaseOrderPDF = (order: PdfPurchaseOrder, companyInfo: CompanyInfo, action: 'save' | 'print' = 'save') => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+
+    const normalizedCompany = {
+        ...companyInfo,
+        taxId: companyInfo?.taxId || companyInfo?.nuit,
+        address: [companyInfo?.address, companyInfo?.city, companyInfo?.province]
+            .filter(Boolean)
+            .join(', ') || companyInfo?.address,
+    };
+
+    addProfessionalHeader(doc, 'ORDEM DE COMPRA', normalizedCompany || {});
+
+    // Supplier & PO Info
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DADOS DO FORNECEDOR', 15, 52);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Fornecedor: ${order.supplier.name}`, 15, 59);
+    if (order.supplier.phone && order.supplier.phone !== '---') {
+        doc.text(`Telefone: ${order.supplier.phone}`, 15, 64);
+    }
+    if (order.supplier.nuit) {
+        doc.text(`NUIT: ${order.supplier.nuit}`, 15, 69);
+    }
+
+    // PO specific info on the right
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Nº Ordem: ${order.orderNumber}`, pageWidth - 15, 59, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Data de Emissão: ${new Date(order.createdAt).toLocaleDateString('pt-MZ')}`, pageWidth - 15, 64, { align: 'right' });
+    if (order.expectedDeliveryDate) {
+        doc.text(`Entrega Esperada: ${new Date(order.expectedDeliveryDate).toLocaleDateString('pt-MZ')}`, pageWidth - 15, 69, { align: 'right' });
+    }
+
+    // Items Table
+    const tableData = (order.items || []).map((item) => [
+        item.product?.code || '---',
+        item.product?.name || '---',
+        `${item.quantity} ${item.product?.unit || 'un'}`,
+        `${Number(item.unitCost).toLocaleString()} MT`,
+        `${Number(item.total).toLocaleString()} MT`
+    ]);
+
+    autoTable(doc, {
+        startY: 80,
+        head: [['Código', 'Descrição', 'Qtd', 'Custo Unit.', 'Total']],
+        body: tableData,
+        headStyles: { fillColor: [51, 65, 85], textColor: [255, 255, 255], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+            2: { halign: 'center' },
+            3: { halign: 'right' },
+            4: { halign: 'right', fontStyle: 'bold' }
+        },
+        margin: { left: 15, right: 15 }
+    });
+
+    const finalY = (doc as JsPdfWithAutoTable).lastAutoTable.finalY + 10;
+
+    // Totals Box
+    doc.setDrawColor(240, 240, 240);
+    doc.setFillColor(252, 252, 252);
+    doc.roundedRect(pageWidth - 85, finalY, 70, 15, 2, 2, 'FD');
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL FINAL:', pageWidth - 80, finalY + 10);
+    doc.text(`${Number(order.total).toLocaleString()} MT`, pageWidth - 20, finalY + 10, { align: 'right' });
+
+    // Notes
+    if (order.notes) {
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('NOTAS E OBSERVAÇÕES:', 15, finalY + 8);
+        doc.setFont('helvetica', 'normal');
+        const splitNotes = doc.splitTextToSize(order.notes, 100);
+        doc.text(splitNotes, 15, finalY + 14);
+    }
+
+    // Signatures
+    const signatureY = Math.max(finalY + 45, 250);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(15, signatureY, 80, signatureY);
+    doc.setFontSize(8);
+    doc.text('CARIMBO E ASSINATURA', 47.5, signatureY + 5, { align: 'center' });
+
+    addProfessionalFooter(doc, normalizedCompany);
+
+    if (action === 'print') {
+        doc.autoPrint();
+        const blobUrl = doc.output('bloburl');
+        window.open(blobUrl, '_blank');
+    } else {
+        doc.save(`OrdemCompra_${order.orderNumber}.pdf`);
+    }
+};
+
+// ── Supplier Invoice PDF Generator ────────────────────────────────────────────
+
+interface PdfSupplierInvoiceItem {
+    id: string;
+    productId: string;
+    description: string;
+    quantity: number;
+    unitCost: number;
+    taxRate: number;
+    taxAmount: number;
+    total: number;
+    product?: { id: string; name: string; code: string; unit?: string } | null;
+}
+
+interface PdfSupplierInvoicePayment {
+    id: string;
+    amount: number;
+    method: string;
+    paymentDate: string;
+    reference?: string | null;
+    notes?: string | null;
+}
+
+interface PdfSupplierInvoice {
+    id: string;
+    invoiceNumber: string;
+    supplierId: string;
+    purchaseOrderId?: string | null;
+    subtotal: number;
+    tax: number;
+    total: number;
+    amountPaid: number;
+    amountDue: number;
+    taxRate: number;
+    status: string;
+    issueDate: string;
+    dueDate?: string | null;
+    notes?: string | null;
+    createdAt: string;
+    supplier: { id: string; name: string; nuit?: string | null; phone?: string; email?: string | null };
+    items: PdfSupplierInvoiceItem[];
+    payments?: PdfSupplierInvoicePayment[];
+}
+
+export const generateSupplierInvoicePDF = (invoice: PdfSupplierInvoice, companyInfo: CompanyInfo, action: 'save' | 'print' = 'save') => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+
+    const normalizedCompany = {
+        ...companyInfo,
+        taxId: companyInfo?.taxId || companyInfo?.nuit,
+        address: [companyInfo?.address, companyInfo?.city, companyInfo?.province]
+            .filter(Boolean)
+            .join(', ') || companyInfo?.address,
+    };
+
+    addProfessionalHeader(doc, 'FACTURA DE COMPRA', normalizedCompany || {});
+
+    // Supplier & Invoice Info
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DADOS DO FORNECEDOR', 15, 52);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Fornecedor: ${invoice.supplier.name}`, 15, 59);
+    if (invoice.supplier.phone) {
+        doc.text(`Telefone: ${invoice.supplier.phone}`, 15, 64);
+    }
+    if (invoice.supplier.nuit) {
+        doc.text(`NUIT: ${invoice.supplier.nuit}`, 15, 69);
+    }
+
+    // Invoice details on the right
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Nº Factura: ${invoice.invoiceNumber}`, pageWidth - 15, 59, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Data de Emissão: ${new Date(invoice.issueDate).toLocaleDateString('pt-MZ')}`, pageWidth - 15, 64, { align: 'right' });
+    if (invoice.dueDate) {
+        doc.text(`Data de Vencimento: ${new Date(invoice.dueDate).toLocaleDateString('pt-MZ')}`, pageWidth - 15, 69, { align: 'right' });
+    }
+
+    // Items Table
+    const tableData = (invoice.items || []).map((item) => [
+        item.product?.code || '---',
+        item.product?.name || item.description || '---',
+        `${item.quantity} ${item.product?.unit || 'un'}`,
+        `${Number(item.unitCost).toLocaleString()} MT`,
+        `${Number(item.taxAmount).toLocaleString()} MT`,
+        `${Number(item.total).toLocaleString()} MT`
+    ]);
+
+    autoTable(doc, {
+        startY: 80,
+        head: [['Código', 'Descrição', 'Qtd', 'Custo Unit.', 'IVA', 'Total']],
+        body: tableData,
+        headStyles: { fillColor: [51, 65, 85], textColor: [255, 255, 255], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+            2: { halign: 'center' },
+            3: { halign: 'right' },
+            4: { halign: 'right' },
+            5: { halign: 'right', fontStyle: 'bold' }
+        },
+        margin: { left: 15, right: 15 }
+    });
+
+    let currentY = (doc as JsPdfWithAutoTable).lastAutoTable.finalY + 10;
+
+    // Totals Box
+    doc.setDrawColor(240, 240, 240);
+    doc.setFillColor(252, 252, 252);
+    doc.roundedRect(pageWidth - 85, currentY, 70, 38, 2, 2, 'FD');
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Subtotal:', pageWidth - 80, currentY + 7);
+    doc.text(`${Number(invoice.subtotal).toLocaleString()} MT`, pageWidth - 20, currentY + 7, { align: 'right' });
+    
+    doc.text(`IVA (${Number(invoice.taxRate)}%):`, pageWidth - 80, currentY + 14);
+    doc.text(`${Number(invoice.tax).toLocaleString()} MT`, pageWidth - 20, currentY + 14, { align: 'right' });
+
+    doc.text('Valor Pago:', pageWidth - 80, currentY + 21);
+    doc.text(`${Number(invoice.amountPaid).toLocaleString()} MT`, pageWidth - 20, currentY + 21, { align: 'right' });
+
+    doc.setDrawColor(230, 230, 230);
+    doc.line(pageWidth - 80, currentY + 24, pageWidth - 20, currentY + 24);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('EM DÍVIDA:', pageWidth - 80, currentY + 31);
+    doc.text(`${Number(invoice.amountDue).toLocaleString()} MT`, pageWidth - 20, currentY + 31, { align: 'right' });
+
+    // Payments Table if exists and has payments
+    const payments = invoice.payments || [];
+    if (payments.length > 0) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('HISTÓRICO DE PAGAMENTOS', 15, currentY + 8);
+
+        const paymentsData = payments.map(p => [
+            new Date(p.paymentDate).toLocaleDateString('pt-MZ'),
+            p.method === 'cash' ? 'Numerário' : p.method === 'card' ? 'Cartão' : p.method === 'transfer' ? 'Transferência' : p.method,
+            p.reference || '—',
+            `${Number(p.amount).toLocaleString()} MT`
+        ]);
+
+        autoTable(doc, {
+            startY: currentY + 14,
+            head: [['Data', 'Método', 'Referência', 'Montante']],
+            body: paymentsData,
+            headStyles: { fillColor: [100, 116, 139], textColor: [255, 255, 255] },
+            columnStyles: {
+                3: { halign: 'right', fontStyle: 'bold' }
+            },
+            margin: { left: 15, right: 85 } // Place it next to totals box
+        });
+
+        currentY = Math.max((doc as JsPdfWithAutoTable).lastAutoTable.finalY + 10, currentY + 45);
+    } else {
+        currentY += 45;
+    }
+
+    // Notes
+    if (invoice.notes) {
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('NOTAS E OBSERVAÇÕES:', 15, currentY);
+        doc.setFont('helvetica', 'normal');
+        const splitNotes = doc.splitTextToSize(invoice.notes, 100);
+        doc.text(splitNotes, 15, currentY + 6);
+        currentY += 20;
+    }
+
+    // Signatures
+    const signatureY = Math.max(currentY + 25, 250);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(15, signatureY, 80, signatureY);
+    doc.setFontSize(8);
+    doc.text('CONFORMIDADE (RECEÇÃO)', 47.5, signatureY + 5, { align: 'center' });
+
+    addProfessionalFooter(doc, normalizedCompany);
+
+    if (action === 'print') {
+        doc.autoPrint();
+        const blobUrl = doc.output('bloburl');
+        window.open(blobUrl, '_blank');
+    } else {
+        doc.save(`FacturaFornecedor_${invoice.invoiceNumber}.pdf`);
+    }
+};
+
+// ── Quotations List PDF Generator ─────────────────────────────────────────────
 
 type QuotationListItem = QuotationPdfQuote;
 

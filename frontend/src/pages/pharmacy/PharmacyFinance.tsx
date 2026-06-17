@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -84,7 +84,7 @@ export default function PharmacyFinance() {
     const [limit, setLimit] = useState(10);
     const [totalRows, setTotalRows] = useState(0);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const [dashboardData, transData] = await Promise.all([
@@ -106,11 +106,11 @@ export default function PharmacyFinance() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, limit, debouncedSearch, filterType, selectedPeriod]);
 
     useEffect(() => {
         fetchData();
-    }, [page, limit, debouncedSearch, filterType, selectedPeriod]);
+    }, [fetchData]);
 
     const {
         register,

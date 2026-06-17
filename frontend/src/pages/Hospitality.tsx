@@ -168,7 +168,7 @@ export default function Hospitality() {
         } finally {
             setHistoryLoading(false);
         }
-    }, [fetchBookings, historyPageSize]);
+    }, [fetchBookings, historyPage, historyPageSize]);
 
     // Fetch history when tab or page changes
     useEffect(() => {
@@ -269,7 +269,10 @@ export default function Hospitality() {
             setIsRoomModalOpen(false);
             setEditingRoom(null);
             setRoomFormData({ number: '', type: 'single', price: '', priceNoMeal: '', priceBreakfast: '', priceHalfBoard: '', priceFullBoard: '', notes: '' });
-        } catch (err) { }
+        } catch (err) {
+            logger.error('Error saving room:', err);
+            toast.error('Erro ao guardar quarto.');
+        }
     };
 
     const handleConsumptionSubmit = async (modalData: ConsumptionFormData) => {
@@ -281,7 +284,10 @@ export default function Hospitality() {
                 quantity: modalData.quantity
             });
             setIsConsumptionModalOpen(false);
-        } catch (err) { }
+        } catch (err) {
+            logger.error('Error adding room consumption:', err);
+            toast.error('Erro ao registar consumo.');
+        }
     };
 
     const handleDeleteRoom = async (id: string) => {
@@ -295,7 +301,10 @@ export default function Hospitality() {
             await deleteRoom(selectedRoomForDelete);
             setDeleteRoomConfirmOpen(false);
             setSelectedRoomForDelete(null);
-        } catch (err) { }
+        } catch (err) {
+            logger.error('Error deleting room:', err);
+            toast.error('Erro ao eliminar quarto.');
+        }
     };
 
 
@@ -314,7 +323,10 @@ export default function Hospitality() {
         try {
             await updateRoom(roomId, { status: 'available' });
             refetch();
-        } catch (err) { }
+        } catch (err) {
+            logger.error('Error marking room as clean:', err);
+            toast.error('Erro ao actualizar estado do quarto.');
+        }
     };
 
 

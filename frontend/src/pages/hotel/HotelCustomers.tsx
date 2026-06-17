@@ -35,11 +35,11 @@ export default function HotelCustomers() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [page, limit, searchTerm]);
 
     useEffect(() => {
         loadGuests();
-    }, [loadGuests, page, limit]);
+    }, [loadGuests]);
 
 
     const openProfile = (id: string) => {

@@ -95,7 +95,7 @@ export default function PharmacyPOS() {
 
     // Replaced manual useQuery with revamped hook
     const { data: medsResponse, isLoading, refetch: fetchMedications } = useMedications();
-    const medications = medsResponse?.data || [];
+    const medications = useMemo(() => medsResponse?.data || [], [medsResponse?.data]);
 
     // Shift State
     const [showShiftModal, setShowShiftModal] = useState(false);

@@ -135,7 +135,7 @@ export function ABCClassificationChart({ data, maxItems = 30 }: ABCClassificatio
                 )}
             </div>
             
-            <div className="mt-6 grid grid-cols-3 gap-3">
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="p-3 rounded-lg bg-indigo-50 dark:bg-indigo-500/5 border border-indigo-200/80 dark:border-indigo-500/10 transition-all hover:shadow-lg hover:shadow-indigo-500/5">
                     <p className="text-[8px] font-black uppercase text-indigo-500 tracking-widest">Classe A</p>
                     <p className="text-xs font-black text-slate-900 dark:text-white mt-1">ESTRATÉGICO</p>

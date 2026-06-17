@@ -247,6 +247,81 @@ export default function AccountsReceivable() {
                     itemsPerPage: pagination.limit,
                     onPageChange: setPage,
                 } : undefined}
+                mobileCardRender={(inv) => {
+                    const cfg = STATUS_CONFIG[inv.status] ?? STATUS_CONFIG.sent;
+                    const Icon = cfg.icon;
+                    const progress = inv.total > 0 ? (inv.amountPaid / inv.total) * 100 : 0;
+                    const issuedAt = inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('pt-MZ') : '';
+                    const dueAt = inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('pt-MZ') : '';
+                    const customerName = inv.customer?.name ?? inv.customerName ?? '';
+                    const customerPhone = inv.customer?.phone ?? inv.customerPhone ?? '';
+
+                    return (
+                        <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-4">
+                            {/* Header */}
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="flex flex-col min-w-0">
+                                    <span className="font-black text-sm text-gray-900 dark:text-white uppercase tracking-tight truncate">
+                                        {inv.number}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                                        Emissão: {issuedAt}
+                                    </span>
+                                </div>
+                                <div className="shrink-0 flex flex-col items-end gap-1">
+                                    <Badge variant={cfg.variant} size="sm" className="font-black text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded-full">
+                                        <Icon className="w-3 h-3 mr-1 inline-block" />
+                                        {cfg.label}
+                                    </Badge>
+                                    {inv.daysOverdue > 0 && (
+                                        <span className="text-[9px] font-bold text-red-500 animate-pulse mt-0.5">
+                                            {inv.daysOverdue}d atraso
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Customer Details */}
+                            <div className="bg-gray-50 dark:bg-dark-900/50 p-3 rounded-lg border border-gray-100 dark:border-dark-700">
+                                <p className="text-[9px] font-black uppercase text-gray-400 mb-1 tracking-widest">Cliente</p>
+                                <p className="font-bold text-xs text-gray-700 dark:text-gray-300 uppercase">{customerName}</p>
+                                {customerPhone && <p className="text-[10px] text-gray-500 font-medium mt-0.5">{customerPhone}</p>}
+                            </div>
+
+                            {/* Vencimento and Total progress */}
+                            <div className="grid grid-cols-2 gap-4 text-xs">
+                                <div>
+                                    <p className="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Vencimento</p>
+                                    <span className="font-bold text-gray-700 dark:text-gray-300">{dueAt}</span>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Valor Pago</p>
+                                    <span className="font-black text-green-600 dark:text-green-400">{formatCurrency(inv.amountPaid)}</span>
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/5">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Em Aberto</span>
+                                    <span className="text-lg font-black text-red-600 dark:text-red-400 mt-0.5">
+                                        {formatCurrency(inv.amountDue)}
+                                    </span>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total da Fatura</span>
+                                    <p className="text-sm font-black text-gray-900 dark:text-white mt-0.5">{formatCurrency(inv.total)}</p>
+                                </div>
+                            </div>
+
+                            {inv.total > 0 && (
+                                <div className="h-1.5 w-full bg-gray-100 dark:bg-dark-700 rounded-full overflow-hidden">
+                                    <div className="h-full bg-green-500 rounded-full transition-all duration-500" style={{ width: `${Math.min(progress, 100)}%` }} />
+                                </div>
+                            )}
+                        </div>
+                    );
+                }}
             />
         </div>
     );

@@ -58,12 +58,12 @@ export default function AuditLogViewer() {
     // Get filtered logs
     const filteredLogs = useMemo(() => {
         return getFilteredLogs(filters);
-    }, [logs, filters, getFilteredLogs]);
+    }, [filters, getFilteredLogs]);
 
     // Get statistics
     const stats = useMemo(() => {
         return getStats(filters);
-    }, [filteredLogs, getStats, filters]);
+    }, [getStats, filters]);
 
     // Pagination
     const {
@@ -610,7 +610,7 @@ export default function AuditLogViewer() {
 
                         {/* Entity Info */}
                         {(selectedLog.entityType || selectedLog.entityId) && (
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div>
                                     <p className="text-sm text-gray-500">Tipo de Entidade</p>
                                     <p className="font-medium">{selectedLog.entityType}</p>

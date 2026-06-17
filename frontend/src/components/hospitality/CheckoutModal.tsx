@@ -4,7 +4,7 @@ import { logger } from '../../utils/logger';
  * Handles guest checkout with payment method selection (Cash, Card, M-Pesa, etc.)
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Modal, Button, Select, LoadingSpinner, Card } from '../ui';
 import { hospitalityAPI } from '../../services/api';
 import { formatCurrency } from '../../utils/helpers';
@@ -39,16 +39,7 @@ export default function CheckoutModal({
     const [paymentMethod, setPaymentMethod] = useState('cash');
     const [showMpesaModal, setShowMpesaModal] = useState(false);
 
-    useEffect(() => {
-        if (isOpen && bookingId) {
-            fetchBookingSummary();
-        } else {
-            setBooking(null);
-            setPaymentMethod('cash');
-        }
-    }, [isOpen, bookingId]);
-
-    const fetchBookingSummary = async () => {
+    const fetchBookingSummary = useCallback(async () => {
         if (!bookingId) return;
         setIsLoading(true);
         try {
@@ -59,7 +50,16 @@ export default function CheckoutModal({
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [bookingId]);
+
+    useEffect(() => {
+        if (isOpen && bookingId) {
+            fetchBookingSummary();
+        } else {
+            setBooking(null);
+            setPaymentMethod('cash');
+        }
+    }, [isOpen, bookingId, fetchBookingSummary]);
 
     const handleCheckout = async () => {
         if (!bookingId) return;

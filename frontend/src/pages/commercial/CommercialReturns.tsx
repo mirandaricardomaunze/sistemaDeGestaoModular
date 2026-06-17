@@ -24,15 +24,15 @@ export default function CommercialReturns({ hideHeader }: CommercialReturnsProps
         <div className="space-y-6 animate-fade-in">
             {!hideHeader && (
                 <PageHeader
-                    title="Devolucoes Comerciais"
-                    subtitle="Emissao de notas de credito, reposicao de stock e acerto de saldos de clientes"
+                    title="Devoluções Comerciais"
+                    subtitle="Emissão de notas de crédito, reposição de stock e acerto de saldos de clientes"
                     icon={<HiOutlineArrowPathRoundedSquare className="text-primary-600 dark:text-primary-400" />}
                 />
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <MetricCard
-                    label="Faturas elegiveis"
+                    label="Faturas elegíveis"
                     value={refundableInvoices.length}
                     icon={<HiOutlineDocumentText className="w-6 h-6" />}
                     color="blue"

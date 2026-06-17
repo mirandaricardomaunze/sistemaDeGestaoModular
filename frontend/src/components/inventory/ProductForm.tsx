@@ -138,7 +138,7 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess, origi
                 weight: 0,
             });
         }
-    }, [product, reset]);
+    }, [product, reset, categories]);
 
     const onSubmit = async (data: ProductFormData) => {
         setIsSubmitting(true);

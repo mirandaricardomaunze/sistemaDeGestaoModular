@@ -19,7 +19,11 @@ export function useStockTransfers(params?: UseTransfersParams) {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await warehousesAPI.getTransfers(params);
+            const response = await warehousesAPI.getTransfers({
+                sourceWarehouseId: params?.sourceWarehouseId,
+                targetWarehouseId: params?.targetWarehouseId,
+                status: params?.status,
+            });
             setTransfers(response.data || response);
         } catch (err) {
             setError('Erro ao carregar transferências');

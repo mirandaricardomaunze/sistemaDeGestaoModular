@@ -22,7 +22,15 @@ export function usePharmacySales(params?: PharmacySalesParams) {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await pharmacyAPI.getSales(params);
+            const response = await pharmacyAPI.getSales({
+                startDate: params?.startDate,
+                endDate: params?.endDate,
+                status: params?.status,
+                customerId: params?.customerId,
+                search: params?.search,
+                page: params?.page,
+                limit: params?.limit,
+            });
 
             if (response.data && response.pagination) {
                 setSales(response.data);

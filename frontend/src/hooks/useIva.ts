@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { ivaAPI, type CreateIvaRateDto } from '../services/api';
 
@@ -10,14 +10,19 @@ function useQ<T>(fn: () => Promise<T>, key: string, deps: unknown[] = [], enable
     const [data, setData] = useState<T | null>(null);
     const [isLoading, setIsLoading] = useState(enabled);
     const [error, setError] = useState<unknown>(null);
+    const fnRef = useRef(fn);
+    fnRef.current = fn;
+    const depsKey = JSON.stringify(deps);
 
     const fetch = useCallback(async () => {
+        void key;
+        void depsKey;
         setIsLoading(true); setError(null);
-        try { setData(await fn()); } catch (e) { setError(e); }
+        try { setData(await fnRef.current()); } catch (e) { setError(e); }
         finally { setIsLoading(false); }
-    }, [key, ...deps]);
+    }, [key, depsKey]);
 
-    useEffect(() => { if (enabled) fetch(); }, [enabled, key, ...deps]);
+    useEffect(() => { if (enabled) fetch(); }, [enabled, fetch]);
     useEffect(() => {
         const h = (e: Event) => { if ((e as CustomEvent).detail === key) fetch(); };
         bus.addEventListener('inv', h);

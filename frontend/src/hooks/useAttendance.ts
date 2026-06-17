@@ -19,7 +19,11 @@ export function useAttendance(params?: UseAttendanceParams) {
         setIsLoading(true);
         setError(null);
         try {
-            const result = await employeesAPI.getAttendance(params);
+            const result = await employeesAPI.getAttendance({
+                employeeId: params?.employeeId,
+                startDate: params?.startDate,
+                endDate: params?.endDate,
+            });
             
             let attendanceData: AttendanceRecord[] = [];
             if (result.success && result.data) {

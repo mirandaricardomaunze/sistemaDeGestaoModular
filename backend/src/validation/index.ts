@@ -27,7 +27,9 @@ export * from './hospitality';
 export * from './campaigns';
 export {
     createFiscalDocumentSchema,
-    dispenseMedicationSchema,
+    dispenseMedicationSchema
+} from './fiscal';
+export type {
     CreateFiscalDocumentInput,
     DispenseMedicationInput
 } from './fiscal';

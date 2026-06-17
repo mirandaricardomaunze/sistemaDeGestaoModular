@@ -114,7 +114,7 @@ export function ProductStockHistory({ isOpen, onClose, product }: ProductStockHi
             header: 'Responsavel',
             accessorKey: 'performedBy',
         },
-    ], []);
+    ], [product.unit]);
 
     return (
         <Modal

@@ -393,7 +393,7 @@ export default function ParcelsPage() {
                     {/* Sender Info */}
                     <div className="space-y-4">
                         <h3 className="font-semibold text-lg border-b dark:border-dark-700 pb-2">{t('logistics_module.parcels.senderInfo')}</h3>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <Input
                                 label={`${t('logistics_module.parcels.senderName')} *`}
                                 placeholder={t('common.fullName')}
@@ -409,7 +409,7 @@ export default function ParcelsPage() {
                                 required
                             />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <Input
                                 label={t('common.email')}
                                 type="email"
@@ -429,7 +429,7 @@ export default function ParcelsPage() {
                     {/* Recipient Info */}
                     <div className="space-y-4">
                         <h3 className="font-semibold text-lg border-b dark:border-dark-700 pb-2">{t('logistics_module.parcels.recipientInfo')}</h3>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <Input
                                 label={`${t('logistics_module.parcels.recipientName')} *`}
                                 placeholder={t('common.fullName')}
@@ -445,7 +445,7 @@ export default function ParcelsPage() {
                                 required
                             />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <Input
                                 label="Email"
                                 type="email"
@@ -471,7 +471,7 @@ export default function ParcelsPage() {
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         />
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <Input
                                 label={`${t('logistics_module.parcels.weight')} (kg)`}
                                 type="number"
@@ -495,7 +495,7 @@ export default function ParcelsPage() {
                                 onChange={(e) => setFormData({ ...formData, fees: e.target.value })}
                             />
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <Select
                                 label="Armazém"
                                 options={[{ value: '', label: 'Seleccionar' }, ...(warehouses?.map(w => ({ value: w.id, label: w.name })) || [])]}
@@ -692,7 +692,7 @@ export default function ParcelsPage() {
                             {getStatusBadge(selectedParcel.status, t)}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="space-y-3">
                                 <h4 className="font-semibold text-gray-500 uppercase text-xs">{t('logistics_module.parcels.sender')}</h4>
                                 <p className="font-medium">{selectedParcel.senderName}</p>
@@ -712,7 +712,7 @@ export default function ParcelsPage() {
                             {selectedParcel.description && (
                                 <p><span className="text-gray-500">{t('common.description')}:</span> {selectedParcel.description}</p>
                             )}
-                            <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                                 {selectedParcel.weight && (
                                     <p><span className="text-gray-500">{t('logistics_module.parcels.weight')}:</span> {selectedParcel.weight} kg</p>
                                 )}

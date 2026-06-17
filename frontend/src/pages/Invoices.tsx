@@ -1194,7 +1194,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                         <Input label="Documento (BI/NUIT)" {...register('customerDocument')} />
                         <Input label="Endereço" {...register('customerAddress')} />
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         <Input label="Emissão *" type="date" {...register('issueDate')} error={errors.issueDate?.message} />
                         <Input label="Vencimento *" type="date" {...register('dueDate')} error={errors.dueDate?.message} />
                         <Select
@@ -1342,7 +1342,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                 <form onSubmit={handleSubmitPayment(onSubmitPayment as never)} className="space-y-4">
                     <p className="text-sm text-gray-500">Fatura: <span className="font-medium text-gray-900 dark:text-white">{selectedInvoice?.invoiceNumber}</span></p>
                     <p className="text-sm text-gray-500">Valor pendente: <span className="font-medium text-red-600">{formatCurrency(selectedInvoice?.amountDue || 0)}</span></p>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Input label="Valor *" type="number" step="0.01" {...registerPayment('amount')} error={paymentErrors.amount?.message} />
                         <Select label="Método *" options={paymentMethods} {...registerPayment('method')} error={paymentErrors.method?.message} />
                     </div>
@@ -1359,7 +1359,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
             <Modal isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} title={`Fatura ${selectedInvoice?.invoiceNumber}`} size="lg">
                 {selectedInvoice && (
                     <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <p className="text-sm text-gray-500">Cliente</p>
                                 <p className="font-medium text-gray-900 dark:text-white">{selectedInvoice.customerName}</p>
@@ -1372,7 +1372,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                 </span>
                             </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                             <div><p className="text-gray-500">Emissão</p><p className="font-medium">{format(parseISO(selectedInvoice.issueDate), 'dd/MM/yyyy')}</p></div>
                             <div><p className="text-gray-500">Vencimento</p><p className="font-medium">{format(parseISO(selectedInvoice.dueDate), 'dd/MM/yyyy')}</p></div>
                             {selectedInvoice.paidDate && <div><p className="text-gray-500">Pago em</p><p className="font-medium text-green-600">{format(parseISO(selectedInvoice.paidDate), 'dd/MM/yyyy')}</p></div>}

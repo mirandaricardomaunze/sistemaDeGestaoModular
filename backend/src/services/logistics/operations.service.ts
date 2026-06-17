@@ -4,6 +4,15 @@ import { ApiError } from '../../middleware/error.middleware';
 import { ResultHandler } from '../../utils/result';
 import { getPaginationParams, createPaginatedResponse, parseFields } from '../../utils/pagination';
 import { generateDeliveryNumber, generateRouteCode, generateTrackingNumber } from './shared';
+import { warehousesService } from '../warehousesService';
+import type { StockTransactionClient } from '../stockService';
+import { emitToModule } from '../../lib/socket';
+
+/** Actor performing a logistics action (for transfer approval/movements). */
+type Actor = { userId?: string; userName?: string };
+
+/** StockTransfer states that are terminal (no further stock impact). */
+const TERMINAL_TRANSFER_STATES = ['received', 'completed', 'rejected', 'cancelled'];
 
 const DELIVERY_FIELDS = [
     'id', 'number', 'status', 'priority', 'scheduledDate',
@@ -55,6 +64,7 @@ type DeliveryInput = {
     recipientName: string;
     recipientPhone?: string | null;
     recipientAddress?: string | null;
+    deliveryAddress?: string;
     status?: string;
     priority?: string;
     scheduledDate?: string | Date | null;
@@ -62,6 +72,11 @@ type DeliveryInput = {
     totalAmount?: number;
     notes?: string | null;
     items?: DeliveryItemInput[];
+    // ── Guia de transferência entre armazéns (kind = 'warehouse_transfer') ──
+    kind?: 'shipment' | 'warehouse_transfer';
+    sourceWarehouseId?: string | null;
+    targetWarehouseId?: string | null;
+    reason?: string | null;
 };
 
 type ParcelInput = {
@@ -157,7 +172,7 @@ export class OperationsService {
         const baseArgs = { where, skip, take: limit, orderBy: { createdAt: 'desc' as const } };
         const findArgs: Prisma.DeliveryFindManyArgs = projection
             ? { ...baseArgs, select: projection as Prisma.DeliverySelect }
-            : { ...baseArgs, include: { driver: true, vehicle: true, route: true, items: true } };
+            : { ...baseArgs, include: { driver: true, vehicle: true, route: true, items: true, transfer: { select: { id: true, number: true, status: true } } } };
         const [deliveries, total] = await Promise.all([
             prisma.delivery.findMany(findArgs),
             prisma.delivery.count({ where })
@@ -167,31 +182,156 @@ export class OperationsService {
 
     async getDelivery(companyId: string, id: string) {
         const delivery = await prisma.delivery.findFirst({
-            where: { id, companyId }, include: { driver: true, vehicle: true, route: true, items: true }
+            where: { id, companyId }, include: { driver: true, vehicle: true, route: true, items: true, transfer: { select: { id: true, number: true, status: true } } }
         });
         if (!delivery) throw ApiError.notFound('Entrega não encontrada');
         return ResultHandler.success(delivery);
     }
 
-    async createDelivery(companyId: string, data: DeliveryInput) {
+    /**
+     * Assemble everything the Guia PDF needs in one place (keeps the route thin).
+     * For a warehouse transfer, the canonical items come from the StockTransfer;
+     * otherwise from the DeliveryItem rows. `validade` is the earliest active
+     * batch expiry for each product (best-effort, single batched query).
+     */
+    async getDeliveryPdfData(companyId: string, id: string) {
+        const delivery = await prisma.delivery.findFirst({
+            where: { id, companyId },
+            include: {
+                driver: true,
+                vehicle: true,
+                items: { include: { product: { select: { code: true, barcode: true, weight: true, price: true, unit: true } } } },
+                transfer: {
+                    include: {
+                        sourceWarehouse: { select: { name: true } },
+                        targetWarehouse: { select: { name: true } },
+                        items: { include: { product: { select: { name: true, code: true, barcode: true, weight: true, price: true, unit: true } } } }
+                    }
+                }
+            }
+        });
+        if (!delivery) throw ApiError.notFound('Entrega não encontrada');
+
+        const isTransfer = delivery.kind === 'warehouse_transfer' && !!delivery.transfer;
+
+        // Normalise both item sources into a common shape.
+        const raw = isTransfer
+            ? delivery.transfer!.items.map((it) => ({
+                productId: it.productId as string | null,
+                description: it.product?.name ?? 'Produto',
+                barcode: it.product?.barcode ?? null,
+                reference: it.product?.code ?? null,
+                quantity: Number(it.quantity),
+                unit: it.product?.unit ?? 'un',
+                unitPrice: Number(it.product?.price ?? 0),
+                unitWeight: Number(it.product?.weight ?? 0)
+            }))
+            : delivery.items.map((it) => ({
+                productId: it.productId,
+                description: it.description || it.product?.code || 'Item',
+                barcode: it.product?.barcode ?? null,
+                reference: it.product?.code ?? null,
+                quantity: Number(it.quantity),
+                unit: it.product?.unit ?? 'un',
+                unitPrice: Number(it.product?.price ?? 0),
+                unitWeight: Number(it.weight ?? it.product?.weight ?? 0)
+            }));
+
+        // Earliest active batch expiry per product — one query, no N+1.
+        const productIds = raw.map((r) => r.productId).filter((p): p is string => !!p);
+        const expiryByProduct = new Map<string, Date>();
+        if (productIds.length > 0) {
+            const batches = await prisma.productBatch.findMany({
+                where: { companyId, productId: { in: productIds }, status: 'active', quantity: { gt: 0 }, expiryDate: { not: null } },
+                select: { productId: true, expiryDate: true },
+                orderBy: { expiryDate: 'asc' }
+            });
+            for (const b of batches) {
+                if (b.expiryDate && !expiryByProduct.has(b.productId)) expiryByProduct.set(b.productId, b.expiryDate);
+            }
+        }
+
+        const items = raw.map((r) => ({
+            barcode: r.barcode,
+            reference: r.reference,
+            description: r.description,
+            expiry: r.productId ? expiryByProduct.get(r.productId) ?? null : null,
+            quantity: r.quantity,
+            unit: r.unit,
+            value: r.unitPrice * r.quantity,
+            weight: r.unitWeight * r.quantity
+        }));
+
+        return {
+            delivery,
+            items,
+            sourceWarehouseName: isTransfer ? delivery.transfer!.sourceWarehouse?.name ?? null : null,
+            targetWarehouseName: isTransfer ? delivery.transfer!.targetWarehouse?.name ?? null : null
+        };
+    }
+
+    async createDelivery(companyId: string, data: DeliveryInput, actor: Actor = {}) {
+        const userId = actor.userId || 'system';
+        const userName = actor.userName || 'Sistema';
         const number = await generateDeliveryNumber(companyId);
-        return prisma.$transaction(async (tx) => {
-            const { items, ...rest } = data;
+        const isTransfer = data.kind === 'warehouse_transfer';
+
+        const result = await prisma.$transaction(async (tx) => {
+            const { items, kind, sourceWarehouseId, targetWarehouseId, reason, ...rest } = data;
+            let transferId: string | undefined;
+
+            // For a warehouse transfer, create + submit the backing StockTransfer
+            // first so the Guia carries its id. Stock only moves later, on
+            // dispatch/receive (see updateDeliveryStatus).
+            if (isTransfer) {
+                if (!sourceWarehouseId || !targetWarehouseId) {
+                    throw ApiError.badRequest('Transferência exige armazém de origem e destino');
+                }
+                const transferItems = (items ?? [])
+                    .filter((i) => i.productId)
+                    .map((i) => ({ productId: i.productId as string, quantity: i.quantity }));
+                if (transferItems.length === 0) {
+                    throw ApiError.badRequest('Transferência exige pelo menos um produto com productId');
+                }
+                const transfer = await warehousesService.createAndSubmitTransferTx(
+                    tx as unknown as StockTransactionClient,
+                    companyId,
+                    { sourceWarehouseId, targetWarehouseId, items: transferItems, responsible: userName, reason: reason ?? undefined },
+                    userId,
+                    userName
+                );
+                transferId = transfer.id;
+            }
+
             const delivery = await tx.delivery.create({
                 data: {
                     ...rest, number, companyId,
+                    kind: isTransfer ? 'warehouse_transfer' : 'shipment',
+                    transferId,
+                    // A transfer Guia is born awaiting approval; it cannot depart yet.
+                    status: isTransfer ? 'pending' : rest.status,
                     items: items && items.length ? { create: items } : undefined
                 } as Prisma.DeliveryUncheckedCreateInput,
-                include: { driver: true, vehicle: true, route: true }
+                include: { driver: true, vehicle: true, route: true, transfer: true }
             });
-            if (data.driverId && data.status === 'in_transit') {
+            if (!isTransfer && data.driverId && data.status === 'in_transit') {
                 await tx.driver.update({ where: { id: data.driverId }, data: { status: 'on_delivery' } });
             }
-            if (data.vehicleId && data.status === 'in_transit') {
+            if (!isTransfer && data.vehicleId && data.status === 'in_transit') {
                 await tx.vehicle.update({ where: { id: data.vehicleId }, data: { status: 'in_use' } });
             }
             return delivery;
-        });
+        }, { timeout: 30000, maxWait: 10000 });
+
+        // Notify the approvals inbox only after the transaction commits.
+        if (isTransfer && result.transferId) {
+            emitToModule(companyId, 'approvals', 'approvals:created', {
+                resourceType: 'stock_transfer',
+                resourceId: result.transferId,
+                requestType: 'warehouse_transfer',
+            });
+        }
+        return result;
     }
 
     async updateDelivery(companyId: string, id: string, data: Partial<DeliveryInput>) {
@@ -206,10 +346,13 @@ export class OperationsService {
     }
 
     async deleteDelivery(companyId: string, id: string) {
-        const delivery = await prisma.delivery.findFirst({ where: { id, companyId } });
+        const delivery = await prisma.delivery.findFirst({ where: { id, companyId }, include: { transfer: true } });
         if (!delivery) throw ApiError.notFound('Entrega não encontrada');
         if (['in_transit', 'out_for_delivery'].includes(delivery.status)) {
             throw ApiError.badRequest('Não é possível eliminar uma entrega em trânsito');
+        }
+        if (delivery.kind === 'warehouse_transfer' && delivery.transfer && !TERMINAL_TRANSFER_STATES.includes(delivery.transfer.status)) {
+            throw ApiError.badRequest('Não é possível eliminar uma Guia de transferência com transferência ativa. Cancele a transferência primeiro.');
         }
         await prisma.deliveryItem.deleteMany({ where: { deliveryId: id } });
         return prisma.delivery.delete({ where: { id } });
@@ -219,9 +362,12 @@ export class OperationsService {
         companyId: string,
         id: string,
         status: string,
-        extra: { recipientSign?: string; proofOfDelivery?: string; failureReason?: string }
+        extra: { recipientSign?: string; proofOfDelivery?: string; failureReason?: string },
+        actor: Actor = {}
     ) {
-        const existing = await prisma.delivery.findFirst({ where: { id, companyId } });
+        const userId = actor.userId || 'system';
+        const userName = actor.userName || 'Sistema';
+        const existing = await prisma.delivery.findFirst({ where: { id, companyId }, include: { transfer: true } });
         if (!existing) throw ApiError.notFound('Entrega não encontrada');
 
         const updateData: Prisma.DeliveryUncheckedUpdateInput = { status: status as Prisma.DeliveryUncheckedUpdateInput['status'] };
@@ -235,14 +381,34 @@ export class OperationsService {
             updateData.attempts = existing.attempts + 1;
         }
 
+        const isTransfer = existing.kind === 'warehouse_transfer' && !!existing.transferId;
+
         return prisma.$transaction(async (tx) => {
+            // Drive the backing StockTransfer through the same lifecycle as the
+            // Guia, inside this transaction so stock + Guia commit atomically.
+            if (isTransfer && existing.transferId) {
+                const txc = tx as unknown as StockTransactionClient;
+                if (status === 'in_transit') {
+                    if (existing.transfer?.status !== 'approved') {
+                        throw ApiError.badRequest('Guia não pode partir: a transferência aguarda aprovação.');
+                    }
+                    await warehousesService.dispatchTransferTx(txc, companyId, existing.transferId, userId, userName);
+                } else if (status === 'delivered') {
+                    await warehousesService.receiveTransferTx(txc, companyId, existing.transferId, userId, userName);
+                } else if (['failed', 'cancelled', 'returned'].includes(status)) {
+                    if (existing.transfer && !TERMINAL_TRANSFER_STATES.includes(existing.transfer.status)) {
+                        await warehousesService.cancelTransferTx(txc, companyId, existing.transferId, userId, userName);
+                    }
+                }
+            }
+
             const delivery = await tx.delivery.update({ where: { id }, data: updateData });
             if (['delivered', 'failed', 'cancelled'].includes(status)) {
                 if (existing.driverId) await tx.driver.update({ where: { id: existing.driverId }, data: { status: 'available' } });
                 if (existing.vehicleId) await tx.vehicle.update({ where: { id: existing.vehicleId }, data: { status: 'available' } });
             }
             return ResultHandler.success(delivery);
-        });
+        }, { timeout: 30000, maxWait: 10000 });
     }
 
     async payDelivery(companyId: string, id: string, data: { paymentMethod: string; amount?: number }) {

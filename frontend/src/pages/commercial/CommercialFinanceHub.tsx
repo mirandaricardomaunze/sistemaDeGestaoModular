@@ -30,10 +30,10 @@ const TABS = [
     },
     {
         id: 'returns',
-        label: 'Devolucoes',
+        label: 'Devoluções',
         shortLabel: 'Devoluções',
         icon: HiOutlineArrowPathRoundedSquare,
-        subtitle: 'Notas de credito, devolucoes parciais e reposicao de stock'
+        subtitle: 'Notas de crédito, devoluções parciais e reposição de stock'
     },
     {
         id: 'debit-notes',

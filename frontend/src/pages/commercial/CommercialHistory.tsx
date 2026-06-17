@@ -236,7 +236,7 @@ export default function CommercialHistory() {
                 const vs = row.original.voidStatus ?? row.original.status;
                 const canRequestVoid = vs !== 'voided' && vs !== 'pending_void';
                 return (
-                    <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-end gap-1.5 opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity">
                         <Button variant="ghost" size="sm" onClick={() => handleViewReceipt(row.original)} className="text-blue-600 hover:bg-blue-600 hover:text-white" title="Reimprimir Recibo">
                             <HiOutlineEye className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                         </Button>
@@ -263,6 +263,92 @@ export default function CommercialHistory() {
                 data={sales}
                 columns={columns}
                 isLoading={isLoading}
+                mobileCardRender={(sale) => {
+                    const vs = sale.voidStatus ?? sale.status;
+                    const canRequestVoid = vs !== 'voided' && vs !== 'pending_void';
+                    return (
+                        <div className="bg-white dark:bg-dark-800 rounded-xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm space-y-4">
+                            {/* Header */}
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="flex flex-col min-w-0">
+                                    <span className="font-black font-mono text-gray-900 dark:text-white text-xs tracking-tight">
+                                        {sale.receiptNumber || `SALE-${sale.id.slice(-6)}`}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                        {format(parseISO(sale.createdAt), 'dd/MM/yyyy HH:mm')}
+                                    </span>
+                                </div>
+                                <div className="shrink-0">
+                                    {vs === 'voided' ? (
+                                        <Badge variant="danger" className="text-[9px] font-black uppercase px-2 py-0.5 border-none bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                            ANULADA
+                                        </Badge>
+                                    ) : vs === 'pending_void' ? (
+                                        <Badge variant="warning" className="text-[9px] font-black uppercase px-2 py-0.5 border-none bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                                            PEND. APROVAÇÃO
+                                        </Badge>
+                                    ) : (
+                                        <Badge variant="success" className="text-[9px] font-black uppercase px-2 py-0.5 border-none bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                            CONCLUÍDA
+                                        </Badge>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Details */}
+                            <div className="bg-gray-50 dark:bg-dark-900/50 p-3 rounded-lg border border-gray-100 dark:border-dark-700 space-y-2">
+                                <div>
+                                    <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Identificação</p>
+                                    <p className="font-bold text-xs text-gray-700 dark:text-gray-300 uppercase">{sale.customer?.name || 'Consumidor Geral'}</p>
+                                </div>
+                                <div className="flex justify-between items-center text-xs">
+                                    <div>
+                                        <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Método</p>
+                                        <Badge variant="gray" size="sm" className="font-black text-[9px] uppercase tracking-widest bg-gray-100 text-gray-700 dark:bg-dark-800 dark:text-gray-300 px-2 py-0.5 border-none mt-0.5">
+                                            {getPaymentMethodLabel(sale.paymentMethod, sale.paymentRef)}
+                                        </Badge>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Artigos</p>
+                                        <span className="font-bold text-gray-700 dark:text-gray-300">{sale.items?.length || 0} Itens</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Total Value */}
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Valor Total</span>
+                                <span className="text-lg font-black text-gray-900 dark:text-white">
+                                    {formatCurrency(Number(sale.total))}
+                                </span>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-white/5">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleViewReceipt(sale)}
+                                    className="p-2 rounded-lg bg-gray-50 dark:bg-dark-900/30 text-gray-600 dark:text-gray-400 border border-gray-200/50 dark:border-dark-700 font-black tracking-widest text-[10px] uppercase flex items-center justify-center gap-2"
+                                >
+                                    <HiOutlineEye className="w-4 h-4 text-primary-600 dark:text-primary-400" /> Reimprimir
+                                </Button>
+                                {canRequestVoid ? (
+                                    <Button
+                                        variant="danger"
+                                        size="sm"
+                                        onClick={() => handleOpenVoidModal(sale)}
+                                        className="p-2 rounded-lg font-black tracking-widest text-[10px] uppercase flex items-center justify-center gap-2"
+                                    >
+                                        <HiOutlineTrash className="w-4 h-4 text-white" /> Anular
+                                    </Button>
+                                ) : (
+                                    <div className="col-span-1" />
+                                )}
+                            </div>
+                        </div>
+                    );
+                }}
                 search={{
                     value: search,
                     onChange: (val) => { setSearch(val); setPage(1); },

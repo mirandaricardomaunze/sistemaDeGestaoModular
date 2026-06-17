@@ -31,7 +31,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
     const printRef = useRef<HTMLDivElement>(null);
 
     // Ensure products is always an array
-    const productsList = Array.isArray(products) ? products : [];
+    const productsList = useMemo(() => Array.isArray(products) ? products : [], [products]);
 
     // Load company settings when modal opens
     useEffect(() => {
@@ -118,7 +118,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
             generatedAt: new Date().toLocaleString('pt-BR'),
             company,
         };
-    }, [productsList, companySettings]);
+    }, [productsList, companySettings, warehouseId]);
 
     const handlePrint = () => {
         const printContent = printRef.current;

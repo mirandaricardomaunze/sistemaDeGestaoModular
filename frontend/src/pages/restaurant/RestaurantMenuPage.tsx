@@ -233,7 +233,7 @@ export default function RestaurantMenuPage() {
     });
     
     const deleteMutation = useDeleteMenuItem();
-    const items = menuData?.data || [];
+    const items = useMemo(() => menuData?.data || [], [menuData?.data]);
 
     const categories = useMemo(() => {
         const set = new Set(items.map(i => i.category));

@@ -399,6 +399,7 @@ model StockTransfer {
   requestedAt       DateTime?           @map("requested_at")
   requestedBy       String?             @map("requested_by")
   items             StockTransferItem[]
+  delivery          Delivery?
   company           Company?            @relation(fields: [companyId], references: [id])
   sourceWarehouse   Warehouse           @relation("SourceWarehouse", fields: [sourceWarehouseId], references: [id])
   targetWarehouse   Warehouse           @relation("TargetWarehouse", fields: [targetWarehouseId], references: [id])
@@ -2381,6 +2382,8 @@ model Delivery {
   vehicleId       String?
   driverId        String?
   status          DeliveryStatus   @default(pending)
+  kind            DeliveryKind     @default(shipment)
+  transferId      String?          @unique
   priority        DeliveryPriority @default(normal)
   scheduledDate   DateTime?
   departureDate   DateTime?
@@ -2408,11 +2411,13 @@ model Delivery {
   driver          Driver?          @relation(fields: [driverId], references: [id])
   route           DeliveryRoute?   @relation(fields: [routeId], references: [id])
   vehicle         Vehicle?         @relation(fields: [vehicleId], references: [id])
+  transfer        StockTransfer?   @relation(fields: [transferId], references: [id])
   items           DeliveryItem[]
   transactions    Transaction[]
 
   @@unique([companyId, number])
   @@index([companyId])
+  @@index([transferId])
   @@index([status])
   @@map("deliveries")
 }
@@ -3182,6 +3187,11 @@ enum DeliveryStatus {
   failed
   returned
   cancelled
+}
+
+enum DeliveryKind {
+  shipment
+  warehouse_transfer
 }
 
 enum DeliveryPriority {

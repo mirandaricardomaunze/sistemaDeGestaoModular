@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button, Badge, LoadingSpinner, Input, Modal, Select, Pagination } from '../components/ui';
 import { productsAPI } from '../services/api';
@@ -51,7 +51,7 @@ export default function PharmacyControl() {
         quantity: ''
     });
 
-    const fetchExpiring = async () => {
+    const fetchExpiring = useCallback(async () => {
         try {
             const data = await productsAPI.getExpiring(90, { page, limit: pageSize }); // Look ahead 90 days
             setExpiringSoonData(data);
@@ -59,11 +59,11 @@ export default function PharmacyControl() {
 
             logger.error('Erro ao carregar produtos a expirar');
         }
-    };
+    }, [page, pageSize]);
 
     useEffect(() => {
         fetchExpiring();
-    }, [page, pageSize]);
+    }, [fetchExpiring]);
 
     const exportToExcel = () => {
         const data = expiringSoonData.data.map(p => ({
@@ -290,4 +290,3 @@ export default function PharmacyControl() {
         </div>
     );
 }
-

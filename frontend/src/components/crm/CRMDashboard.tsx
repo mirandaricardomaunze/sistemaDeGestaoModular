@@ -199,7 +199,7 @@ export default function CRMDashboard() {
                         </div>
 
                         {/* Trend Indicators */}
-                        <div className="grid grid-cols-3 gap-4 mt-6 pt-4 border-t border-gray-200 dark:border-dark-700">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 pt-4 border-t border-gray-200 dark:border-dark-700">
                             <div className="text-center">
                                 <div className="flex items-center justify-center gap-1 text-green-600">
                                     <HiOutlineCheckCircle className="w-5 h-5" />
@@ -339,7 +339,7 @@ export default function CRMDashboard() {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full min-w-[600px]">
                         <thead>
                             <tr className="border-b border-gray-200 dark:border-dark-700">
                                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">

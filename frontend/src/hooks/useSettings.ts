@@ -170,7 +170,7 @@ export function useCampaigns(params?: { status?: string }) {
         setIsLoading(true);
         setError(null);
         try {
-            const result = await campaignsAPI.getAll(params);
+            const result = await campaignsAPI.getAll({ status: params?.status });
             setCampaigns(result);
         } catch (err) {
             setError('Erro ao carregar campanhas');

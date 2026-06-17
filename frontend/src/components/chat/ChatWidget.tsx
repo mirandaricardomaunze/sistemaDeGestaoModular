@@ -44,7 +44,10 @@ export default function ChatWidget({ initiallyOpen = false, onClose }: ChatWidge
 
     // Store Integration
     const { messagesByModule, addMessage, clearMessages } = useChatStore();
-    const messages = messagesByModule[currentModule] || [];
+    const messages = useMemo(
+        () => messagesByModule[currentModule] || [],
+        [messagesByModule, currentModule]
+    );
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

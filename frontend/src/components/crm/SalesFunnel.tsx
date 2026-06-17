@@ -83,7 +83,7 @@ export default function SalesFunnel() {
     );
 
     // Metrics
-    const metrics = useMemo(() => getFunnelMetrics(), [opportunities, stages, getFunnelMetrics]);
+    const metrics = useMemo(() => getFunnelMetrics(), [getFunnelMetrics]);
 
     // Drag and Drop handlers
     const handleDragStart = (opportunityId: string) => {
@@ -708,4 +708,3 @@ export default function SalesFunnel() {
         </div>
     );
 }
-

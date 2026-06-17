@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 
 /**
@@ -9,7 +9,7 @@ export const useIdleLogout = (timeoutInMinutes: number = 15) => {
     const { logout, isAuthenticated } = useAuthStore();
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    const resetTimeout = () => {
+    const resetTimeout = useCallback(() => {
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
         }
@@ -20,7 +20,7 @@ export const useIdleLogout = (timeoutInMinutes: number = 15) => {
                 window.location.href = '/login';
             }, timeoutInMinutes * 60 * 1000);
         }
-    };
+    }, [isAuthenticated, logout, timeoutInMinutes]);
 
     useEffect(() => {
         const events = [
@@ -51,5 +51,5 @@ export const useIdleLogout = (timeoutInMinutes: number = 15) => {
                 window.removeEventListener(event, handleActivity);
             });
         };
-    }, [isAuthenticated, logout, timeoutInMinutes]);
+    }, [isAuthenticated, resetTimeout]);
 };

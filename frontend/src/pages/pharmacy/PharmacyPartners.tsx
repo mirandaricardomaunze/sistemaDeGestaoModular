@@ -135,7 +135,9 @@ function InsurersTab() {
             if (editingPartner) await updatePartner(editingPartner.id, data);
             else await addPartner(data);
             setIsModalOpen(false); setEditingPartner(null);
-        } catch { }
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Erro ao guardar parceiro.');
+        }
     };
 
     return (
@@ -200,15 +202,15 @@ function InsurersTab() {
             <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingPartner(null); }} title={editingPartner ? 'Editar Seguradora' : 'Nova Seguradora'} size="md">
                 <form onSubmit={handleSave} className="space-y-4">
                     <Input label="Nome *" name="name" defaultValue={editingPartner?.name} required />
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Input label="Categoria" name="category" defaultValue={editingPartner?.category} placeholder="Seguro Privado" />
                         <Input label="Cobertura (%)" name="coverage" type="number" defaultValue={editingPartner?.coveragePercentage} min="0" max="100" required />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Input label="Telefone" name="phone" defaultValue={editingPartner?.phone} />
                         <Input label="Email" name="email" type="email" defaultValue={editingPartner?.email} />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Input label="NUIT" name="nuit" defaultValue={editingPartner?.nuit} />
                         <Input label="Endereço" name="address" defaultValue={editingPartner?.address} />
                     </div>
@@ -268,7 +270,9 @@ function SuppliersTab() {
             if (editing) await updateSupplier(editing.id, data);
             else await addSupplier(data);
             setIsModalOpen(false); setEditing(null);
-        } catch { }
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Erro ao guardar fornecedor.');
+        }
     };
 
     return (
@@ -353,11 +357,11 @@ function SuppliersTab() {
             <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditing(null); }} title={editing ? 'Editar Fornecedor' : 'Novo Fornecedor'} size="md">
                 <form onSubmit={handleSave} className="space-y-4">
                     <Input label="Nome *" name="name" defaultValue={editing?.name} required />
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Input label="Telefone *" name="phone" defaultValue={editing?.phone} required />
                         <Input label="Email" name="email" type="email" defaultValue={editing?.email ?? ''} />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Input label="NUIT" name="nuit" defaultValue={editing?.nuit ?? ''} />
                         <Input label="Responsável" name="contactPerson" defaultValue={editing?.contactPerson ?? ''} />
                     </div>
@@ -453,7 +457,7 @@ function BillingTab() {
             </div>
 
             {/* Summary */}
-            <div className="grid grid-cols-3 gap-4">
+             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Card padding="md" className="text-center">
                     <p className="text-xs text-gray-500 mb-1">A Receber</p>
                     <p className="text-xl font-black text-amber-600">{formatCurrency(totalPending)}</p>
@@ -471,7 +475,7 @@ function BillingTab() {
             {showGenerate && (
                 <Card padding="md" className="border-2 border-primary-200 dark:border-primary-800">
                     <h3 className="font-bold mb-4">Gerar Fatura para Seguradora</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                         <div className="col-span-2 md:col-span-1">
                             <Select
                                 label="Parceiro *"

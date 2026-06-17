@@ -18,7 +18,10 @@ export function useVacations(params?: UseVacationsParams) {
         setIsLoading(true);
         setError(null);
         try {
-            const result = await employeesAPI.getVacations(params);
+            const result = await employeesAPI.getVacations({
+                employeeId: params?.employeeId,
+                status: params?.status,
+            });
             
             let vacationsData: VacationRequest[] = [];
             if (result.success && result.data) {

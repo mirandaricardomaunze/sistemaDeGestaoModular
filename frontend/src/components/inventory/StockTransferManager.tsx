@@ -24,9 +24,9 @@ export default function StockTransferManager() {
     } = useStockTransfers();
 
     // Ensure arrays are never undefined
-    const products = Array.isArray(productsData) ? productsData : [];
-    const warehouses = Array.isArray(warehousesData) ? warehousesData : [];
-    const transfers = Array.isArray(transfersData) ? transfersData : [];
+    const products = useMemo(() => Array.isArray(productsData) ? productsData : [], [productsData]);
+    const warehouses = useMemo(() => Array.isArray(warehousesData) ? warehousesData : [], [warehousesData]);
+    const transfers = useMemo(() => Array.isArray(transfersData) ? transfersData : [], [transfersData]);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [showPrintModal, setShowPrintModal] = useState(false);

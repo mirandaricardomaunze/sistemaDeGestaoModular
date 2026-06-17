@@ -135,7 +135,7 @@ export default function MarginAnalysis() {
             </div>
 
             {/* KPI Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <MetricCard
                     label="Receita Total"
                     value={formatCurrency(totalRevenue)}
@@ -356,7 +356,7 @@ export default function MarginAnalysis() {
                                             </div>
 
                                             {/* Footer */}
-                                            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 dark:border-white/5">
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-100 dark:border-white/5">
                                                 <div>
                                                     <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest">Receita</span>
                                                     <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{formatCurrency(p.revenue)}</span>
@@ -478,7 +478,7 @@ export default function MarginAnalysis() {
                                                         </div>
                                                         
                                                         {/* Footer */}
-                                                        <div className="grid grid-cols-3 gap-2">
+                                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                                             <div>
                                                                 <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest">Receita</span>
                                                                 <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{formatCurrency(m.revenue)}</span>
@@ -625,7 +625,7 @@ function BulkAdjustmentModal({ isOpen, onClose, categories, onSuccess }: BulkMod
                         ]}
                     />
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Select
                             label="Operação"
                             value={operation}

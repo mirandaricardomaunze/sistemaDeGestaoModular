@@ -12,7 +12,7 @@ import { Badge, Button, Input, Select, Textarea, Modal, SmartTable, PageHeader }
 import { ProductSearchInput, type ProductOption } from '../../components/commercial/ProductSearchInput';
 import { CustomerSearchInput, type CustomerOption } from '../../components/commercial/CustomerSearchInput';
 import { formatCurrency, cn } from '../../utils/helpers';
-import { generateQuotationPDF, generateQuotationsListPDF } from '../../utils/documentGenerator';
+import { generateQuotationPDF, generateQuotationsListPDF, type CompanyInfo } from '../../utils/documentGenerator';
 import { useQuotations } from '../../hooks/useCommercial';
 import { useCompanySettings } from '../../hooks/useCompanySettings';
 import { ordersAPI } from '../../services/api';
@@ -157,7 +157,7 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
                                     — ou preencha manualmente —
                                 </p>
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     <Input
                                         label="Nome do Cliente *"
                                         placeholder="Ex: Manuel Silva"
@@ -296,7 +296,7 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                     value={notes} onChange={e => setNotes(e.target.value)} />
 
                 <div className="flex flex-col md:flex-row items-center justify-between pt-4 border-t border-gray-100 dark:border-dark-700 gap-4">
-                    <div className="w-full md:w-auto grid grid-cols-3 md:flex gap-6">
+                    <div className="w-full md:w-auto grid grid-cols-1 sm:grid-cols-3 md:flex gap-6">
                         <div>
                             <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Subtotal</p>
                             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">{formatCurrency(subtotal)}</p>
@@ -325,118 +325,170 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
 interface QuoteDetailsModalProps {
     quote: QuotationDetails | null;
     ivaRate: number;
+    companySettings: CompanyInfo | null;
     onClose: () => void;
 }
 
-function QuoteDetailsModal({ quote, ivaRate, onClose }: QuoteDetailsModalProps) {
+function QuoteDetailsModal({ quote, ivaRate, companySettings, onClose }: QuoteDetailsModalProps) {
     if (!quote) return null;
     const subtotal = (quote.items || []).reduce(
         (s, i) => s + Number(i.price) * Number(i.quantity), 0
     );
     const ivaValue = subtotal * (ivaRate / 100);
+    const total = subtotal + ivaValue;
+
+    const companyName = companySettings?.tradeName || companySettings?.companyName || 'Multicore';
+    const companyAddress = [
+        companySettings?.address,
+        companySettings?.city,
+        companySettings?.province
+    ].filter(Boolean).join(', ') || 'Endereço não configurado';
 
     return (
         <Modal
             isOpen
             onClose={onClose}
-            title={`Cotação ${quote.orderNumber} — ${quote.customerName}`}
+            title={`Visualização de Cotação — ${quote.orderNumber}`}
             size="xl"
         >
-            <div className="space-y-5">
-                <div>
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Itens da Cotação</h4>
-                    <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800">
-                        {/* Desktop Table */}
-                        <table className="hidden md:table w-full text-[11px]">
+            <div className="space-y-6">
+                {/* Modal Header Actions */}
+                <div className="flex justify-between items-center border-b border-slate-100 dark:border-dark-700 pb-4">
+                    <div>
+                        <p className="text-[10px] font-black text-slate-400 dark:text-gray-500 uppercase tracking-[0.2em]">Cotação {quote.orderNumber}</p>
+                        <h3 className="text-base font-black text-slate-900 dark:text-white">Pré-visualização do Documento</h3>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="ghost"
+                            onClick={() => generateQuotationPDF(quote, companySettings ?? {}, 'save')}
+                            leftIcon={<HiOutlineArrowDownTray className="w-4 h-4" />}
+                            className="font-bold uppercase text-[10px] tracking-widest"
+                        >
+                            PDF
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={() => generateQuotationPDF(quote, companySettings ?? {}, 'print')}
+                            leftIcon={<HiOutlinePrinter className="w-4 h-4" />}
+                            className="border-none font-bold uppercase text-[10px] tracking-widest px-6 shadow-lg shadow-primary-500/20"
+                        >
+                            Imprimir
+                        </Button>
+                    </div>
+                </div>
+
+                {/* A4 Paper Document Preview Container */}
+                <div className="bg-slate-50 dark:bg-dark-900/50 border border-slate-200 dark:border-dark-700 rounded-xl p-4 sm:p-8 max-h-[60vh] overflow-y-auto">
+                    <div
+                        className="w-full mx-auto shadow-lg rounded-lg p-8 sm:p-12 border border-slate-100"
+                        style={{ backgroundColor: '#ffffff', color: '#0f172a', pointerEvents: 'none' }}
+                    >
+                        {/* 1. Header (Logo / Company Info vs Doc Info) */}
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-6 mb-8 pb-6 border-b border-slate-200">
+                            <div className="space-y-2">
+                                {companySettings?.logo && (
+                                    <img src={companySettings.logo} alt="Logo" className="h-12 object-contain filter grayscale mb-2" />
+                                )}
+                                <h2 className="text-lg font-black tracking-tight" style={{ color: '#0f172a' }}>{companyName}</h2>
+                                <p className="text-[10px] leading-tight" style={{ color: '#475569' }}>
+                                    {companyAddress}<br />
+                                    {companySettings?.phone && `Tel: ${companySettings.phone}`}
+                                    {companySettings?.email && ` • Email: ${companySettings.email}`}
+                                </p>
+                                <p className="text-[10px] font-black" style={{ color: '#1e293b' }}>
+                                    NUIT: {companySettings?.taxId || companySettings?.nuit || 'N/A'}
+                                </p>
+                            </div>
+                            <div className="text-left sm:text-right space-y-1 sm:ml-auto">
+                                <h1 className="text-2xl font-black tracking-widest uppercase" style={{ color: '#0f172a' }}>Cotação</h1>
+                                <p className="text-xs font-mono font-bold" style={{ color: '#334155' }}>Nº: {quote.orderNumber}</p>
+                                <p className="text-[10px]" style={{ color: '#64748b' }}>
+                                    Emissão: {new Date(quote.createdAt).toLocaleDateString('pt-MZ')}<br />
+                                    {quote.deliveryDate && `Válida até: ${new Date(quote.deliveryDate).toLocaleDateString('pt-MZ')}`}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* 2. Customer Info */}
+                        <div className="mb-8 p-4 rounded-lg border border-slate-100" style={{ backgroundColor: '#f8fafc' }}>
+                            <h3 className="text-[9px] font-black uppercase tracking-wider mb-2" style={{ color: '#64748b' }}>Dados do Cliente</h3>
+                            <p className="text-xs font-bold" style={{ color: '#0f172a' }}>{quote.customerName}</p>
+                            {quote.customerPhone && quote.customerPhone !== '---' && (
+                                <p className="text-[10px] mt-0.5" style={{ color: '#475569' }}>Telefone: {quote.customerPhone}</p>
+                            )}
+                        </div>
+
+                        {/* 3. Items Table */}
+                        <table className="w-full print-table mb-8" style={{ backgroundColor: '#ffffff' }}>
                             <thead>
-                                <tr className="bg-gray-50 dark:bg-dark-700/50 text-gray-400">
-                                    <th className="text-left p-3 font-black uppercase tracking-widest">Produto</th>
-                                    <th className="text-left p-3 font-black uppercase tracking-widest">Cód. Barra</th>
-                                    <th className="text-right p-3 font-black uppercase tracking-widest">Qtd</th>
-                                    <th className="text-right p-3 font-black uppercase tracking-widest">Preço</th>
-                                    <th className="text-right p-3 font-black uppercase tracking-widest">Total</th>
+                                <tr style={{ borderBottom: '2px solid #e2e8f0', backgroundColor: '#ffffff' }}>
+                                    <th className="text-left py-2 px-1 text-[9px] font-black uppercase tracking-wider" style={{ color: '#475569' }}>Código</th>
+                                    <th className="text-left py-2 px-1 text-[9px] font-black uppercase tracking-wider" style={{ color: '#475569' }}>Descrição</th>
+                                    <th className="text-center py-2 px-1 text-[9px] font-black uppercase tracking-wider" style={{ color: '#475569' }}>Qtd</th>
+                                    <th className="text-right py-2 px-1 text-[9px] font-black uppercase tracking-wider" style={{ color: '#475569' }}>Preço Unit.</th>
+                                    <th className="text-right py-2 px-1 text-[9px] font-black uppercase tracking-wider" style={{ color: '#475569' }}>Total</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {(quote.items ?? []).map((item) => (
-                                    <tr key={item.id} className="border-t border-gray-50 dark:border-dark-700/50">
-                                        <td className="p-3 font-bold text-gray-700 dark:text-gray-300 uppercase">{item.productName}</td>
-                                        <td className="p-3 text-gray-500">{item.barcode || item.product?.barcode || '---'}</td>
-                                        <td className="p-3 text-right text-gray-500">{item.quantity}</td>
-                                        <td className="p-3 text-right text-gray-500">{formatCurrency(Number(item.price))}</td>
-                                        <td className="p-3 text-right font-black text-gray-900 dark:text-white">{formatCurrency(Number(item.total))}</td>
+                                    <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#ffffff' }}>
+                                        <td className="py-2 px-1 text-[10px] font-mono" style={{ color: '#475569' }}>{item.barcode || '---'}</td>
+                                        <td className="py-2 px-1 text-[10px] font-bold uppercase" style={{ color: '#1e293b' }}>{item.productName}</td>
+                                        <td className="py-2 px-1 text-[10px] text-center" style={{ color: '#334155' }}>{item.quantity}</td>
+                                        <td className="py-2 px-1 text-[10px] text-right" style={{ color: '#334155' }}>{formatCurrency(Number(item.price))}</td>
+                                        <td className="py-2 px-1 text-[10px] font-bold text-right" style={{ color: '#0f172a' }}>{formatCurrency(Number(item.total))}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                        
-                        {/* Mobile Cards */}
-                        <div className="flex flex-col md:hidden divide-y divide-gray-100 dark:divide-dark-700">
-                            {(quote.items ?? []).map((item) => (
-                                <div key={item.id} className="p-4 space-y-2">
-                                    <div className="flex justify-between items-start gap-2">
-                                        <span className="font-bold text-sm text-gray-700 dark:text-gray-300 uppercase">{item.productName}</span>
-                                        <span className="font-black text-sm text-gray-900 dark:text-white shrink-0">{formatCurrency(Number(item.total))}</span>
+
+                        {/* 4. Totals and Notes Grid */}
+                        <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+                            <div className="flex-1 w-full max-w-md">
+                                {quote.notes && (
+                                    <div className="p-3 rounded-lg border border-slate-100 text-[10px] italic leading-relaxed" style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
+                                        <strong className="block text-[8px] font-black uppercase tracking-wider mb-1" style={{ color: '#64748b' }}>Notas e Condições</strong>
+                                        {quote.notes}
                                     </div>
-                                    <div className="flex items-center justify-between text-xs text-gray-500">
-                                        <span className="font-mono text-[10px] bg-gray-50 dark:bg-dark-900 px-1.5 py-0.5 rounded">
-                                            {item.barcode || item.product?.barcode || 'S/ CÓDIGO'}
-                                        </span>
-                                        <span>{item.quantity} un × {formatCurrency(Number(item.price))}</span>
-                                    </div>
+                                )}
+                            </div>
+                            <div className="w-full md:w-64 md:ml-auto p-4 rounded-xl border border-slate-100" style={{ backgroundColor: '#f8fafc' }}>
+                                <div className="flex justify-between items-center text-[10px] mb-1.5" style={{ color: '#475569' }}>
+                                    <span>Subtotal:</span>
+                                    <span className="font-bold">{formatCurrency(subtotal)}</span>
                                 </div>
-                            ))}
+                                <div className="flex justify-between items-center text-[10px] mb-2" style={{ color: '#475569' }}>
+                                    <span>IVA ({ivaRate}%):</span>
+                                    <span className="font-bold">{formatCurrency(ivaValue)}</span>
+                                </div>
+                                <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                                    <span className="text-[10px] font-black uppercase" style={{ color: '#0f172a' }}>Total:</span>
+                                    <span className="text-sm font-black" style={{ color: '#0ea5e9' }}>{formatCurrency(total)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 5. Signatures area */}
+                        <div className="grid grid-cols-2 gap-12 mt-16 pt-8 border-t border-slate-100">
+                            <div className="text-center">
+                                <div className="h-12 border-b border-slate-200" />
+                                <span className="text-[8px] font-black uppercase tracking-wider block mt-2" style={{ color: '#64748b' }}>Assinatura do Cliente</span>
+                            </div>
+                            <div className="text-center">
+                                <div className="h-12 border-b border-slate-200" />
+                                <span className="text-[8px] font-black uppercase tracking-wider block mt-2" style={{ color: '#64748b' }}>Carimbo e Autorização</span>
+                            </div>
+                        </div>
+
+                        <div className="text-center text-[7px] font-black uppercase tracking-widest mt-12" style={{ color: '#cbd5e1' }}>
+                            Processado por Computador • Multicore ERP
                         </div>
                     </div>
                 </div>
 
-                <div>
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Informações Adicionais</h4>
-                    <div className="p-4 rounded-xl bg-gray-50/50 dark:bg-dark-900/30 border border-gray-100 dark:border-dark-700 space-y-2">
-                        <div className="flex justify-between text-xs">
-                            <span className="text-gray-400">Data de Emissão:</span>
-                            <span className="font-bold text-gray-700 dark:text-gray-300">
-                                {new Date(quote.createdAt).toLocaleDateString('pt-MZ')}
-                            </span>
-                        </div>
-                        {quote.deliveryDate && (
-                            <div className="flex justify-between text-xs">
-                                <span className="text-gray-400">Válida até:</span>
-                                <span className="font-bold text-gray-700 dark:text-gray-300">
-                                    {new Date(quote.deliveryDate).toLocaleDateString('pt-MZ')}
-                                </span>
-                            </div>
-                        )}
-                        <div className="pt-2 mt-2 border-t border-gray-100 dark:border-dark-700 space-y-1">
-                            <div className="flex justify-between text-xs">
-                                <span className="text-gray-400">Subtotal:</span>
-                                <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(subtotal)}</span>
-                            </div>
-                            <div className="flex justify-between text-xs">
-                                <span className="text-gray-400">IVA ({ivaRate}%):</span>
-                                <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(ivaValue)}</span>
-                            </div>
-                            <div className="flex justify-between text-sm pt-1 border-t border-gray-100 dark:border-dark-700/50">
-                                <span className="text-gray-400 font-bold">Total Final:</span>
-                                <span className="font-black text-primary-600 dark:text-primary-400">
-                                    {formatCurrency(Number(quote.total))}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {(quote.notes ?? '').trim() && (
-                    <div>
-                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Observações</h4>
-                        <div className="p-3 rounded-lg bg-primary-50/30 dark:bg-primary-900/10 border border-primary-100/30 dark:border-primary-500/10 text-[11px] text-gray-600 dark:text-gray-400 italic">
-                            {quote.notes}
-                        </div>
-                    </div>
-                )}
-
-                <div className="flex justify-end pt-2">
-                    <Button variant="ghost" onClick={onClose}>Fechar</Button>
+                <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-dark-700">
+                    <Button variant="ghost" onClick={onClose}>Fechar Visualização</Button>
                 </div>
             </div>
         </Modal>
@@ -847,6 +899,7 @@ export default function CommercialQuotes() {
             <QuoteDetailsModal
                 quote={viewingQuote}
                 ivaRate={companySettings?.ivaRate || 16}
+                companySettings={companySettings}
                 onClose={() => setViewingQuote(null)}
             />
 

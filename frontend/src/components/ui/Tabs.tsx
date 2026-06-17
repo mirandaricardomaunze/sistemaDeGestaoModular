@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { Button } from './Button';
 import { cn } from '../../utils/helpers';
 
@@ -176,10 +176,16 @@ export function useTabs(defaultTab: string) {
 export function useStepper(totalSteps: number) {
     const [currentStep, setCurrentStep] = useState(0);
 
-    const next = () => setCurrentStep(prev => Math.min(prev + 1, totalSteps - 1));
-    const prev = () => setCurrentStep(prev => Math.max(prev - 1, 0));
-    const reset = () => setCurrentStep(0);
-    const goTo = (step: number) => setCurrentStep(Math.max(0, Math.min(step, totalSteps - 1)));
+    const next = useCallback(() => setCurrentStep(prev => Math.min(prev + 1, totalSteps - 1)), [totalSteps]);
+    const prev = useCallback(() => setCurrentStep(prev => Math.max(prev - 1, 0)), []);
+    const reset = useCallback(() => setCurrentStep(0), []);
+    const goTo = useCallback(
+        (step: number) => setCurrentStep(Math.max(0, Math.min(step, totalSteps - 1))),
+        [totalSteps]
+    );
 
-    return { currentStep, next, prev, reset, goTo, isFirst: currentStep === 0, isLast: currentStep === totalSteps - 1 };
+    return useMemo(
+        () => ({ currentStep, next, prev, reset, goTo, isFirst: currentStep === 0, isLast: currentStep === totalSteps - 1 }),
+        [currentStep, next, prev, reset, goTo, totalSteps]
+    );
 }

@@ -68,7 +68,7 @@ export default function RestaurantReports() {
     const dates = preset === 'custom' ? customDates : getPresetDates(preset);
     const { data, isLoading, refetch } = useRestaurantReports({ ...dates, page, limit: 100 });
 
-    const sales = data?.data || [];
+    const sales = useMemo(() => data?.data || [], [data?.data]);
     const summary = data?.summary || { totalRevenue: 0, totalOrders: 0, avgTicket: 0 };
     const pagination = data?.pagination;
 
