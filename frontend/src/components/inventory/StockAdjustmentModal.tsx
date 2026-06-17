@@ -93,7 +93,7 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
                 </div>
 
                 {/* Operation Selector */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {operationOptions.map((op) => (
                         <Button variant="ghost"
                             key={op.id}
@@ -112,7 +112,7 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
                     ))}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input
                         label="Quantidade"
                         type="number"

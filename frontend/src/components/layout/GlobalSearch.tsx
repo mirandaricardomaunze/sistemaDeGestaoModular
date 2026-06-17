@@ -788,7 +788,7 @@ export default function GlobalSearch() {
             clearTimeout(timer);
             controller.abort();
         };
-    }, [query, open, hasModule, userSpecializedModule]);
+    }, [query, open, hasModule, userSpecializedModule, recentScope]);
 
     // Group + filter
     const filteredResults = useMemo(() => {
@@ -983,7 +983,7 @@ export default function GlobalSearch() {
                                 <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
                                     Acesso Rápido
                                 </div>
-                                <div className="grid grid-cols-3 gap-1.5">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                                     {availableModules.slice(0, 6).map((cfg) => {
                                         const Icon = cfg.icon;
                                         return (

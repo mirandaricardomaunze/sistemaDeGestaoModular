@@ -356,7 +356,7 @@ function AttendancePanel({ config, employees: allEmp }: { config: ModuleHRConfig
 
             <Modal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} title={`Histórico - ${selectedEmployee?.name}`} size="lg">
                 <div className="space-y-6">
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {[{ label: 'Presenças', value: historySummary.present, color: 'teal' }, { label: 'Atrasos', value: historySummary.late, color: 'amber' }, { label: 'Horas Total', value: `${historySummary.hours.toFixed(1)}h`, color: 'indigo' }].map((s, i) => (
                             <div key={i} className={`p-4 rounded-lg bg-${s.color}-50 dark:bg-${s.color}-900/10 border border-${s.color}-100`}>
                                 <p className={`text-[10px] font-black uppercase text-${s.color}-600 mb-1`}>{s.label}</p>
@@ -725,7 +725,7 @@ export function VacationsPanel({ config, employees: allEmp }: { config: ModuleHR
             <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Novo Pedido de Férias">
                 <div className="p-4 space-y-4">
                     <Select label="Colaborador" options={employees.map(e => ({ value: e.id, label: e.name }))} value={newReq.employeeId} onChange={e => setNewReq(p => ({ ...p, employeeId: e.target.value }))} />
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Input label="Data Início" type="date" value={newReq.startDate} onChange={e => setNewReq(p => ({ ...p, startDate: e.target.value }))} />
                         <Input label="Data Fim" type="date" value={newReq.endDate} onChange={e => setNewReq(p => ({ ...p, endDate: e.target.value }))} />
                     </div>

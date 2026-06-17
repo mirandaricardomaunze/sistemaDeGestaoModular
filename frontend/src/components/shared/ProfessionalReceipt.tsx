@@ -104,7 +104,7 @@ export default function ProfessionalReceipt({ isOpen, onClose, sale }: Professio
             </div>
 
             {/* Receipt Info Grid */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <div className="bg-white border border-gray-100 rounded-lg p-4">
                     <p className="text-[8pt] text-gray-400 uppercase tracking-wider font-bold">Nº Documento</p>
                     <p className="text-lg font-black text-gray-900">{sale.receiptNumber}</p>
@@ -139,42 +139,44 @@ export default function ProfessionalReceipt({ isOpen, onClose, sale }: Professio
                     : 0;
                 return (
                     <>
-                        <table className="receipt-table print-table">
-                            <thead>
-                                <tr>
-                                    <th style={{ width: hasWeight ? '40%' : '50%' }}>Descrição</th>
-                                    <th style={{ width: '10%', textAlign: 'center' }}>Qtd</th>
-                                    <th style={{ width: '20%', textAlign: 'right' }}>Preço Unit.</th>
-                                    {hasWeight && <th style={{ width: '15%', textAlign: 'right' }}>Peso Total</th>}
-                                    <th style={{ width: '20%', textAlign: 'right' }}>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {(sale.items || []).map((item, index) => {
-                                    const lineWeight = item.product?.weight ? item.product.weight * item.quantity : null;
-                                    const publicRef = item.product.sku || item.product.barcode;
-                                    return (
-                                        <tr key={index}>
-                                            <td>
-                                                <p className="font-medium text-gray-900">{item.product.name}</p>
-                                                {publicRef && <p className="text-[8pt] text-gray-400">Ref: {publicRef}</p>}
-                                                {Number(item.product?.weight) > 0 && (
-                                                    <p className="text-[7pt] text-gray-300">{Number(item.product!.weight).toFixed(3)} kg/un</p>
-                                                )}
-                                            </td>
-                                            <td style={{ textAlign: 'center' }}>{item.quantity}</td>
-                                            <td style={{ textAlign: 'right' }}>{formatCurrency(item.unitPrice)}</td>
-                                            {hasWeight && (
-                                                <td style={{ textAlign: 'right', color: '#64748b' }}>
-                                                    {lineWeight !== null ? `${lineWeight.toFixed(3)} kg` : '—'}
+                        <div className="overflow-x-auto">
+                            <table className="receipt-table print-table min-w-[500px]">
+                                <thead>
+                                    <tr>
+                                        <th style={{ width: hasWeight ? '40%' : '50%' }}>Descrição</th>
+                                        <th style={{ width: '10%', textAlign: 'center' }}>Qtd</th>
+                                        <th style={{ width: '20%', textAlign: 'right' }}>Preço Unit.</th>
+                                        {hasWeight && <th style={{ width: '15%', textAlign: 'right' }}>Peso Total</th>}
+                                        <th style={{ width: '20%', textAlign: 'right' }}>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(sale.items || []).map((item, index) => {
+                                        const lineWeight = item.product?.weight ? item.product.weight * item.quantity : null;
+                                        const publicRef = item.product.sku || item.product.barcode;
+                                        return (
+                                            <tr key={index}>
+                                                <td>
+                                                    <p className="font-medium text-gray-900">{item.product.name}</p>
+                                                    {publicRef && <p className="text-[8pt] text-gray-400">Ref: {publicRef}</p>}
+                                                    {Number(item.product?.weight) > 0 && (
+                                                        <p className="text-[7pt] text-gray-300">{Number(item.product!.weight).toFixed(3)} kg/un</p>
+                                                    )}
                                                 </td>
-                                            )}
-                                            <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatCurrency(item.total)}</td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                                <td style={{ textAlign: 'center' }}>{item.quantity}</td>
+                                                <td style={{ textAlign: 'right' }}>{formatCurrency(item.unitPrice)}</td>
+                                                {hasWeight && (
+                                                    <td style={{ textAlign: 'right', color: '#64748b' }}>
+                                                        {lineWeight !== null ? `${lineWeight.toFixed(3)} kg` : '—'}
+                                                    </td>
+                                                )}
+                                                <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatCurrency(item.total)}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                         {hasWeight && (
                             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '6px 14px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
@@ -215,7 +217,7 @@ export default function ProfessionalReceipt({ isOpen, onClose, sale }: Professio
 
             {/* Payment Info */}
             <div className="mt-6 pt-4 border-t border-gray-100">
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                         <p className="text-[8pt] text-gray-400 uppercase font-bold">Método de Pagamento</p>
                         <p className="text-sm font-bold">{paymentLabels[sale.paymentMethod] || sale.paymentMethod}</p>
@@ -237,7 +239,7 @@ export default function ProfessionalReceipt({ isOpen, onClose, sale }: Professio
             {companySettings.bankAccounts && companySettings.bankAccounts.length > 0 && (
                 <div className="mt-6 p-4 bg-white rounded-lg border border-gray-100">
                     <p className="text-[8pt] text-gray-400 uppercase font-bold mb-3 tracking-widest">Dados Bancários</p>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {companySettings.bankAccounts.map((bank, idx) => (
                             <div key={idx} className="text-[9pt]">
                                 <p className="font-bold text-gray-700">{bank.bankName}</p>

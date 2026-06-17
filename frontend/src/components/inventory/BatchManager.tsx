@@ -21,6 +21,7 @@ import type { ProductBatch, CreateBatchDto } from '../../services/api';
 import { useProducts } from '../../hooks/useData';
 import { differenceInDays } from 'date-fns';
 import { MetricCard } from '../common/ModuleMetricCard';
+import { logger } from '../../utils/logger';
 
 // ============================================================================
 // STATUS CONFIG
@@ -142,12 +143,12 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                 }
             }
         }
-    }, [form.productId, products, editing]);
+    }, [form.productId, form.boxes, products, editing]);
 
     return (
         <Modal isOpen={open} onClose={onClose} title={editing ? 'Editar Lote' : 'Registar Novo Lote'} size="xl">
             <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input label="Nº Lote *" value={form.batchNumber || ''} onChange={e => setForm(p => ({ ...p, batchNumber: e.target.value.toUpperCase() }))}
                         placeholder="Ex: LT2026001" required />
                     <div>
@@ -238,7 +239,7 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                      <Input 
                         label="Preço por Caixa" 
                         type="number" 
@@ -287,7 +288,7 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                         className="bg-gray-50 dark:bg-dark-900 font-bold text-primary-600"
                     />
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <Input label="Data de Fabricação" type="date" value={form.manufactureDate || ''} onChange={e => setForm(p => ({ ...p, manufactureDate: e.target.value }))} />
                     <Input label="Data de Entrada" type="date" value={form.receivedDate || ''} onChange={e => setForm(p => ({ ...p, receivedDate: e.target.value }))} />
                     <Input label="Validade (Expiração)" type="date" value={form.expiryDate || ''} onChange={e => setForm(p => ({ ...p, expiryDate: e.target.value }))} />
@@ -343,7 +344,13 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
     const handleCloseModal = () => { setModalOpen(false); setEditing(null); refetch(); refetchDash(); };
     const handleDelete = async () => {
         if (!deleting) return;
-        try { await deleteBatch.mutateAsync(deleting.id); refetch(); refetchDash(); } catch { }
+        try {
+            await deleteBatch.mutateAsync(deleting.id);
+            refetch();
+            refetchDash();
+        } catch (error) {
+            logger.warn('Batch deletion failed', error);
+        }
         setDeleting(null);
     };
 

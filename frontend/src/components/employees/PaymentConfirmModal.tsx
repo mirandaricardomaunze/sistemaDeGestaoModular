@@ -143,7 +143,7 @@ export default function PaymentConfirmModal({ isOpen, onClose, record, onConfirm
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Método de Pagamento
                         </label>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             {paymentMethods.map((method) => {
                                 const Icon = method.icon;
                                 return (

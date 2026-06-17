@@ -194,7 +194,7 @@ export const PharmacyAttendanceControl: React.FC = () => {
             >
                 <div className="space-y-6">
                     {/* Monthly Summary */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="p-4 rounded-lg bg-teal-50 dark:bg-teal-900/10 border border-teal-100 dark:border-teal-900/20">
                             <p className="text-[10px] font-black uppercase text-teal-600 mb-1">Presenças</p>
                             <p className="text-xl font-black text-teal-700">{statsSummary.present}</p>

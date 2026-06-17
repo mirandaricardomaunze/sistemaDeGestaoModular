@@ -1249,7 +1249,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                             Forma de Pagamento
                         </label>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             {paymentMethods.map((method) => (
                                 <Button variant="ghost"
                                     key={method.id}
@@ -1526,7 +1526,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                     </div>
 
                     {/* Operation Type */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <Button variant="ghost"
                             onClick={() => setCashOperation('add')}
                             className={`p-4 rounded-lg border-2 flex flex-row items-center justify-center gap-2 transition-all ${cashOperation === 'add'

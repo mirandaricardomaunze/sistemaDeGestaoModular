@@ -200,7 +200,7 @@ export default function PaymentGuidePrint({ isOpen, onClose, metrics, moduleTitl
                     </div>
 
                     {/* Signatures and Seals */}
-                    <div className="grid grid-cols-3 gap-8 mt-4 items-center">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mt-4 items-center">
                         <div className="text-center">
                             <div className="official-stamp mx-auto">
                                 Autoridade Tributária<br />Processamento<br />Centralizado

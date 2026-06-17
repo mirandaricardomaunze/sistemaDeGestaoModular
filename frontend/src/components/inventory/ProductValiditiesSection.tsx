@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import {
@@ -108,7 +108,7 @@ export default function ProductValiditiesSection({ productId }: Props) {
         }
     }, [form.boxes, form.unitsPerBox, isBoxEntry]);
 
-    const load = async () => {
+    const load = useCallback(async () => {
         try {
             setLoading(true);
             const res = await batchesAPI.list({ productId });
@@ -127,9 +127,9 @@ export default function ProductValiditiesSection({ productId }: Props) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [productId]);
 
-    useEffect(() => { load(); }, [productId]);
+    useEffect(() => { load(); }, [load]);
 
     const openCreate = () => {
         setEditingId(null);
@@ -252,7 +252,7 @@ export default function ProductValiditiesSection({ productId }: Props) {
                     <p className="text-[10px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-[0.2em]">
                         {editingId ? 'Gestão de Lote Existente' : 'Entrada de Novo Lote'}
                     </p>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <Input
                             label="Número do Lote *"
                             value={form.batchNumber}
@@ -271,7 +271,7 @@ export default function ProductValiditiesSection({ productId }: Props) {
                             disabled={!!editingId}
                         />
                         
-                        <div className="col-span-2 p-3 bg-white/50 dark:bg-dark-800/50 rounded-lg border border-primary-100 dark:border-primary-900/20">
+                        <div className="col-span-1 sm:col-span-2 p-3 bg-white/50 dark:bg-dark-800/50 rounded-lg border border-primary-100 dark:border-primary-900/20">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Entrada de Stock</span>
                                 <label className="flex items-center gap-2 cursor-pointer">
@@ -285,7 +285,7 @@ export default function ProductValiditiesSection({ productId }: Props) {
                                 </label>
                             </div>
                             
-                            <div className="grid grid-cols-3 gap-3 items-end">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
                                 {isBoxEntry ? (
                                     <>
                                         <Input
@@ -339,7 +339,7 @@ export default function ProductValiditiesSection({ productId }: Props) {
                             value={form.notes}
                             onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                             placeholder="Opcional"
-                            className="col-span-2"
+                            className="col-span-1 sm:col-span-2"
                         />
                     </div>
                     <div className="flex gap-2 justify-end">

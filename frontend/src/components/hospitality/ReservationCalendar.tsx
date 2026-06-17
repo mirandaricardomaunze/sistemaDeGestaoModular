@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, Button, Modal, Input, Select, TableContainer } from '../ui';
 import { hospitalityAPI } from '../../services/api';
@@ -84,7 +84,7 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
         return days;
     }, [currentDate]);
 
-    const fetchCalendarData = async () => {
+    const fetchCalendarData = useCallback(async () => {
         setIsLoading(true);
         try {
             const year = currentDate.getFullYear();
@@ -100,11 +100,11 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [currentDate]);
 
     useEffect(() => {
         fetchCalendarData();
-    }, [currentDate]);
+    }, [fetchCalendarData]);
 
     const prevMonth = () => {
         setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -391,7 +391,7 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                     />
 
                     {/* Country and Phone */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 <HiOutlineGlobeAmericas className="w-4 h-4 inline mr-1" />
@@ -429,7 +429,7 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                     </div>
 
                     {/* Guest Count and Dates */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <Input
                             label={t('hotel_module.reservations.nights')}
                             type="number"

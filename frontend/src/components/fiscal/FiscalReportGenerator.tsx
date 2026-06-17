@@ -578,9 +578,9 @@ export default function FiscalReportGenerator() {
                         )}
 
                         {/* Summary */}
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg text-center">
-                                <p className="text-sm text-gray-500">Total Base Tributvel</p>
+                                <p className="text-sm text-gray-500">Total Base Tributável</p>
                                 <p className="text-xl font-bold text-gray-900 dark:text-white">
                                     {formatCurrency(previewReport.summary.totalBaseAmount)}
                                 </p>
@@ -601,26 +601,28 @@ export default function FiscalReportGenerator() {
 
                         {/* Retentions Table */}
                         <div className="max-h-64 overflow-y-auto">
-                            <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700 text-sm">
-                                <thead className="bg-gray-50 dark:bg-dark-800 sticky top-0">
-                                    <tr>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Documento</th>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Entidade</th>
-                                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Base</th>
-                                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Imposto</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                                    {previewReport.retentions.map((r) => (
-                                        <tr key={r.id}>
-                                            <td className="px-3 py-2 font-mono">{r.documentNumber}</td>
-                                            <td className="px-3 py-2">{r.entityName}</td>
-                                            <td className="px-3 py-2 text-right font-mono">{formatCurrency(r.baseAmount)}</td>
-                                            <td className="px-3 py-2 text-right font-mono font-bold text-primary-600">{formatCurrency(r.retainedAmount)}</td>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700 text-sm min-w-[500px]">
+                                    <thead className="bg-gray-50 dark:bg-dark-800 sticky top-0">
+                                        <tr>
+                                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Documento</th>
+                                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Entidade</th>
+                                            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Base</th>
+                                            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Imposto</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
+                                        {previewReport.retentions.map((r) => (
+                                            <tr key={r.id}>
+                                                <td className="px-3 py-2 font-mono">{r.documentNumber}</td>
+                                                <td className="px-3 py-2">{r.entityName}</td>
+                                                <td className="px-3 py-2 text-right font-mono">{formatCurrency(r.baseAmount)}</td>
+                                                <td className="px-3 py-2 text-right font-mono font-bold text-primary-600">{formatCurrency(r.retainedAmount)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
 
                         {/* Export Actions */}
